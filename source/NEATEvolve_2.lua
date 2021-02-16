@@ -17,6 +17,8 @@ ButtonNames = {
 	"Right",
 }
 
+FileUtil = require('util/FileUtil')
+
 if gameinfo.getromname() ~= romGameName then
 	error('Unsupported Game Rom! Please play rom: ' .. romGameName .. ' Rom currently is: ' .. gameinfo.getromname())
 end
@@ -49,9 +51,8 @@ TimeoutConstant = 20
 MaxNodes = 1000000
 
 -- Load the saved slot. This savefile needs to be set manually before this program starts
--- If the load does not exist, this function does nothing. Cannot generate error / detect if one does not exist.
 function loadSavedMarioGame(fileLocation)
-	local current_dir = getCurrentDirectory()
+	local current_dir = FileUtil.getCurrentDirectory()
 	local full_file_path = current_dir .. "\\" ..fileLocation
 	local fileOpened=io.open(full_file_path,"r")
 	if fileOpened~=nil then 
@@ -65,25 +66,8 @@ function loadSavedMarioGame(fileLocation)
 	console.log('loaded save game from file.')
 end
 
--- TODO: move function to a util
-function getCurrentDirectory()
-	return io.popen"cd":read'*l'
-end
-
--- TODO: move function to a util
-function scandir(directory)
-	local results = {}
-	-- get list of files based on windows command
-    local p = io.popen('dir "' .. directory .. '" /b')
-	-- iterate through the list of files
-    for file in p:lines() do
-        table.insert(results, file)
-    end
-	return results
-end
-
 function loadLatestBackup()
-	local listOfAllPoolFiles = scandir(poolSavesFolder)
+	local listOfAllPoolFiles = FileUtil.scandir(poolSavesFolder)
 	local latestBackupNumber = -1
 	local latestBackupFile
 
@@ -1146,7 +1130,7 @@ function onExit()
 	forms.destroy(form)
 end
 
-poolSavesFolder = getCurrentDirectory() .. '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
+poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 
 event.onexit(onExit)
 
