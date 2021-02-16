@@ -83,6 +83,11 @@ function loadLatestBackup()
 	end
 end
 
+function saveNewBackup(poolGeneration)
+	local newFileName = "backup." .. poolGeneration .. "." .. saveLoadFile
+	writeFile(poolSavesFolder .. newFileName)
+end
+
 function getPositions()
 	marioX = memory.read_s16_le(0x94)
 	marioY = memory.read_s16_le(0x96)
@@ -788,7 +793,7 @@ function newGeneration()
 	
 	pool.generation = pool.generation + 1
 	
-	writeFile("backup." .. pool.generation .. "." .. saveLoadFile)
+	saveNewBackup(pool.generation)
 end
 	
 function initializePool()
@@ -1177,7 +1182,7 @@ while true do
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
 			forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-			writeFile("backup." .. pool.generation .. "." .. saveLoadFile)
+			saveNewBackup(pool.generation)
 		end
 		
 		console.writeline("Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. fitness)
