@@ -3,7 +3,7 @@
 -- Intended for use with the BizHawk emulator and Super Mario World or Super Mario Bros. ROM.
 -- Save a named statefile at the beginning of a level and place it in this repo's root directory
 saveFileName = 'SuperMario_ML.state'
-poolFileNamePrefix = 'SuperMario_ML pools'
+poolFileNamePrefix = 'SuperMario_ML_pools'
 romGameName = 'Super Mario World (USA)'
 ButtonNames = {
 	"A",
@@ -63,6 +63,19 @@ function loadSavedMarioGame(fileLocation)
 	
 	savestate.load(full_file_path)
 	console.log('loaded save game from file.')
+end
+
+-- TODO: move function to a util
+-- Lua implementation of PHP scandir function
+function scandir(directory)
+    local i, t, popen = 0, {}, io.popen
+    local pfile = popen('ls -a "'..directory..'"')
+    for filename in pfile:lines() do
+        i = i + 1
+        t[i] = filename
+    end
+    pfile:close()
+    return t
 end
 
 function getPositions()
@@ -778,7 +791,7 @@ function newGeneration()
 	
 	pool.generation = pool.generation + 1
 	
-	writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
+	writeFile("backup." .. pool.generation .. "." .. saveLoadFile)
 end
 	
 function initializePool()
@@ -1022,7 +1035,7 @@ function writeFile(filename)
 end
 
 function savePool()
-	local filename = forms.gettext(saveLoadFile)
+	local filename = saveLoadFile
 	writeFile(filename)
 end
 
@@ -1075,7 +1088,7 @@ function loadFile(filename)
 end
  
 function loadPool()
-	local filename = forms.gettext(saveLoadFile)
+	local filename = saveLoadFile
 	loadFile(filename)
 end
 
@@ -1117,12 +1130,16 @@ showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 restartButton = forms.button(form, "Restart", initializePool, 5, 77)
 saveButton = forms.button(form, "Save", savePool, 5, 102)
 loadButton = forms.button(form, "Load", loadPool, 80, 102)
-saveLoadFile = forms.textbox(form, poolFileNamePrefix .. ".pool", 170, 25, nil, 5, 148)
+saveLoadFile = poolFileNamePrefix .. ".pool" 
+--forms.textbox(form, poolFileNamePrefix .. ".pool", 170, 25, nil, 5, 148)
 saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
 
 console.log('beginning program....')
+
+
+loadFile('backup.1.SuperMario_ML_pools.pool')
 
 while true do
 	local backgroundColor = 0xD0FFFFFF
@@ -1166,7 +1183,7 @@ while true do
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
 			forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-			writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
+			writeFile("backup." .. pool.generation .. "." .. saveLoadFile)
 		end
 		
 		console.writeline("Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. fitness)
