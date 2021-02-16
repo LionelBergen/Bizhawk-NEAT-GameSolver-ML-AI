@@ -52,17 +52,11 @@ MaxNodes = 1000000
 
 -- Load the saved slot. This savefile needs to be set manually before this program starts
 function loadSavedMarioGame(fileLocation)
-	local current_dir = FileUtil.getCurrentDirectory()
-	local full_file_path = current_dir .. "\\" ..fileLocation
-	local fileOpened=io.open(full_file_path,"r")
-	if fileOpened~=nil then 
-		io.close(fileOpened)
-		console.log('loaded file: ' .. full_file_path)
-	else
-		error('save file does not exist!: ' .. full_file_path) 
-	end
+	local currentDir = FileUtil.getCurrentDirectory()
+	local fullFilePath = currentDir .. "\\" ..fileLocation
+	FileUtil.validateFilePath(fullFilePath)
 	
-	savestate.load(full_file_path)
+	savestate.load(fullFilePath)
 	console.log('loaded save game from file.')
 end
 

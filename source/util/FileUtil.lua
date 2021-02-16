@@ -15,4 +15,14 @@ function FileUtil.scandir(directory)
 	return results
 end
 
+function FileUtil.validateFilePath(fileLocation)
+	local fileOpened=io.open(fileLocation, "r")
+	if fileOpened~=nil then 
+		io.close(fileOpened)
+		console.log('loaded file: ' .. fileLocation)
+	else
+		error('save file does not exist!: ' .. fileLocation) 
+	end
+end
+
 return FileUtil
