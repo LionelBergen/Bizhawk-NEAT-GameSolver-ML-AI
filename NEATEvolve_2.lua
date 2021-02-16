@@ -5,7 +5,7 @@
 -- and put a copy in both the Lua folder and the root directory of BizHawk.
 
 if gameinfo.getromname() == "Super Mario World (USA)" then
-	Filename = "DP1.state"
+	Filename = "SuperMario_ML.state"
 	ButtonNames = {
 		"A",
 		"B",
@@ -54,6 +54,24 @@ EnableMutationChance = 0.2
 TimeoutConstant = 20
 
 MaxNodes = 1000000
+
+-- Load the saved slot. This savefile needs to be set manually before this program starts
+-- If the load does not exist, this function does nothing. Cannot generate error / detect if one does not exist.
+function loadSavedMarioGame(fileLocation)
+	local current_dir=io.popen"cd":read'*l'
+	local full_file_path = current_dir .. "\\" ..fileLocation
+	--local full_file_path = 'C:\\\\apps\\Bizhawk_Emulator\\BizHawk-2.6\\Lua\\SNES_NEAT\\NEATEvolve_2\\SuperMarioWorld_ML_.state'
+	local fileOpened=io.open(full_file_path,"r")
+	if fileOpened~=nil then 
+		io.close(fileOpened)
+		console.log('loaded file: ' .. full_file_path)
+	else
+		error('save file does not exist!: ' .. full_file_path) 
+	end
+	
+	savestate.load(full_file_path)
+	console.log('loaded save game from file.')
+end
 
 function getPositions()
 	if gameinfo.getromname() == "Super Mario World (USA)" then
@@ -198,6 +216,7 @@ function newInnovation()
 end
 
 function newPool()
+	console.log('newPool()')
 	local pool = {}
 	pool.species = {}
 	pool.generation = 0
@@ -809,6 +828,7 @@ function newGeneration()
 end
 	
 function initializePool()
+	console.log('intiializePool')
 	pool = newPool()
 
 	for i=1,Population do
@@ -828,7 +848,7 @@ function clearJoypad()
 end
 
 function initializeRun()
-	savestate.load(Filename);
+	loadSavedMarioGame(Filename)
 	rightmost = 0
 	pool.currentFrame = 0
 	timeout = TimeoutConstant
@@ -860,9 +880,11 @@ function evaluateCurrent()
 end
 
 if pool == nil then
+	console.log('pool was nil, initializing')
 	initializePool()
+else
+    console.log('pool was not null')
 end
-
 
 function nextGenome()
 	pool.currentGenome = pool.currentGenome + 1
@@ -1051,7 +1073,8 @@ function savePool()
 end
 
 function loadFile(filename)
-        local file = io.open(filename, "r")
+	console.log('loadfile: ' .. filename)
+    local file = io.open(filename, "r")
 	pool = newPool()
 	pool.generation = file:read("*number")
 	pool.maxFitness = file:read("*number")
@@ -1103,6 +1126,7 @@ function loadPool()
 end
 
 function playTop()
+	console.log('playTop')
 	local maxfitness = 0
 	local maxs, maxg
 	for s,species in pairs(pool.species) do
@@ -1144,6 +1168,7 @@ saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
 
+console.log('beginning program....')
 
 while true do
 	local backgroundColor = 0xD0FFFFFF
