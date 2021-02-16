@@ -5,6 +5,7 @@
 saveFileName = 'SuperMario_ML.state'
 poolFileNamePrefix = 'SuperMario_ML_pools'
 romGameName = 'Super Mario World (USA)'
+machineLearningProjectName = 'Mario_testing'
 ButtonNames = {
 	"A",
 	"B",
@@ -50,7 +51,7 @@ MaxNodes = 1000000
 -- Load the saved slot. This savefile needs to be set manually before this program starts
 -- If the load does not exist, this function does nothing. Cannot generate error / detect if one does not exist.
 function loadSavedMarioGame(fileLocation)
-	local current_dir=io.popen"cd":read'*l'
+	local current_dir = getCurrentDirectory()
 	local full_file_path = current_dir .. "\\" ..fileLocation
 	--local full_file_path = 'C:\\\\apps\\Bizhawk_Emulator\\BizHawk-2.6\\Lua\\SNES_NEAT\\NEATEvolve_2\\SuperMarioWorld_ML_.state'
 	local fileOpened=io.open(full_file_path,"r")
@@ -66,16 +67,43 @@ function loadSavedMarioGame(fileLocation)
 end
 
 -- TODO: move function to a util
--- Lua implementation of PHP scandir function
+function getCurrentDirectory()
+	return io.popen"cd":read'*l'
+end
+
+-- TODO: move function to a util
 function scandir(directory)
-    local i, t, popen = 0, {}, io.popen
-    local pfile = popen('ls -a "'..directory..'"')
-    for filename in pfile:lines() do
-        i = i + 1
-        t[i] = filename
+	local results = {}
+	-- get list of files based on windows command
+    local p = io.popen('dir "' .. directory .. '" /b')
+	-- iterate through the list of files
+    for file in p:lines() do
+        table.insert(results, file)
     end
-    pfile:close()
-    return t
+	return results
+end
+
+function loadLatestBackup()
+	local listOfAllPoolFiles = scandir(poolSavesFolder)
+	local latestBackupNumber = -1
+	local latestBackupFile
+
+	for key, value in pairs(listOfAllPoolFiles) do
+		res = value.match(value, [[backup.(%d)]])
+		
+		if res ~= nil and latestBackupNumber < tonumber(res) then
+			latestBackupNumber = tonumber(res)
+			latestBackupFile = value
+		end
+	end
+	
+	if latestBackupFile ~= null then
+		console.log('attempting to load file for pool...: ' .. latestBackupFile)
+		loadFile(poolSavesFolder .. latestBackupFile)
+		console.log('loaded backfile: ' .. latestBackupFile)
+	else 
+		console.log('No backup file to load from. looked in directory: ' .. poolSavesFolder .. ' will continue new program')
+	end
 end
 
 function getPositions()
@@ -1120,6 +1148,7 @@ function onExit()
 end
 
 writeFile("temp.pool")
+poolSavesFolder = getCurrentDirectory() .. '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 
 event.onexit(onExit)
 
@@ -1138,8 +1167,7 @@ hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
 
 console.log('beginning program....')
 
-
-loadFile('backup.1.SuperMario_ML_pools.pool')
+loadLatestBackup()
 
 while true do
 	local backgroundColor = 0xD0FFFFFF
