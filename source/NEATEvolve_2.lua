@@ -1,7 +1,7 @@
 -- MarI/O by SethBling
 -- Feel free to use this code, but please do not redistribute it.
 -- Intended for use with the BizHawk emulator and Super Mario World or Super Mario Bros. ROM.
--- Save a named statefile at the beginning of a level and place it in this repo's root directory
+-- Save a named statefile at the beginning of a level and place it inside directory assets/savedstates
 saveFileName = 'SuperMario_ML.state'
 poolFileNamePrefix = 'SuperMario_ML_pools'
 romGameName = 'Super Mario World (USA)'
@@ -53,7 +53,6 @@ MaxNodes = 1000000
 function loadSavedMarioGame(fileLocation)
 	local current_dir = getCurrentDirectory()
 	local full_file_path = current_dir .. "\\" ..fileLocation
-	--local full_file_path = 'C:\\\\apps\\Bizhawk_Emulator\\BizHawk-2.6\\Lua\\SNES_NEAT\\NEATEvolve_2\\SuperMarioWorld_ML_.state'
 	local fileOpened=io.open(full_file_path,"r")
 	if fileOpened~=nil then 
 		io.close(fileOpened)
@@ -843,7 +842,7 @@ function clearJoypad()
 end
 
 function initializeRun()
-	loadSavedMarioGame(saveFileName)
+	loadSavedMarioGame('..\\assets\\savedstates\\' .. saveFileName)
 	rightmost = 0
 	pool.currentFrame = 0
 	timeout = TimeoutConstant
