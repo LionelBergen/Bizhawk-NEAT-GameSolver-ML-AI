@@ -3,19 +3,20 @@
 -- Intended for use with the BizHawk emulator and Super Mario World or Super Mario Bros. ROM.
 -- Save a named statefile at the beginning of a level and place it in this repo's root directory
 saveFileName = 'SuperMario_ML.state'
+romGameName = 'Super Mario World (USA)'
+ButtonNames = {
+	"A",
+	"B",
+	"X",
+	"Y",
+	"Up",
+	"Down",
+	"Left",
+	"Right",
+}
 
-if gameinfo.getromname() == "Super Mario World (USA)" then
-	Filename = saveFileName
-	ButtonNames = {
-		"A",
-		"B",
-		"X",
-		"Y",
-		"Up",
-		"Down",
-		"Left",
-		"Right",
-	}
+if gameinfo.getromname() ~= romGameName then
+	error('Unsupported Game Rom! Please play rom: ' .. romGameName .. ' Rom currently is: ' .. gameinfo.getromname())
 end
 
 BoxRadius = 6
@@ -800,7 +801,7 @@ function clearJoypad()
 end
 
 function initializeRun()
-	loadSavedMarioGame(Filename)
+	loadSavedMarioGame(saveFileName)
 	rightmost = 0
 	pool.currentFrame = 0
 	timeout = TimeoutConstant
@@ -1115,7 +1116,7 @@ showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 restartButton = forms.button(form, "Restart", initializePool, 5, 77)
 saveButton = forms.button(form, "Save", savePool, 5, 102)
 loadButton = forms.button(form, "Load", loadPool, 80, 102)
-saveLoadFile = forms.textbox(form, Filename .. ".pool", 170, 25, nil, 5, 148)
+saveLoadFile = forms.textbox(form, saveFileName .. ".pool", 170, 25, nil, 5, 148)
 saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
