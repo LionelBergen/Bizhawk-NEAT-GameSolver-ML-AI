@@ -1146,7 +1146,6 @@ function onExit()
 	forms.destroy(form)
 end
 
-writeFile("temp.pool")
 poolSavesFolder = getCurrentDirectory() .. '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 
 event.onexit(onExit)
