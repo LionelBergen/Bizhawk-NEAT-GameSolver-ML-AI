@@ -84,57 +84,49 @@ function loadLatestBackup()
 end
 
 function getPositions()
-	if gameinfo.getromname() == "Super Mario World (USA)" then
-		marioX = memory.read_s16_le(0x94)
-		marioY = memory.read_s16_le(0x96)
-		
-		local layer1x = memory.read_s16_le(0x1A);
-		local layer1y = memory.read_s16_le(0x1C);
-		
-		screenX = marioX-layer1x
-		screenY = marioY-layer1y
-	end
+	marioX = memory.read_s16_le(0x94)
+	marioY = memory.read_s16_le(0x96)
+	
+	local layer1x = memory.read_s16_le(0x1A);
+	local layer1y = memory.read_s16_le(0x1C);
+	
+	screenX = marioX-layer1x
+	screenY = marioY-layer1y
 end
 
 function getTile(dx, dy)
-	if gameinfo.getromname() == "Super Mario World (USA)" then
-		x = math.floor((marioX+dx+8)/16)
-		y = math.floor((marioY+dy)/16)
-		
-		return memory.readbyte(0x1C800 + math.floor(x/0x10)*0x1B0 + y*0x10 + x%0x10)
-	end
+	x = math.floor((marioX+dx+8)/16)
+	y = math.floor((marioY+dy)/16)
+	
+	return memory.readbyte(0x1C800 + math.floor(x/0x10)*0x1B0 + y*0x10 + x%0x10)
 end
 
 function getSprites()
-	if gameinfo.getromname() == "Super Mario World (USA)" then
-		local sprites = {}
-		for slot=0,11 do
-			local status = memory.readbyte(0x14C8+slot)
-			if status ~= 0 then
-				spritex = memory.readbyte(0xE4+slot) + memory.readbyte(0x14E0+slot)*256
-				spritey = memory.readbyte(0xD8+slot) + memory.readbyte(0x14D4+slot)*256
-				sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey}
-			end
-		end		
-		
-		return sprites
-	end
+	local sprites = {}
+	for slot=0,11 do
+		local status = memory.readbyte(0x14C8+slot)
+		if status ~= 0 then
+			spritex = memory.readbyte(0xE4+slot) + memory.readbyte(0x14E0+slot)*256
+			spritey = memory.readbyte(0xD8+slot) + memory.readbyte(0x14D4+slot)*256
+			sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey}
+		end
+	end		
+	
+	return sprites
 end
 
 function getExtendedSprites()
-	if gameinfo.getromname() == "Super Mario World (USA)" then
-		local extended = {}
-		for slot=0,11 do
-			local number = memory.readbyte(0x170B+slot)
-			if number ~= 0 then
-				spritex = memory.readbyte(0x171F+slot) + memory.readbyte(0x1733+slot)*256
-				spritey = memory.readbyte(0x1715+slot) + memory.readbyte(0x1729+slot)*256
-				extended[#extended+1] = {["x"]=spritex, ["y"]=spritey}
-			end
-		end		
-		
-		return extended
-	end
+	local extended = {}
+	for slot=0,11 do
+		local number = memory.readbyte(0x170B+slot)
+		if number ~= 0 then
+			spritex = memory.readbyte(0x171F+slot) + memory.readbyte(0x1733+slot)*256
+			spritey = memory.readbyte(0x1715+slot) + memory.readbyte(0x1729+slot)*256
+			extended[#extended+1] = {["x"]=spritex, ["y"]=spritey}
+		end
+	end		
+	
+	return extended
 end
 
 function getInputs()
@@ -1176,9 +1168,7 @@ while true do
 	local timeoutBonus = pool.currentFrame / 4
 	if timeout + timeoutBonus <= 0 then
 		local fitness = rightmost - pool.currentFrame / 2
-		if gameinfo.getromname() == "Super Mario World (USA)" and rightmost > 4816 then
-			fitness = fitness + 1000
-		end
+		fitness = fitness + 1000
 		if fitness == 0 then
 			fitness = -1
 		end
