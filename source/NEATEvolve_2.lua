@@ -27,7 +27,8 @@ if gameinfo.getromname() ~= romGameName then
 	error('Unsupported Game Rom! Please play rom: ' .. romGameName .. ' Rom currently is: ' .. gameinfo.getromname())
 end
 
-BoxRadius = 6
+-- this is the Programs 'view', 
+BoxRadius = 1
 InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
 
 Inputs = InputSize+1
@@ -1114,6 +1115,9 @@ saveLoadFile = poolFileNamePrefix .. ".pool"
 saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
+
+-- Set the 'showNetowrk' checkbox to true, just while we mess around with it
+forms.setproperty(showNetwork, "Checked", true)
 
 console.log('beginning program....')
 
