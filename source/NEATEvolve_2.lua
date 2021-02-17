@@ -94,11 +94,20 @@ function getSprites()
 	local spriteHighYAddress = 0x14D4
 	for slot=0,spriteByteLength - 1 do
 		local status = memory.readbyte(spriteStatusAddress+slot)
-		if status ~= 0 then
+		-- https://www.smwcentral.net/?p=memorymap&a=detail&game=smw&region=ram&detail=0984148beee5
+		if status ~= 0 and status ~= 02 and status ~= 04 then
 			-- TODO: why multiply by 256?
 			spritex = memory.readbyte(spriteLowXAddress+slot) + memory.readbyte(spriteHighXAddress+slot)*256
 			spritey = memory.readbyte(spriteLowYAddress+slot) + memory.readbyte(spriteHighYAddress+slot)*256
-			sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey}
+			
+			spritevalue = -1
+			-- if carryable
+			if status == 09 then
+				spritevalue = 2
+			elseif status == 0x0B then
+				spritevalue = 3
+			end
+			sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey, ["value"]=spritevalue}
 		end
 	end		
 	
@@ -139,8 +148,9 @@ function getInputs()
 			for i = 1,#sprites do
 				distx = math.abs(sprites[i]["x"] - (marioX+dx))
 				disty = math.abs(sprites[i]["y"] - (marioY+dy))
+				value = sprites[i]["value"]
 				if distx <= 8 and disty <= 8 then
-					inputs[#inputs] = -1
+					inputs[#inputs] = value
 				end
 			end
 
@@ -952,6 +962,11 @@ function displayGenome(genome)
 				opacity = 0x50000000
 			end
 			color = opacity + color*0x10000 + color*0x100 + color
+			if cell.value == 2 then
+				color = 0xFF1717FF
+			elseif cell.value == 3 then
+				color = 0x0F16FFFF
+			end
 			gui.drawBox(cell.x-2,cell.y-2,cell.x+2,cell.y+2,opacity,color)
 		end
 	end
