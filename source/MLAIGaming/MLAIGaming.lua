@@ -27,7 +27,6 @@ function MLAIGaming.loadLatestBackup(poolSavesFolder)
 			latestBackupNumber = tonumber(res)
 			latestBackupFile = value
 		end
-		console.log(res)
 	end
 	
 	if latestBackupFile ~= null then
