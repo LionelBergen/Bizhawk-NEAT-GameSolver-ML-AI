@@ -28,8 +28,8 @@ if gameinfo.getromname() ~= romGameName then
 end
 
 -- this is the Programs 'view', 
-BoxRadius = 1
-InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
+ProgramViewBoxRadius = 6
+InputSize = (ProgramViewBoxRadius*2+1)*(ProgramViewBoxRadius*2+1)
 
 Inputs = InputSize+1
 Outputs = #ButtonNames
@@ -119,8 +119,8 @@ function getInputs()
 	
 	local inputs = {}
 	
-	for dy=-BoxRadius*16,BoxRadius*16,16 do
-		for dx=-BoxRadius*16,BoxRadius*16,16 do
+	for dy=-ProgramViewBoxRadius*16,ProgramViewBoxRadius*16,16 do
+		for dx=-ProgramViewBoxRadius*16,ProgramViewBoxRadius*16,16 do
 			inputs[#inputs+1] = 0
 			
 			tile = getTile(dx, dy)
@@ -855,8 +855,8 @@ function displayGenome(genome)
 	local cells = {}
 	local i = 1
 	local cell = {}
-	for dy=-BoxRadius,BoxRadius do
-		for dx=-BoxRadius,BoxRadius do
+	for dy=-ProgramViewBoxRadius,ProgramViewBoxRadius do
+		for dx=-ProgramViewBoxRadius,ProgramViewBoxRadius do
 			cell = {}
 			cell.x = 50+5*dx
 			cell.y = 70+5*dy
@@ -933,7 +933,7 @@ function displayGenome(genome)
 		end
 	end
 	
-	gui.drawBox(50-BoxRadius*5-3,70-BoxRadius*5-3,50+BoxRadius*5+2,70+BoxRadius*5+2,0xFF000000, 0x80808080)
+	gui.drawBox(50-ProgramViewBoxRadius*5-3,70-ProgramViewBoxRadius*5-3,50+ProgramViewBoxRadius*5+2,70+ProgramViewBoxRadius*5+2,0xFF000000, 0x80808080)
 	for n,cell in pairs(cells) do
 		if n > Inputs or cell.value ~= 0 then
 			local color = math.floor((cell.value+1)/2*256)
