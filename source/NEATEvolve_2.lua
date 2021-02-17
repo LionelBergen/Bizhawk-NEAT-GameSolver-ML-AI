@@ -124,7 +124,7 @@ function getInputs()
 			inputs[#inputs+1] = 0
 			
 			tile = getTile(dx, dy)
-			if tile == 1
+			if tile == 1 then
 				inputs[#inputs] = 1
 			end
 			
