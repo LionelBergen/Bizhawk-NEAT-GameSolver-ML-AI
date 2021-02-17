@@ -717,7 +717,6 @@ function removeWeakSpecies()
 	pool.species = survived
 end
 
-
 function addToSpecies(child)
 	local foundSpecies = false
 	for s=1,#pool.species do
