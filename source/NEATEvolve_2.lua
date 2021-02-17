@@ -1144,7 +1144,6 @@ while true do
 	
 	timeout = timeout - 1
 	
-	
 	local timeoutBonus = pool.currentFrame / 4
 	if timeout + timeoutBonus <= 0 then
 		local fitness = rightmost - pool.currentFrame / 2
