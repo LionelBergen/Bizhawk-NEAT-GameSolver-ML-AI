@@ -85,11 +85,19 @@ end
 
 function getSprites()
 	local sprites = {}
-	for slot=0,11 do
-		local status = memory.readbyte(0x14C8+slot)
+	-- https://www.smwcentral.net/?p=memorymap&game=smw&u=0&address=&sizeOperation=%3D&sizeValue=&region[]=ram&type=*&description=koopa
+	local spriteByteLength = 12
+	local spriteStatusAddress = 0x14C8
+	local spriteLowXAddress = 0x00E4
+	local spriteHighXAddress = 0x14E0
+	local spriteLowYAddress = 0x00D8
+	local spriteHighYAddress = 0x14D4
+	for slot=0,spriteByteLength - 1 do
+		local status = memory.readbyte(spriteStatusAddress+slot)
 		if status ~= 0 then
-			spritex = memory.readbyte(0xE4+slot) + memory.readbyte(0x14E0+slot)*256
-			spritey = memory.readbyte(0xD8+slot) + memory.readbyte(0x14D4+slot)*256
+			-- TODO: why multiply by 256?
+			spritex = memory.readbyte(spriteLowXAddress+slot) + memory.readbyte(spriteHighXAddress+slot)*256
+			spritey = memory.readbyte(spriteLowYAddress+slot) + memory.readbyte(spriteHighYAddress+slot)*256
 			sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey}
 		end
 	end		
