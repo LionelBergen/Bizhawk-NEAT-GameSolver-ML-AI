@@ -1021,8 +1021,9 @@ function loadFile(filename)
 	pool.generation = file:read("*number")
 	pool.maxFitness = file:read("*number")
 	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-        local numSpecies = file:read("*number")
-        for s=1,numSpecies do
+    
+	local numSpecies = file:read("*number")
+    for s=1,numSpecies do
 		local species = newSpecies()
 		table.insert(pool.species, species)
 		species.topFitness = file:read("*number")
@@ -1053,7 +1054,7 @@ function loadFile(filename)
 			end
 		end
 	end
-        file:close()
+    file:close()
 	
 	while fitnessAlreadyMeasured() do
 		nextGenome()
