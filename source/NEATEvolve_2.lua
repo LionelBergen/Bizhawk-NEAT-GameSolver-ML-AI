@@ -124,7 +124,7 @@ function getInputs()
 			inputs[#inputs+1] = 0
 			
 			tile = getTile(dx, dy)
-			if tile == 1 -- and marioY+dy < 0x1B0 then
+			if tile == 1
 				inputs[#inputs] = 1
 			end
 			
