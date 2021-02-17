@@ -16,6 +16,9 @@ ButtonNames = {
 	"Left",
 	"Right",
 }
+-- You can use https://jscolor.com/ to find colours
+-- Used for the top bar overlay that displays the gen, speciies etc.
+local topOverlayBackgroundColor = 0xD0FFFFFF
 
 FileUtil = require('util/FileUtil')
 MLAIGaming = require('MLAIGaming/MLAIGaming')
@@ -1118,9 +1121,8 @@ console.log('beginning program....')
 MLAIGaming.loadLatestBackup(poolSavesFolder)
 
 while true do
-	local backgroundColor = 0xD0FFFFFF
 	if not forms.ischecked(hideBanner) then
-		gui.drawBox(0, 0, 300, 26, backgroundColor, backgroundColor)
+		gui.drawBox(0, 0, 300, 26, topOverlayBackgroundColor, topOverlayBackgroundColor)
 	end
 
 	local species = pool.species[pool.currentSpecies]
