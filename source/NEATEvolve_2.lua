@@ -974,11 +974,12 @@ function displayGenome(genome)
 end
 
 function writeFile(filename)
-        local file = io.open(filename, "w")
+    local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
 	file:write(pool.maxFitness .. "\n")
 	file:write(#pool.species .. "\n")
-        for n,species in pairs(pool.species) do
+    
+	for n,species in pairs(pool.species) do
 		file:write(species.topFitness .. "\n")
 		file:write(species.staleness .. "\n")
 		file:write(#species.genomes .. "\n")
@@ -1004,8 +1005,8 @@ function writeFile(filename)
 				end
 			end
 		end
-        end
-        file:close()
+    end
+    file:close()
 end
 
 function savePool()
