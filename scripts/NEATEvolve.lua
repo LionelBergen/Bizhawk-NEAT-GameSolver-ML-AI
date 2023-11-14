@@ -1,11 +1,11 @@
 -- MarI/O by SethBling
 -- Feel free to use this code, but please do not redistribute it.
 -- Intended for use with the BizHawk emulator and Super Mario World or Super Mario Bros. ROM.
-saveFileName = 'SMW.state'
-poolFileNamePrefix = 'SuperMario_ML_pools'
-romGameName = 'Super Mario World (USA)'
-machineLearningProjectName = 'Mario_testing'
-ButtonNames = {
+local saveFileName = 'SMW.state'
+local poolFileNamePrefix = 'SuperMario_ML_pools'
+local romGameName = 'Super Mario World (USA)'
+local machineLearningProjectName = 'Mario_testing'
+local ButtonNames = {
 	"A",
 	"B",
 	"X",
@@ -19,41 +19,36 @@ ButtonNames = {
 -- Used for the top bar overlay that displays the gen, speciies etc.
 local topOverlayBackgroundColor = 0xD0FFFFFF
 
-FileUtil = require('util/FileUtil')
-MLAIGaming = require('MLAIGaming/MLAIGaming')
+-- this is the Programs 'view'
+local ProgramViewBoxRadius = 6
+local InputSize = (ProgramViewBoxRadius*2+1)*(ProgramViewBoxRadius*2+1)
 
--- this is the Programs 'view', 
-ProgramViewBoxRadius = 6
-InputSize = (ProgramViewBoxRadius*2+1)*(ProgramViewBoxRadius*2+1)
+local Inputs = InputSize+1
+local Outputs = #ButtonNames
 
-Inputs = InputSize+1
-Outputs = #ButtonNames
+local Population = 300
+local DeltaDisjoint = 2.0
+local DeltaWeights = 0.4
+local DeltaThreshold = 1.0
 
-Population = 300
-DeltaDisjoint = 2.0
-DeltaWeights = 0.4
-DeltaThreshold = 1.0
+local StaleSpecies = 15
 
-StaleSpecies = 15
+local MutateConnectionsChance = 0.25
+local PerturbChance = 0.90
+local CrossoverChance = 0.75
+local LinkMutationChance = 2.0
+local NodeMutationChance = 0.50
+local BiasMutationChance = 0.40
+local StepSize = 0.1
+local DisableMutationChance = 0.4
+local EnableMutationChance = 0.2
 
-MutateConnectionsChance = 0.25
-PerturbChance = 0.90
-CrossoverChance = 0.75
-LinkMutationChance = 2.0
-NodeMutationChance = 0.50
-BiasMutationChance = 0.40
-StepSize = 0.1
-DisableMutationChance = 0.4
-EnableMutationChance = 0.2
+local TimeoutConstant = 20
 
-TimeoutConstant = 20
+local MaxNodes = 1000000
 
-MaxNodes = 1000000
-
--- Load the saved slot. This savefile needs to be set manually before this program starts
-function loadSavedMarioGame(fileLocation)
-	MLAIGaming.loadSavedGame(fileLocation)
-end
+local FileUtil = require('util/FileUtil')
+local GameHandler = require('util/bizhawk/GameHandler')
 
 function saveNewBackup(poolGeneration)
 	local newFileName = "backup." .. poolGeneration .. "." .. saveLoadFile
@@ -175,7 +170,7 @@ function newInnovation()
 end
 
 function newPool()
-	console.log('newPool()')
+	console.log('newPool')
 	local pool = {}
 	pool.species = {}
 	pool.generation = 0
@@ -806,7 +801,7 @@ function clearJoypad()
 end
 
 function initializeRun()
-	loadSavedMarioGame('..\\assets\\savedstates\\' .. saveFileName)
+	GameHandler.loadSavedGame('..\\assets\\savedstates\\' .. saveFileName)
 	rightmost = 0
 	pool.currentFrame = 0
 	timeout = TimeoutConstant
@@ -835,13 +830,6 @@ function evaluateCurrent()
 	end
 
 	joypad.set(controller)
-end
-
-if pool == nil then
-	console.log('pool was nil, initializing')
-	initializePool()
-else
-    console.log('pool was not null')
 end
 
 function nextGenome()
@@ -1117,6 +1105,13 @@ function onExit()
 	forms.destroy(form)
 end
 
+if pool == nil then
+	console.log('pool was nil, initializing')
+	initializePool()
+else
+	console.log('pool was not null')
+end
+
 if gameinfo.getromname() ~= romGameName then
 	error('Unsupported Game Rom! Please play rom: ' .. romGameName .. ' Rom currently is: ' .. gameinfo.getromname())
 end
@@ -1141,10 +1136,10 @@ hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
 -- Set the 'showNetowrk' checkbox to true, just while we mess around with it
 forms.setproperty(showNetwork, "Checked", true)
 
-console.log('beginning program....')
+console.log('starting Mar I/O...')
 
 -- Load the latest .pool file
-MLAIGaming.loadLatestBackup(poolSavesFolder)
+GameHandler.loadLatestBackup(poolSavesFolder)
 
 while true do
 	if not forms.ischecked(hideBanner) then
