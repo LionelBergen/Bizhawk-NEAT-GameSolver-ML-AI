@@ -1,11 +1,9 @@
-local MLAIGaming = {}
+local GameHandler = {}
 
 FileUtil = require('../util/FileUtil')
 
--- function MLAIGaming::
-
 -- Load a save game from the relative path specified
-function MLAIGaming.loadSavedGame(fileLocation)
+function GameHandler.loadSavedGame(fileLocation)
 	local currentDir = FileUtil.getCurrentDirectory()
 	local fullFilePath = currentDir .. "\\" ..fileLocation
 	FileUtil.validateFilePath(fullFilePath)
@@ -15,7 +13,7 @@ function MLAIGaming.loadSavedGame(fileLocation)
 end
 
 -- Loads the latest pool file, based on the number. E.G 'back.40.restofname.pool'
-function MLAIGaming.loadLatestBackup(poolSavesFolder)
+function GameHandler.loadLatestBackup(poolSavesFolder)
 	local listOfAllPoolFiles = FileUtil.scandir(poolSavesFolder)
 	local latestBackupNumber = -1
 	local latestBackupFile
@@ -39,4 +37,4 @@ function MLAIGaming.loadLatestBackup(poolSavesFolder)
 end
 
 
-return MLAIGaming
+return GameHandler
