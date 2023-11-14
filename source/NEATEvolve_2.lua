@@ -1,7 +1,6 @@
 -- MarI/O by SethBling
 -- Feel free to use this code, but please do not redistribute it.
 -- Intended for use with the BizHawk emulator and Super Mario World or Super Mario Bros. ROM.
--- Save a named statefile at the beginning of a level and place it inside directory assets/savedstates
 saveFileName = 'SMW.state'
 poolFileNamePrefix = 'SuperMario_ML_pools'
 romGameName = 'Super Mario World (USA)'
@@ -22,10 +21,6 @@ local topOverlayBackgroundColor = 0xD0FFFFFF
 
 FileUtil = require('util/FileUtil')
 MLAIGaming = require('MLAIGaming/MLAIGaming')
-
-if gameinfo.getromname() ~= romGameName then
-	error('Unsupported Game Rom! Please play rom: ' .. romGameName .. ' Rom currently is: ' .. gameinfo.getromname())
-end
 
 -- this is the Programs 'view', 
 ProgramViewBoxRadius = 6
@@ -1120,6 +1115,10 @@ end
 
 function onExit()
 	forms.destroy(form)
+end
+
+if gameinfo.getromname() ~= romGameName then
+	error('Unsupported Game Rom! Please play rom: ' .. romGameName .. ' Rom currently is: ' .. gameinfo.getromname())
 end
 
 poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
