@@ -50,7 +50,9 @@ local MaxNodes = 1000000
 local FileUtil = require('util/FileUtil')
 local GameHandler = require('util/bizhawk/GameHandler')
 
-function saveNewBackup(poolGeneration)
+local NEATEvolve = {};
+
+function NEATEvolve.saveNewBackup(poolGeneration, poolSavesFolder, saveLoadFile)
 	local newFileName = "backup." .. poolGeneration .. "." .. saveLoadFile
 	writeFile(poolSavesFolder .. newFileName)
 end
@@ -62,8 +64,8 @@ function getPositions()
 	local layer1x = memory.read_s16_le(0x1A);
 	local layer1y = memory.read_s16_le(0x1C);
 	
-	screenX = marioX-layer1x
-	screenY = marioY-layer1y
+	--screenX = marioX-layer1x
+	--screenY = marioY-layer1y
 end
 
 function getTile(dx, dy)
@@ -776,8 +778,8 @@ function newGeneration()
 	end
 	
 	pool.generation = pool.generation + 1
-	
-	saveNewBackup(pool.generation)
+
+	NEATEvolve.saveNewBackup(pool.generation, poolSavesFolder, saveLoadFile)
 end
 	
 function initializePool()
@@ -1179,7 +1181,7 @@ while true do
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
 			forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-			saveNewBackup(pool.generation)
+			NEATEvolve.saveNewBackup(pool.generation, poolSavesFolder, saveLoadFile)
 		end
 		
 		console.writeline("Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. fitness)
