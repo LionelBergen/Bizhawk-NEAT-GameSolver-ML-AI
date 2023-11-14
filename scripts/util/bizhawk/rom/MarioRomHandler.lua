@@ -1,6 +1,6 @@
-local MarioRomHandler = {}
+local Mario = {}
 
-function MarioRomHandler.getPositions()
+function Mario.getPositions()
     local marioX = memory.read_s16_le(0x94)
     local marioY = memory.read_s16_le(0x96)
 
@@ -11,4 +11,4 @@ function MarioRomHandler.getPositions()
     screenY = marioY-layer1y
 end
 
-return MarioRomHandler
+return Mario
