@@ -2,7 +2,7 @@
 -- Feel free to use this code, but please do not redistribute it.
 -- Intended for use with the BizHawk emulator and Super Mario World or Super Mario Bros. ROM.
 -- Save a named statefile at the beginning of a level and place it inside directory assets/savedstates
-saveFileName = 'SuperMario_ML.state'
+saveFileName = 'SMW.state'
 poolFileNamePrefix = 'SuperMario_ML_pools'
 romGameName = 'Super Mario World (USA)'
 machineLearningProjectName = 'Mario_testing'
