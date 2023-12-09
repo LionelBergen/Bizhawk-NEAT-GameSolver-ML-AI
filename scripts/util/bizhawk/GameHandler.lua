@@ -19,7 +19,7 @@ function GameHandler.loadLatestBackup(poolSavesFolder)
 	local latestBackupFile
 
 	for key, value in pairs(listOfAllPoolFiles) do
-		res = value.match(value, [[backup.(%d+)]])
+		local res = value.match(value, [[backup.(%d+)]])
 		
 		if res ~= nil and latestBackupNumber < tonumber(res) then
 			latestBackupNumber = tonumber(res)
