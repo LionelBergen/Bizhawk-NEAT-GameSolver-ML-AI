@@ -1,6 +1,7 @@
 local GameHandler = {}
 
 FileUtil = require('../util/FileUtil')
+Logger = require('../util/Logger')
 
 -- Load a save game from the relative path specified
 function GameHandler.loadSavedGame(fileLocation)
@@ -9,11 +10,11 @@ function GameHandler.loadSavedGame(fileLocation)
 	FileUtil.validateFilePath(fullFilePath)
 	
 	savestate.load(fullFilePath)
-	console.log('loaded save game from file.')
+	Logger.info('loaded save game from file: ' .. fullFilePath)
 end
 
--- Loads the latest pool file, based on the number. E.G 'back.40.restofname.pool'
-function GameHandler.loadLatestBackup(poolSavesFolder)
+-- Gets the latest pool file, based on the number. E.G 'back.40.restofname.pool'
+function GameHandler.getLatestBackupFile(poolSavesFolder)
 	local listOfAllPoolFiles = FileUtil.scandir(poolSavesFolder)
 	local latestBackupNumber = -1
 	local latestBackupFile
@@ -27,13 +28,7 @@ function GameHandler.loadLatestBackup(poolSavesFolder)
 		end
 	end
 	
-	if latestBackupFile ~= null then
-		console.log('attempting to load file for pool...: ' .. latestBackupFile)
-		loadFile(poolSavesFolder .. latestBackupFile)
-		console.log('loaded backfile: ' .. latestBackupFile)
-	else 
-		console.log('No backup file to load from. looked in directory: ' .. poolSavesFolder .. ' will continue new program')
-	end
+	return latestBackupFile
 end
 
 

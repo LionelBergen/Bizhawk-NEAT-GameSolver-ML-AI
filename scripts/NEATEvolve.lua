@@ -1,10 +1,19 @@
 -- MarI/O by SethBling
 -- Feel free to use this code, but please do not redistribute it.
 -- Intended for use with the BizHawk emulator and Super Mario World or Super Mario Bros. ROM.
+local FileUtil = require('util/FileUtil')
+local Logger = require('util.Logger')
+local GameHandler = require('util/bizhawk/GameHandler')
+local Mario = require('util/bizhawk/rom/MarioRomHandler')
+local Neat = require('machinelearning/ai/Neat')
+
 local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
-local romGameName = 'Super Mario World (USA)'
+local poolFileNamePostfix = poolFileNamePrefix .. ".pool"
 local machineLearningProjectName = 'Mario_testing'
+local poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
+
+local romGameName = 'Super Mario World (USA)'
 local ButtonNames = {
 	"A",
 	"B",
@@ -22,7 +31,7 @@ local topOverlayBackgroundColor = 0xD0FFFFFF
 -- this is the Programs 'view'
 local ProgramViewBoxRadius = 6
 local inputSize = (ProgramViewBoxRadius*2+1)*(ProgramViewBoxRadius*2+1)
-inputSize = InputSize + 1
+inputSize = inputSize + 1
 local outputSize = #ButtonNames
 
 local Population = 300
@@ -46,16 +55,13 @@ local TimeoutConstant = 20
 
 local maxNodes = 1000000
 
-local FileUtil = require('util/FileUtil')
-local GameHandler = require('util/bizhawk/GameHandler')
-local Mario = require('util/bizhawk/rom/MarioRomHandler')
-local Neat = require('machinelearning/ai/Neat')
+local function saveNewBackup(pool, poolGeneration, poolSavesFolder, filePostfix)
+	local newFileName = "backup." .. poolGeneration .. "." .. filePostfix
+	writeFile(poolSavesFolder .. newFileName, pool)
+end
 
-local NEATEvolve = {};
-
-function NEATEvolve.saveNewBackup(poolGeneration, poolSavesFolder, saveLoadFile)
-	local newFileName = "backup." .. poolGeneration .. "." .. saveLoadFile
-	writeFile(poolSavesFolder .. newFileName)
+local function sigmoid(x)
+	return 2 / (1 + math.exp(-4.9 * x)) - 1
 end
 
 function clearJoypad()
@@ -66,24 +72,26 @@ function clearJoypad()
 	joypad.set(controller)
 end
 
-function initializeRun()
+function initializeRun(neatMLAI)
 	GameHandler.loadSavedGame('..\\assets\\savedstates\\' .. saveFileName)
 	rightmost = 0
+	neatMLAI.pool.currentFrame = 0
 	timeout = TimeoutConstant
 	clearJoypad()
 
-	local species = pool.species[pool.currentSpecies]
-	local genome = species.genomes[pool.currentGenome]
-	generateNetwork(genome)
-	evaluateCurrent()
+	-- TODO: write method in pool for 'currentSpecies'.
+	local species = neatMLAI.pool.species[neatMLAI.pool.currentSpecies]
+	local genome = species.genomes[neatMLAI.pool.currentGenome]
+	neatMLAI.generateNetwork(genome, inputSize, outputSize, maxNodes)
+	evaluateCurrent(neatMLAI)
 end
 
-function evaluateCurrent()
-	local species = pool.species[pool.currentSpecies]
-	local genome = species.genomes[pool.currentGenome]
+function evaluateCurrent(neatMLAI)
+	local species = neatMLAI.pool.species[neatMLAI.pool.currentSpecies]
+	local genome = species.genomes[neatMLAI.pool.currentGenome]
 
-	inputs = getInputs()
-	controller = evaluateNetwork(genome.network, inputs)
+	inputs = Mario.getInputs(ProgramViewBoxRadius)
+	controller = neatMLAI.evaluateNetwork(genome.network, inputSize, inputs, ButtonNames, maxNodes)
 	
 	if controller["P1 Left"] and controller["P1 Right"] then
 		controller["P1 Left"] = false
@@ -97,19 +105,21 @@ function evaluateCurrent()
 	joypad.set(controller)
 end
 
-function nextGenome()
+function nextGenome(neatMLAI)
+	local pool = neatMLAI.pool
 	pool.currentGenome = pool.currentGenome + 1
 	if pool.currentGenome > #pool.species[pool.currentSpecies].genomes then
 		pool.currentGenome = 1
 		pool.currentSpecies = pool.currentSpecies+1
 		if pool.currentSpecies > #pool.species then
-			newGeneration()
+			neatMLAI:newGeneration(inputSize, outputSize, maxNodes)
+			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
 			pool.currentSpecies = 1
 		end
 	end
 end
 
-function fitnessAlreadyMeasured()
+function fitnessAlreadyMeasured(pool)
 	local species = pool.species[pool.currentSpecies]
 	local genome = species.genomes[pool.currentGenome]
 	
@@ -119,30 +129,30 @@ end
 function displayGenome(genome)
 	local network = genome.network
 	local cells = {}
-	local i = 1
 	local cell = {}
+	local biasCell = {}
+	local i = 1
 	for dy=-ProgramViewBoxRadius,ProgramViewBoxRadius do
 		for dx=-ProgramViewBoxRadius,ProgramViewBoxRadius do
 			cell = {}
-			cell.x = 50+5*dx
-			cell.y = 70+5*dy
+			cell.x = 50+5 * dx
+			cell.y = 70+5 * dy
 			cell.value = network.neurons[i].value
 			cells[i] = cell
 			i = i + 1
 		end
 	end
-	local biasCell = {}
 	biasCell.x = 80
 	biasCell.y = 110
-	biasCell.value = network.neurons[Inputs].value
-	cells[Inputs] = biasCell
+	biasCell.value = network.neurons[inputSize].value
+	cells[inputSize] = biasCell
 	
-	for o = 1,Outputs do
+	for o = 1,outputSize do
 		cell = {}
 		cell.x = 220
 		cell.y = 30 + 8 * o
-		cell.value = network.neurons[MaxNodes + o].value
-		cells[MaxNodes+o] = cell
+		cell.value = network.neurons[maxNodes + o].value
+		cells[maxNodes+o] = cell
 		local color
 		if cell.value > 0 then
 			color = 0xFF0000FF
@@ -154,7 +164,7 @@ function displayGenome(genome)
 	
 	for n,neuron in pairs(network.neurons) do
 		cell = {}
-		if n > Inputs and n <= MaxNodes then
+		if n > inputSize and n <= maxNodes then
 			cell.x = 140
 			cell.y = 40
 			cell.value = neuron.value
@@ -167,7 +177,7 @@ function displayGenome(genome)
 			if gene.enabled then
 				local c1 = cells[gene.into]
 				local c2 = cells[gene.out]
-				if gene.into > Inputs and gene.into <= MaxNodes then
+				if gene.into > inputSize and gene.into <= maxNodes then
 					c1.x = 0.75*c1.x + 0.25*c2.x
 					if c1.x >= c2.x then
 						c1.x = c1.x - 40
@@ -182,7 +192,7 @@ function displayGenome(genome)
 					c1.y = 0.75*c1.y + 0.25*c2.y
 					
 				end
-				if gene.out > Inputs and gene.out <= MaxNodes then
+				if gene.out > inputSize and gene.out <= maxNodes then
 					c2.x = 0.25*c1.x + 0.75*c2.x
 					if c1.x >= c2.x then
 						c2.x = c2.x + 40
@@ -201,7 +211,7 @@ function displayGenome(genome)
 	
 	gui.drawBox(50-ProgramViewBoxRadius*5-3,70-ProgramViewBoxRadius*5-3,50+ProgramViewBoxRadius*5+2,70+ProgramViewBoxRadius*5+2,0xFF000000, 0x80808080)
 	for n,cell in pairs(cells) do
-		if n > Inputs or cell.value ~= 0 then
+		if n > inputSize or cell.value ~= 0 then
 			local color = math.floor((cell.value+1)/2*256)
 			if color > 255 then color = 255 end
 			if color < 0 then color = 0 end
@@ -248,7 +258,7 @@ function displayGenome(genome)
 	end
 end
 
-function writeFile(filename)
+function writeFile(filename, pool)
     local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
 	file:write(pool.maxFitness .. "\n")
@@ -260,7 +270,7 @@ function writeFile(filename)
 		file:write(#species.genomes .. "\n")
 		for m,genome in pairs(species.genomes) do
 			file:write(genome.fitness .. "\n")
-			file:write(genome.maxneuron .. "\n")
+			file:write(genome.maxNeuron .. "\n")
 			for mutation,rate in pairs(genome.mutationRates) do
 				file:write(mutation .. "\n")
 				file:write(rate .. "\n")
@@ -285,30 +295,42 @@ function writeFile(filename)
 end
 
 function savePool()
+	error('unimplemented')
 	local filename = saveLoadFile
 	writeFile(filename)
 end
 
-function loadFile(filename)
+function loadFile(poolSavesFolder, neatMLAI)
+	latestBackupFile = GameHandler.getLatestBackupFile(poolSavesFolder)
+	if latestBackupFile ~= null then
+		Logger.info('attempting to load file for pool...: ' .. latestBackupFile)
+		loadFile2(poolSavesFolder .. latestBackupFile, neatMLAI)
+		Logger.info('loaded backfile: ' .. latestBackupFile)
+	else
+		Logger.info('No backup file to load from. looked in directory: ' .. poolSavesFolder .. ' will continue new program')
+	end
+end
+
+-- TODO: should pretty much be a function inside Neat; To load a pool/etc from a file
+function loadFile2(filename, neatMLAI)
 	console.log('loadfile: ' .. filename)
-    local file = io.open(filename, "r")
-	pool = newPool()
+	local file = io.open(filename, "r")
+	local pool = neatMLAI:createNewPool(outputSize)
 	pool.generation = file:read("*number")
 	pool.maxFitness = file:read("*number")
-	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-    
+
 	local numSpecies = file:read("*number")
-    for s=1,numSpecies do
-		local species = newSpecies()
+	for s=1,numSpecies do
+		local species = neatMLAI:createNewSpecies()
 		table.insert(pool.species, species)
 		species.topFitness = file:read("*number")
 		species.staleness = file:read("*number")
 		local numGenomes = file:read("*number")
 		for g=1,numGenomes do
-			local genome = newGenome()
+			local genome = neatMLAI:createNewGenome()
 			table.insert(species.genomes, genome)
 			genome.fitness = file:read("*number")
-			genome.maxneuron = file:read("*number")
+			genome.maxNeuron = file:read("*number")
 			local line = file:read("*line")
 			while line ~= "done" do
 				genome.mutationRates[line] = file:read("*number")
@@ -316,7 +338,7 @@ function loadFile(filename)
 			end
 			local numGenes = file:read("*number")
 			for n=1,numGenes do
-				local gene = newGene()
+				local gene = neatMLAI:createNewGene()
 				table.insert(genome.genes, gene)
 				local enabled
 				gene.into, gene.out, gene.weight, gene.innovation, enabled = file:read("*number", "*number", "*number", "*number", "*number")
@@ -325,20 +347,20 @@ function loadFile(filename)
 				else
 					gene.enabled = true
 				end
-				
 			end
 		end
 	end
-    file:close()
-	
-	while fitnessAlreadyMeasured() do
-		nextGenome()
+	file:close()
+
+	while fitnessAlreadyMeasured(neatMLAI.pool) do
+		nextGenome(neatMLAI)
 	end
-	initializeRun()
+	initializeRun(neatMLAI)
 	pool.currentFrame = pool.currentFrame + 1
 end
  
 function loadPool()
+	error('unimplemented')
 	local filename = saveLoadFile
 	loadFile(filename)
 end
@@ -374,16 +396,14 @@ if gameinfo.getromname() ~= romGameName then
 	error('Unsupported Game Rom! Please play rom: ' .. romGameName .. ' Rom currently is: ' .. gameinfo.getromname())
 end
 
-local poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 
 local form = forms.newform(200, 260, "Fitness")
-local maxFitnessLabel = forms.label(form, "Max Fitness: " .. math.floor(pool.maxFitness), 5, 8)
+local maxFitnessLabel = forms.label(form, "Max Fitness: nil", 5, 8)
 local showNetwork = forms.checkbox(form, "Show Map", 5, 30)
 local showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 local restartButton = forms.button(form, "Restart", initializePool, 5, 77)
 local saveButton = forms.button(form, "Save", savePool, 5, 102)
 local loadButton = forms.button(form, "Load", loadPool, 80, 102)
-local saveLoadFile = poolFileNamePrefix .. ".pool"
 local saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 local playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 local hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
@@ -397,32 +417,37 @@ event.onexit(onExit)
 -- Set the 'showNetowrk' checkbox to true, just while we mess around with it
 forms.setproperty(showNetwork, "Checked", true)
 
--- TODO: fix the method and readd this
--- Load the latest .pool file
--- GameHandler.loadLatestBackup(poolSavesFolder)
-
 local neatMLAI = Neat:new()
-neatMLAI:initializePool(inputSize, outputSize, maxNodes)
+
+-- Load the latest .pool file
+loadFile(poolSavesFolder, neatMLAI)
+
+if neatMLAI.pool == nil then
+	neatMLAI:initializePool(inputSize, outputSize, maxNodes)
+end
+initializeRun(neatMLAI)
+forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(neatMLAI.pool.maxFitness))
 
 while true do
 	if not forms.ischecked(hideBanner) then
 		gui.drawBox(0, 0, 300, 26, topOverlayBackgroundColor, topOverlayBackgroundColor)
 	end
 
-	local species = pool.species[pool.currentSpecies]
-	local genome = species.genomes[pool.currentGenome]
+	-- TODO: create getCurrentSpecies and getCurrentGenome methods
+	local species = neatMLAI.pool.species[neatMLAI.pool.currentSpecies]
+	local genome = species.genomes[neatMLAI.pool.currentGenome]
+	local pool = neatMLAI.pool
 
 	if forms.ischecked(showNetwork) then
 		displayGenome(genome)
 	end
 
 	if pool.currentFrame%5 == 0 then
-		evaluateCurrent()
+		evaluateCurrent(neatMLAI)
 	end
 
 	joypad.set(controller)
-
-	getPositions()
+	local marioX, marioY = Mario:getPositions()
 	if marioX > rightmost then
 		rightmost = marioX
 		timeout = TimeoutConstant
@@ -433,7 +458,12 @@ while true do
 	local timeoutBonus = pool.currentFrame / 4
 	if timeout + timeoutBonus <= 0 then
 		local fitness = rightmost - pool.currentFrame / 2
-		fitness = fitness + 1000
+		print(fitness)
+
+		-- TODO: this is Super Mario USA specific
+		if rightmost > 4816 then
+			fitness = fitness + 1000
+		end
 		if fitness == 0 then
 			fitness = -1
 		end
@@ -441,17 +471,17 @@ while true do
 
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
-			forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-			NEATEvolve.saveNewBackup(pool.generation, poolSavesFolder, saveLoadFile)
+			forms.settext(maxFitnessLabel, " Max Fitness: " .. math.floor(pool.maxFitness))
+			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
 		end
 
 		console.writeline("Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. fitness)
 		pool.currentSpecies = 1
 		pool.currentGenome = 1
-		while fitnessAlreadyMeasured() do
-			nextGenome()
+		while fitnessAlreadyMeasured(pool) do
+			nextGenome(neatMLAI)
 		end
-		initializeRun()
+		initializeRun(neatMLAI)
 	end
 
 	local measured = 0
@@ -467,10 +497,10 @@ while true do
 	if not forms.ischecked(hideBanner) then
 		gui.drawText(0, 0, "Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " (" .. math.floor(measured/total*100) .. "%)", 0xFF000000, 11)
 		gui.drawText(0, 12, "Fitness: " .. math.floor(rightmost - (pool.currentFrame) / 2 - (timeout + timeoutBonus)*2/3), 0xFF000000, 11)
-		gui.drawText(100, 12, "Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
+		gui.drawText(100, 12, " Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
 	end
 
 	pool.currentFrame = pool.currentFrame + 1
-
+	--]]
 	emu.frameadvance();
 end

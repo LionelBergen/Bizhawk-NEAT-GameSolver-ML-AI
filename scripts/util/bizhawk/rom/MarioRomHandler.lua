@@ -8,6 +8,7 @@ function Mario.getPositions()
 end
 
 function Mario.getTile(dx, dy)
+    marioX, marioY = Mario.getPositions()
     x = math.floor((marioX+dx+8)/16)
     y = math.floor((marioY+dy)/16)
 
@@ -59,19 +60,19 @@ function Mario.getExtendedSprites()
     return extended
 end
 
-function getInputs()
-    local marioCoords = Mario.getPositions()
+function Mario.getInputs(programViewBoxRadius)
+    marioX, marioY = Mario.getPositions()
 
-    sprites = getSprites()
-    extended = getExtendedSprites()
+    sprites = Mario.getSprites()
+    extended = Mario.getExtendedSprites()
 
     local inputs = {}
 
-    for dy=-ProgramViewBoxRadius*16,ProgramViewBoxRadius*16,16 do
-        for dx=-ProgramViewBoxRadius*16,ProgramViewBoxRadius*16,16 do
+    for dy=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
+        for dx=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
             inputs[#inputs+1] = 0
 
-            tile = getTile(dx, dy)
+            tile = Mario.getTile(dx, dy)
             if tile == 1 then
                 inputs[#inputs] = 1
             end

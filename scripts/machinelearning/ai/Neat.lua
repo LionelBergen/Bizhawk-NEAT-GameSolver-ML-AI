@@ -1,5 +1,8 @@
 local Neat = {}
 
+local Pool = require('machinelearning/ai/Pool')
+local Logger = require('util.Logger')
+
 local defaultMutateConnectionsChance = 0.25
 local defaultLinkMutationChance = 2.0
 local defaultBiasMutationChance = 0.40
@@ -16,21 +19,6 @@ local deltaThreshold = 1.0
 
 local crossoverChance = 0.75
 local staleSpecies = 15
-
---innovation number used to track gene.
-local function createNewPool(innovation)
-    local pool = {}
-    pool.species = {}
-    pool.generation = 0
-    pool.innovation = innovation
-    pool.currentSpecies = 1
-    pool.currentGenome = 1
-    pool.currentFrame = 0
-    pool.maxFitness = 0
-
-    return pool
-end
-
 
 local function sigmoid(x)
     return 2 / (1 + math.exp(-4.9 * x)) - 1
@@ -176,11 +164,29 @@ function Neat:new(mutateConnectionsChance, linkMutationChance, biasMutationChanc
     return o
 end
 
+-- innovation number used to track gene.
+-- TODO: could be a local function, shouldn't need to access from outside
+function Neat:createNewPool(innovation)
+    self.pool = Pool:new(innovation)
+    return self.pool
+end
+
+-- TODO: should be a local function..
+function Neat:createNewSpecies()
+    return createNewSpecies()
+end
+
+-- TODO: local function
+function Neat:createNewGene()
+    return createNewGene()
+end
+
 function Neat:newInnovation()
     self.pool.innovation = self.pool.innovation + 1
     return self.pool.innovation
 end
 
+-- TODO: could also be a local function for Genomes
 function Neat:createNewGenome(maxNeuron)
     local genome = {}
     genome.genes = {}
@@ -240,14 +246,12 @@ function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs, maxNodes)
         network.neurons[maxNodes+o] = createNewNeuron()
     end
 
-    -- TODO: do genes have an 'out'?
     table.sort(genome.genes, function (a,b)
         return (a.out < b.out)
     end)
 
-    -- TODO: do genes have an 'enabled'?
-    -- TODO: does network have a 'incoming'?
-    for _, gene in pairs(genome.genes) do
+    for i=1,#genome.genes do
+        local gene = genome.genes[i]
         if gene.enabled then
             if network.neurons[gene.out] == nil then
                 network.neurons[gene.out] = createNewNeuron()
@@ -264,8 +268,15 @@ function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs, maxNodes)
     genome.network = network
 end
 
-function Neat.evaluateNetwork(network, inputs, outputs, maxNodes)
-    for i=1,#outputs do
+function Neat.evaluateNetwork(network, inputSize, inputs, outputs, maxNodes)
+    table.insert(inputs, 1)
+
+    if #inputs ~= inputSize then
+        console.writeline("Incorrect number of neural network inputs.")
+        return {}
+    end
+
+    for i=1,#inputs do
         network.neurons[i].value = inputs[i]
     end
 
@@ -285,7 +296,7 @@ function Neat.evaluateNetwork(network, inputs, outputs, maxNodes)
     local newOutputs = {}
     for o=1, #outputs do
         local output = outputs[o]
-        -- TODO: "P1 " is used as a compairosn, needs to be removed or added as an argument.
+        -- TODO: "P1 " is related to controller in BizHawk. Maybe we should convert it outside this method
         local newOutput = "P1 " .. output
         if network.neurons[maxNodes+o].value > 0 then
             newOutputs[newOutput] = true
@@ -298,7 +309,7 @@ function Neat.evaluateNetwork(network, inputs, outputs, maxNodes)
 end
 
 function Neat:crossover(g1, g2)
-    local child = self.createNewGenome()
+    local child = self:createNewGenome()
     local innovations2 = {}
 
     -- Make sure g1 is the higher fitness genome
@@ -377,8 +388,8 @@ function Neat.containsLink(genes, link)
 end
 
 function Neat:linkMutate(genome, forceBias, numberOfInputs, numberOfOutputs, maxNodes)
-    local neuron1 = self.randomNeuron(genome.genes, false, numberOfInputs, numberOfOutputs, maxNodes)
-    local neuron2 = self.randomNeuron(genome.genes, true, numberOfInputs, numberOfOutputs, maxNodes)
+    local neuron1 = self.randomNeuron(genome.genes, true, numberOfInputs, numberOfOutputs, maxNodes)
+    local neuron2 = self.randomNeuron(genome.genes, false, numberOfInputs, numberOfOutputs, maxNodes)
 
     local newLink = createNewGene()
     if neuron1 <= numberOfInputs and neuron2 <= numberOfInputs then
@@ -533,8 +544,16 @@ function Neat.calculateAverageFitness(species)
     species.averageFitness = total / #species.genomes
 end
 
-function Neat.totalAverageFitness(pool)
+function Neat:totalAverageFitness(pool)
+    Logger.info('pool species: ')
     local total = 0
+
+    if pool.species == nil then
+        error("pool.species was nil")
+        console.log('error?')
+    end
+
+
     for s = 1,#pool.species do
         local species = pool.species[s]
         total = total + species.averageFitness
@@ -605,6 +624,10 @@ function Neat:removeWeakSpecies()
     local survived = {}
     local pool = self.pool
 
+    if pool.species == nil then
+        error("pool.species was nil")
+    end
+
     local sum = self:totalAverageFitness(pool)
     for s = 1,#pool.species do
         local species = pool.species[s]
@@ -637,10 +660,18 @@ function Neat:addToSpecies(child)
 end
 
 function Neat:newGeneration(numberOfInputs, numberOfOutputs, maxNodes)
+    if self.pool.species == nil then
+        error("pool.species was nil")
+    end
+
     local pool = self.pool
 
+    if pool.species == nil then
+        error("pool.species was nil")
+    end
+
     -- Cull the bottom half of each species
-    self:cullSpecies(pool, false)
+    self.cullSpecies(pool, false)
 
     self.rankGlobally(pool)
     self.removeStaleSpecies(pool)
@@ -651,9 +682,17 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs, maxNodes)
         self.calculateAverageFitness(species)
     end
 
+    if pool.species == nil then
+        error("pool.species was nil")
+    end
+
     self:removeWeakSpecies()
 
-    local sum = self:totalAverageFitness()
+    if pool.species == nil then
+        error("pool.species was nil")
+    end
+
+    local sum = self:totalAverageFitness(pool)
     local children = {}
     for s = 1,#pool.species do
         local species = pool.species[s]
@@ -662,7 +701,7 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs, maxNodes)
             table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes))
         end
     end
-    self:cullSpecies(pool, true) -- Cull all but the top member of each species
+    self.cullSpecies(pool, true) -- Cull all but the top member of each species
     while #children + #pool.species < self.population do
         local species = pool.species[math.random(1, #pool.species)]
         table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes))
@@ -673,14 +712,11 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs, maxNodes)
     end
 
     pool.generation = pool.generation + 1
-
-    -- TODO: add to calling method
-    -- NEATEvolve.saveNewBackup(pool.generation, poolSavesFolder, saveLoadFile)
 end
 
 function Neat:initializePool(numberOfInputs, numberOfOutputs, maxNodes)
     local innovation = numberOfOutputs
-    self.pool = createNewPool(innovation)
+    self.pool = self:createNewPool(innovation)
 
     for _=1,self.population do
         local basic = self:createBasicGenome(numberOfInputs, numberOfOutputs, maxNodes)
