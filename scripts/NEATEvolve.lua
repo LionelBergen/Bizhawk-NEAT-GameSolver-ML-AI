@@ -1,11 +1,10 @@
--- MarI/O by SethBling
--- Feel free to use this code, but please do not redistribute it.
--- Intended for use with the BizHawk emulator and Super Mario World or Super Mario Bros. ROM.
+-- NEAT ML/AI program designed to be used with Bizhawk emulator
+-- Created by Lionel Bergen
 local FileUtil = require('util/FileUtil')
 local Logger = require('util.Logger')
 local GameHandler = require('util/bizhawk/GameHandler')
-local Mario = require('util/bizhawk/rom/MarioRomHandler')
 local Neat = require('machinelearning/ai/Neat')
+local Mario = require('util/bizhawk/rom/Mario')
 
 local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
@@ -13,17 +12,6 @@ local poolFileNamePostfix = poolFileNamePrefix .. ".pool"
 local machineLearningProjectName = 'Mario_testing'
 local poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 
-local romGameName = 'Super Mario World (USA)'
-local ButtonNames = {
-	"A",
-	"B",
-	"X",
-	"Y",
-	"Up",
-	"Down",
-	"Left",
-	"Right",
-}
 -- You can use https://jscolor.com/ to find colours
 -- Used for the top bar overlay that displays the gen, speciies etc.
 local topOverlayBackgroundColor = 0xD0FFFFFF
@@ -32,7 +20,7 @@ local topOverlayBackgroundColor = 0xD0FFFFFF
 local ProgramViewBoxRadius = 6
 local inputSize = (ProgramViewBoxRadius*2+1)*(ProgramViewBoxRadius*2+1)
 inputSize = inputSize + 1
-local outputSize = #ButtonNames
+local outputSize = #Mario.getButtonOutputs()
 
 local Population = 300
 local DeltaDisjoint = 2.0
@@ -66,8 +54,8 @@ end
 
 function clearJoypad()
 	controller = {}
-	for b = 1,#ButtonNames do
-		controller["P1 " .. ButtonNames[b]] = false
+	for b = 1,#Mario.getButtonOutputs() do
+		controller["P1 " .. Mario.getButtonOutputs()[b]] = false
 	end
 	joypad.set(controller)
 end
@@ -91,7 +79,7 @@ function evaluateCurrent(neatMLAI)
 	local genome = species.genomes[neatMLAI.pool.currentGenome]
 
 	inputs = Mario.getInputs(ProgramViewBoxRadius)
-	controller = neatMLAI.evaluateNetwork(genome.network, inputSize, inputs, ButtonNames, maxNodes)
+	controller = neatMLAI.evaluateNetwork(genome.network, inputSize, inputs, Mario.getButtonOutputs(), maxNodes)
 	
 	if controller["P1 Left"] and controller["P1 Right"] then
 		controller["P1 Left"] = false
@@ -159,7 +147,7 @@ function displayGenome(genome)
 		else
 			color = 0xFF000000
 		end
-		gui.drawText(223, 24+8*o, ButtonNames[o], color, 9)
+		gui.drawText(223, 24+8*o, Mario.getButtonOutputs()[o], color, 9)
 	end
 	
 	for n,neuron in pairs(network.neurons) do
@@ -392,7 +380,7 @@ local function onExit()
 	forms.destroy(form)
 end
 
-if gameinfo.getromname() ~= romGameName then
+if gameinfo.getromname() ~= Mario.getRomName() then
 	error('Unsupported Game Rom! Please play rom: ' .. romGameName .. ' Rom currently is: ' .. gameinfo.getromname())
 end
 
