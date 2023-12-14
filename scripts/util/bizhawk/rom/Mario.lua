@@ -1,4 +1,25 @@
-local Mario = {}
+local Rom =  require('util/bizhawk/rom/Rom')
+local Mario = Rom:new()
+
+local romGameName = 'Super Mario World (USA)'
+-- No need for both Y and X since they do the same thing.
+local buttonNames = {
+    "A",
+    "B",
+    "X",
+    "Up",
+    "Down",
+    "Left",
+    "Right",
+}
+
+function Mario.getRomName()
+    return romGameName
+end
+
+function Mario.getButtonOutputs()
+    return buttonNames
+end
 
 function Mario.getPositions()
     local marioX = memory.read_s16_le(0x94)

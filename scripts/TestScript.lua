@@ -1,6 +1,6 @@
 local FileUtil = require('util/FileUtil')
 local GameHandler = require('util/bizhawk/GameHandler')
-local Mario = require('util/bizhawk/rom/MarioRomHandler')
+local Mario = require('Mario')
 local Neat = require('machinelearning/ai/Neat')
 local Pool = require('machinelearning.ai.Pool')
 
