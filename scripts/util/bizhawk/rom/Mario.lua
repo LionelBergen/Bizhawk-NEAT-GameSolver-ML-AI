@@ -2,11 +2,11 @@ local Rom =  require('util/bizhawk/rom/Rom')
 local Mario = Rom:new()
 
 local romGameName = 'Super Mario World (USA)'
+-- No need for both Y and X since they do the same thing.
 local buttonNames = {
     "A",
     "B",
     "X",
-    "Y",
     "Up",
     "Down",
     "Left",
