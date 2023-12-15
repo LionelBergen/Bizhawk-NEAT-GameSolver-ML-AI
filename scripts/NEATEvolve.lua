@@ -6,6 +6,7 @@ local GameHandler = require('util/bizhawk/GameHandler')
 local Neat = require('machinelearning/ai/Neat')
 local Mario = require('util/bizhawk/rom/Mario')
 
+local rom = Mario
 local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
 local poolFileNamePostfix = poolFileNamePrefix .. ".pool"
@@ -20,67 +21,34 @@ local topOverlayBackgroundColor = 0xD0FFFFFF
 local ProgramViewBoxRadius = 6
 local inputSize = (ProgramViewBoxRadius*2+1)*(ProgramViewBoxRadius*2+1)
 inputSize = inputSize + 1
-local outputSize = #Mario.getButtonOutputs()
-
-local Population = 300
-local DeltaDisjoint = 2.0
-local DeltaWeights = 0.4
-local DeltaThreshold = 1.0
-
-local StaleSpecies = 15
-
-local MutateConnectionsChance = 0.25
-local PerturbChance = 0.90
-local CrossoverChance = 0.75
-local LinkMutationChance = 2.0
-local NodeMutationChance = 0.50
-local BiasMutationChance = 0.40
-local StepSize = 0.1
-local DisableMutationChance = 0.4
-local EnableMutationChance = 0.2
+local outputSize = #rom.getButtonOutputs()
 
 local TimeoutConstant = 20
-
 local maxNodes = 1000000
 
 local function saveNewBackup(pool, poolGeneration, poolSavesFolder, filePostfix)
-	local newFileName = "backup." .. poolGeneration .. "." .. filePostfix
-	writeFile(poolSavesFolder .. newFileName, pool)
+	local newFileName = poolSavesFolder .. "backup." .. poolGeneration .. "." .. filePostfix
+	GameHandler.saveFileFromPool(newFileName, pool)
 end
 
 local function sigmoid(x)
 	return 2 / (1 + math.exp(-4.9 * x)) - 1
 end
 
-function clearJoypad()
+local function clearJoypad()
 	controller = {}
-	for b = 1,#Mario.getButtonOutputs() do
-		controller["P1 " .. Mario.getButtonOutputs()[b]] = false
+	for b = 1,#rom.getButtonOutputs() do
+		controller["P1 " .. rom.getButtonOutputs()[b]] = false
 	end
 	joypad.set(controller)
 end
 
-function initializeRun(neatMLAI)
-	GameHandler.loadSavedGame('..\\assets\\savedstates\\' .. saveFileName)
-	rightmost = 0
-	neatMLAI.pool.currentFrame = 0
-	timeout = TimeoutConstant
-	clearJoypad()
+local function evaluateCurrent(neatMLAI)
+	local genome = neatMLAI:getCurrentGenome()
 
-	-- TODO: write method in pool for 'currentSpecies'.
-	local species = neatMLAI.pool.species[neatMLAI.pool.currentSpecies]
-	local genome = species.genomes[neatMLAI.pool.currentGenome]
-	neatMLAI.generateNetwork(genome, inputSize, outputSize, maxNodes)
-	evaluateCurrent(neatMLAI)
-end
+	inputs = rom.getInputs(ProgramViewBoxRadius)
+	controller = neatMLAI.evaluateNetwork(genome.network, inputSize, inputs, rom.getButtonOutputs(), maxNodes)
 
-function evaluateCurrent(neatMLAI)
-	local species = neatMLAI.pool.species[neatMLAI.pool.currentSpecies]
-	local genome = species.genomes[neatMLAI.pool.currentGenome]
-
-	inputs = Mario.getInputs(ProgramViewBoxRadius)
-	controller = neatMLAI.evaluateNetwork(genome.network, inputSize, inputs, Mario.getButtonOutputs(), maxNodes)
-	
 	if controller["P1 Left"] and controller["P1 Right"] then
 		controller["P1 Left"] = false
 		controller["P1 Right"] = false
@@ -93,12 +61,26 @@ function evaluateCurrent(neatMLAI)
 	joypad.set(controller)
 end
 
-function nextGenome(neatMLAI)
+local function initializeRun(neatMLAI)
+	-- Load the beginning of a level
+	GameHandler.loadSavedGame('..\\assets\\savedstates\\' .. saveFileName)
+	rightmost = 0
+	neatMLAI.pool.currentFrame = 0
+	timeout = TimeoutConstant
+	clearJoypad()
+
+	local genome = neatMLAI:getCurrentGenome()
+
+	neatMLAI.generateNetwork(genome, inputSize, outputSize, maxNodes)
+	evaluateCurrent(neatMLAI)
+end
+
+local function nextGenome(neatMLAI)
 	local pool = neatMLAI.pool
 	pool.currentGenome = pool.currentGenome + 1
 	if pool.currentGenome > #pool.species[pool.currentSpecies].genomes then
 		pool.currentGenome = 1
-		pool.currentSpecies = pool.currentSpecies+1
+		pool.currentSpecies = pool.currentSpecies + 1
 		if pool.currentSpecies > #pool.species then
 			neatMLAI:newGeneration(inputSize, outputSize, maxNodes)
 			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
@@ -107,9 +89,8 @@ function nextGenome(neatMLAI)
 	end
 end
 
-function fitnessAlreadyMeasured(pool)
-	local species = pool.species[pool.currentSpecies]
-	local genome = species.genomes[pool.currentGenome]
+local function isFitnessMeasured(pool)
+	local genome = pool:getCurrentGenome()
 	
 	return genome.fitness ~= 0
 end
@@ -147,7 +128,7 @@ function displayGenome(genome)
 		else
 			color = 0xFF000000
 		end
-		gui.drawText(223, 24+8*o, Mario.getButtonOutputs()[o], color, 9)
+		gui.drawText(223, 24+8*o, rom.getButtonOutputs()[o], color, 9)
 	end
 	
 	for n,neuron in pairs(network.neurons) do
@@ -246,42 +227,6 @@ function displayGenome(genome)
 	end
 end
 
-function writeFile(filename, pool)
-    local file = io.open(filename, "w")
-	file:write(pool.generation .. "\n")
-	file:write(pool.maxFitness .. "\n")
-	file:write(#pool.species .. "\n")
-    
-	for n,species in pairs(pool.species) do
-		file:write(species.topFitness .. "\n")
-		file:write(species.staleness .. "\n")
-		file:write(#species.genomes .. "\n")
-		for m,genome in pairs(species.genomes) do
-			file:write(genome.fitness .. "\n")
-			file:write(genome.maxNeuron .. "\n")
-			for mutation,rate in pairs(genome.mutationRates) do
-				file:write(mutation .. "\n")
-				file:write(rate .. "\n")
-			end
-			file:write("done\n")
-			
-			file:write(#genome.genes .. "\n")
-			for l,gene in pairs(genome.genes) do
-				file:write(gene.into .. " ")
-				file:write(gene.out .. " ")
-				file:write(gene.weight .. " ")
-				file:write(gene.innovation .. " ")
-				if(gene.enabled) then
-					file:write("1\n")
-				else
-					file:write("0\n")
-				end
-			end
-		end
-    end
-    file:close()
-end
-
 function savePool()
 	error('unimplemented')
 	local filename = saveLoadFile
@@ -340,7 +285,7 @@ function loadFile2(filename, neatMLAI)
 	end
 	file:close()
 
-	while fitnessAlreadyMeasured(neatMLAI.pool) do
+	while isFitnessMeasured(neatMLAI.pool) do
 		nextGenome(neatMLAI)
 	end
 	initializeRun(neatMLAI)
@@ -380,7 +325,7 @@ local function onExit()
 	forms.destroy(form)
 end
 
-if gameinfo.getromname() ~= Mario.getRomName() then
+if gameinfo.getromname() ~= rom.getRomName() then
 	error('Unsupported Game Rom! Please play rom: ' .. romGameName .. ' Rom currently is: ' .. gameinfo.getromname())
 end
 
@@ -435,7 +380,8 @@ while true do
 	end
 
 	joypad.set(controller)
-	local marioX, marioY = Mario:getPositions()
+	-- TODO: 'marioX', 'marioY'
+	local marioX, marioY = rom:getPositions()
 	if marioX > rightmost then
 		rightmost = marioX
 		timeout = TimeoutConstant
@@ -466,7 +412,7 @@ while true do
 		console.writeline("Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. fitness)
 		pool.currentSpecies = 1
 		pool.currentGenome = 1
-		while fitnessAlreadyMeasured(pool) do
+		while isFitnessMeasured(pool) do
 			nextGenome(neatMLAI)
 		end
 		initializeRun(neatMLAI)
@@ -489,6 +435,5 @@ while true do
 	end
 
 	pool.currentFrame = pool.currentFrame + 1
-	--]]
 	emu.frameadvance();
 end

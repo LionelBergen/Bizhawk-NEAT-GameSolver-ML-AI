@@ -207,6 +207,10 @@ function Neat:createNewGenome(maxNeuron)
     return genome
 end
 
+function Neat:getCurrentGenome()
+    return self.pool:getCurrentGenome()
+end
+
 function Neat:createCopyGenome(genome)
     -- Create a new genome and copy the genes from the passed genome
     local genomeCopy = self:createNewGenome()
