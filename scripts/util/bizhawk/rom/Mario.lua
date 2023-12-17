@@ -1,6 +1,6 @@
 local Rom =  require('util/bizhawk/rom/Rom')
 local Mario = Rom:new()
-local Logger = require('util.Logger')
+-- luacheck: globals memory
 
 local romGameName = 'Super Mario World (USA)'
 -- No need for both Y and X since they do the same thing.
@@ -14,7 +14,7 @@ local buttonNames = {
     "Right",
 }
 
--- https://www.smwcentral.net/?p=memorymap&game=smw&u=0&address=000095&sizeOperation=%3D&sizeValue=&region[]=ram&region[]=rom&region[]=regs&region[]=hijack&region[]=sram&type=*&description=
+-- https://www.smwcentral.net/?p=memorymap&game=smw&u=0&address=000095&
 local xPositionInMemory = 0x94
 local yPositionMemory = 0x96
 
@@ -51,7 +51,7 @@ end
 
 function Mario.getSprites()
     local sprites = {}
-    -- https://www.smwcentral.net/?p=memorymap&game=smw&u=0&address=&sizeOperation=%3D&sizeValue=&region[]=ram&type=*&description=koopa
+    -- https://www.smwcentral.net/
     local spriteByteLength = 12
     local spriteStatusAddress = 0x14C8
     local spriteLowXAddress = 0x00E4
@@ -66,9 +66,9 @@ function Mario.getSprites()
         local carried = 0x0B
         if status == normal or status == carryable or status == kicked or status == carried then
             -- TODO: why multiply by 256?
-            spritex = (memory.readbyte(spriteLowXAddress+slot) + memory.readbyte(spriteHighXAddress+slot)) * 256
-            spritey = (memory.readbyte(spriteLowYAddress+slot) + memory.readbyte(spriteHighYAddress+slot)) * 256
-            spritevalue = -1
+            local spritex = (memory.readbyte(spriteLowXAddress+slot) + memory.readbyte(spriteHighXAddress+slot)) * 256
+            local spritey = (memory.readbyte(spriteLowYAddress+slot) + memory.readbyte(spriteHighYAddress+slot)) * 256
+            local spritevalue = -1
 
             if status == normal then
                 spritevalue = 2
@@ -89,6 +89,7 @@ end
 
 function Mario.getExtendedSprites()
     local extended = {}
+    local spritex, spritey
     for slot=0,11 do
         local number = memory.readbyte(0x170B+slot)
         if number ~= 0 then
@@ -108,6 +109,7 @@ function Mario.getInputs(programViewBoxRadius)
     debugSprites(sprites)
     local extended = Mario.getExtendedSprites()
     local inputs = {}
+    local distx, disty, value, tile
 
     -- increment by 16 from -X to +X
     for dy=-programViewBoxRadius*16,programViewBoxRadius*16,16 do

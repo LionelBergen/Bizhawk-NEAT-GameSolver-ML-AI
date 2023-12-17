@@ -10,8 +10,8 @@ function Rom:new(o)
 end
 
 -- gets the inputs for the AI program.
--- programViewBoxRadius - used to determine how far/wide the program can 'see'
-function Rom.getInputs(programViewBoxRadius)
+-- _ = programViewBoxRadius - used to determine how far/wide the program can 'see'
+function Rom.getInputs(_)
     error('unimplemented method getInputs')
 end
 

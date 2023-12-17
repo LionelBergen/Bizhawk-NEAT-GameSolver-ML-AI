@@ -127,7 +127,6 @@ function Neat:new(mutateConnectionsChance, linkMutationChance, biasMutationChanc
 end
 
 -- innovation number used to track gene.
--- TODO: could be a local function, shouldn't need to access from outside
 function Neat:createNewPool(innovation)
     self.pool = Pool:new(innovation)
     return self.pool
@@ -141,6 +140,10 @@ end
 function Neat:createNewGenome(maxNeuron)
     return Genome:new(maxNeuron, self.mutateConnectionsChance, self.linkMutationChance, self.biasMutationChance,
             self.nodeMutationChance, self.enableMutationChance, self.disableMutationChance, self.stepSize)
+end
+
+function Neat:createNewGene()
+    return Gene:new()
 end
 
 function Neat:getCurrentGenome()

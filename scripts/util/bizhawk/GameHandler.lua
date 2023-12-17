@@ -1,14 +1,16 @@
 local GameHandler = {}
 
-FileUtil = require('../util/FileUtil')
-Logger = require('../util/Logger')
+local FileUtil = require('../util/FileUtil')
+local Logger = require('../util/Logger')
+
+-- luacheck: globals savestate
 
 -- Load a save game from the relative path specified
 function GameHandler.loadSavedGame(fileLocation)
 	local currentDir = FileUtil.getCurrentDirectory()
 	local fullFilePath = currentDir .. "\\" ..fileLocation
 	FileUtil.validateFilePath(fullFilePath)
-	
+
 	savestate.load(fullFilePath)
 	Logger.info('loaded save game from file: ' .. fullFilePath)
 end
@@ -19,15 +21,15 @@ function GameHandler.getLatestBackupFile(poolSavesFolder)
 	local latestBackupNumber = -1
 	local latestBackupFile
 
-	for key, value in pairs(listOfAllPoolFiles) do
+	for _, value in pairs(listOfAllPoolFiles) do
 		local res = value.match(value, [[backup.(%d+)]])
-		
+
 		if res ~= nil and latestBackupNumber < tonumber(res) then
 			latestBackupNumber = tonumber(res)
 			latestBackupFile = value
 		end
 	end
-	
+
 	return latestBackupFile
 end
 
@@ -38,11 +40,11 @@ function GameHandler.saveFileFromPool(filename, pool)
 	file:write(pool.maxFitness .. "\n")
 	file:write(#pool.species .. "\n")
 
-	for n,species in pairs(pool.species) do
+	for _,species in pairs(pool.species) do
 		file:write(species.topFitness .. "\n")
 		file:write(species.staleness .. "\n")
 		file:write(#species.genomes .. "\n")
-		for m,genome in pairs(species.genomes) do
+		for _,genome in pairs(species.genomes) do
 			file:write(genome.fitness .. "\n")
 			file:write(genome.maxNeuron .. "\n")
 			for mutation,rate in pairs(genome.mutationRates) do
@@ -52,7 +54,7 @@ function GameHandler.saveFileFromPool(filename, pool)
 			file:write("done\n")
 
 			file:write(#genome.genes .. "\n")
-			for l,gene in pairs(genome.genes) do
+			for _,gene in pairs(genome.genes) do
 				file:write(gene.into .. " ")
 				file:write(gene.out .. " ")
 				file:write(gene.weight .. " ")

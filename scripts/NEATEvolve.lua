@@ -34,22 +34,7 @@ local timeout = 0
 
 -- Declare variables that are defined in Bizhawk already.
 -- This is just to satisfy LuaCheck, to make it easier to find actual issues
--- luacheck: globals forms ignore forms
-local forms = forms or {}
--- luacheck: globals controller ignore controller
-local controller = controller or {}
--- luacheck: globals joypad ignore joypad
-local joypad = joypad or {}
--- luacheck: globals inputs ignore inputs
-local inputs = inputs or {}
--- luacheck: globals gui ignore gui
-local gui = gui or {}
--- luacheck: globals emu ignore emu
-local emu = emu or {}
--- luacheck: globals event ignore event
-local event = event or {}
--- luacheck: globals gameinfo ignore gameinfo
-local gameinfo = gameinfo or {}
+-- luacheck: globals forms controller joypad inputs gui emu event gameinfo
 
 local form = forms.newform(200, 260, "Fitness")
 local maxFitnessLabel = forms.label(form, "Max Fitness: nil", 5, 8)

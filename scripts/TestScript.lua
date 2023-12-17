@@ -1,4 +1,4 @@
-MutationRate = require('machinelearning.ai.model.MutationRate')
+local MutationRate = require('machinelearning.ai.model.MutationRate')
 
 local function assertTrue(value, message)
     if value == nil then

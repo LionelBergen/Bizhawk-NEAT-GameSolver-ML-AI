@@ -2,6 +2,8 @@
 local Logger = {}
 local debugFunction = nil
 
+-- luacheck: globals console
+
 local function dump(o)
     if type(o) == 'table' then
         local s = '{ '
