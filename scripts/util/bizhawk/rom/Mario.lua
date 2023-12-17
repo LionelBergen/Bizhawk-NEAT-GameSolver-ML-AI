@@ -1,5 +1,6 @@
 local Rom =  require('util/bizhawk/rom/Rom')
 local Mario = Rom:new()
+local Logger = require('util.Logger')
 
 local romGameName = 'Super Mario World (USA)'
 -- No need for both Y and X since they do the same thing.
@@ -13,6 +14,10 @@ local buttonNames = {
     "Right",
 }
 
+-- https://www.smwcentral.net/?p=memorymap&game=smw&u=0&address=000095&sizeOperation=%3D&sizeValue=&region[]=ram&region[]=rom&region[]=regs&region[]=hijack&region[]=sram&type=*&description=
+local xPositionInMemory = 0x94
+local yPositionMemory = 0x96
+
 function Mario.getRomName()
     return romGameName
 end
@@ -22,18 +27,26 @@ function Mario.getButtonOutputs()
 end
 
 function Mario.getPositions()
-    local marioX = memory.read_s16_le(0x94)
-    local marioY = memory.read_s16_le(0x96)
+    -- Read Signed 16 Little Endian
+    local marioX = memory.read_s16_le(xPositionInMemory)
+    local marioY = memory.read_s16_le(yPositionMemory)
 
     return marioX, marioY
 end
 
 function Mario.getTile(dx, dy)
-    marioX, marioY = Mario.getPositions()
-    x = math.floor((marioX+dx+8)/16)
-    y = math.floor((marioY+dy)/16)
+    local marioX, marioY = Mario.getPositions()
+    local x = math.floor((marioX+dx+8)/16)
+    local y = math.floor((marioY+dy)/16)
 
     return memory.readbyte(0x1C800 + math.floor(x/0x10)*0x1B0 + y*0x10 + x%0x10)
+end
+
+local function debugSprites(sprites)
+    local message = ""
+    for i, sprite in pairs(sprites) do
+        message = message .. i .. ": " .. sprite.value .. " "
+    end
 end
 
 function Mario.getSprites()
@@ -47,19 +60,26 @@ function Mario.getSprites()
     local spriteHighYAddress = 0x14D4
     for slot=0,spriteByteLength - 1 do
         local status = memory.readbyte(spriteStatusAddress+slot)
-        -- https://www.smwcentral.net/?p=memorymap&a=detail&game=smw&region=ram&detail=0984148beee5
-        if status ~= 0 and status ~= 02 and status ~= 04 then
+        local normal = 0x08
+        local carryable = 0x09
+        local kicked = 0x0A
+        local carried = 0x0B
+        if status == normal or status == carryable or status == kicked or status == carried then
             -- TODO: why multiply by 256?
-            spritex = memory.readbyte(spriteLowXAddress+slot) + memory.readbyte(spriteHighXAddress+slot)*256
-            spritey = memory.readbyte(spriteLowYAddress+slot) + memory.readbyte(spriteHighYAddress+slot)*256
-
+            spritex = (memory.readbyte(spriteLowXAddress+slot) + memory.readbyte(spriteHighXAddress+slot)) * 256
+            spritey = (memory.readbyte(spriteLowYAddress+slot) + memory.readbyte(spriteHighYAddress+slot)) * 256
             spritevalue = -1
-            -- if carryable
-            if status == 09 then
+
+            if status == normal then
                 spritevalue = 2
-            elseif status == 0x0B then
+            elseif status == kicked then
                 spritevalue = 3
+            elseif status == carried then
+                spritevalue = 4
+            elseif status == carryable then
+                spritevalue = 5
             end
+
             sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey, ["value"]=spritevalue}
         end
     end
@@ -82,11 +102,11 @@ function Mario.getExtendedSprites()
 end
 
 function Mario.getInputs(programViewBoxRadius)
-    marioX, marioY = Mario.getPositions()
+    local marioX, marioY = Mario.getPositions()
 
-    sprites = Mario.getSprites()
-    extended = Mario.getExtendedSprites()
-
+    local sprites = Mario.getSprites()
+    debugSprites(sprites)
+    local extended = Mario.getExtendedSprites()
     local inputs = {}
 
     -- increment by 16 from -X to +X

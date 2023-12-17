@@ -1,5 +1,6 @@
 -- Simple class to wrap 'print' or 'console.log', just to make porting easier
 local Logger = {}
+local debugFunction = nil
 
 local function dump(o)
     if type(o) == 'table' then
@@ -23,5 +24,18 @@ function Logger.info(message)
     end
 end
 
+function Logger.debug(message)
+    if type(message) == 'table' then
+        local string = dump(message)
+        debugFunction(string)
+    else
+        debugFunction(message)
+        console.log(message)
+    end
+end
+
+function Logger.setDebugFunction(newDebugFunction)
+    debugFunction = newDebugFunction
+end
 
 return Logger

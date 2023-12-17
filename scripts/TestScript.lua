@@ -1,50 +1,62 @@
-local FileUtil = require('util/FileUtil')
-local GameHandler = require('util/bizhawk/GameHandler')
-local Mario = require('Mario')
-local Neat = require('machinelearning/ai/Neat')
-local Pool = require('machinelearning.ai.Pool')
+MutationRate = require('machinelearning.ai.model.MutationRate')
 
-local MutateConnectionsChance = 0.25
-local PerturbChance = 0.90
-local CrossoverChance = 0.75
-local LinkMutationChance = 2.0
-local NodeMutationChance = 0.50
-local BiasMutationChance = 0.40
-local StepSize = 0.1
-local DisableMutationChance = 0.4
-local EnableMutationChance = 0.2
+local function assertTrue(value, message)
+    if value == nil then
+        error(message or 'expected true but was nil')
+    elseif type(value) ~= boolean then
+        error(message or 'expected boolean but was: ' .. type(value))
+    else
+        if not value == true then
+            error(message or 'expected true but was: ' .. value)
+        end
+    end
+end
 
-local maxNodes = 1000000
+local function assertNotNull(value, message)
+    if value == nil then
+        error(message or 'expected true but was nil')
+    end
+end
 
--- this is the Programs 'view'
-local ProgramViewBoxRadius = 6
-local InputSize = (ProgramViewBoxRadius*2+1)*(ProgramViewBoxRadius*2+1)
+local function assertNotEquals(value1, value2)
+    if value1 == value2 then
+        error('value 1: ' .. value1 .. ' was equal to value2: ' .. value2)
+    end
+end
 
-local ButtonNames = {
-    "A",
-    "B",
-    "X",
-    "Y",
-    "Up",
-    "Down",
-    "Left",
-    "Right",
-}
+local function assertEquals(value1, value2)
+    if value1 ~= value2 then
+        error('value 1: ' .. value1 .. ' was not equal to value2: ' .. value2)
+    end
+end
 
-local numberOfOutputs = #ButtonNames
-local numberOfInputs = InputSize
+-- MutationRate tests
+local mutationRate = MutationRate:new()
+local mutationRate2 = MutationRate:new(1, 1, 1, 1, 1, 1, 1)
+assertNotNull(mutationRate.connections)
+assertNotNull(mutationRate.link)
+assertNotNull(mutationRate.bias)
+assertNotNull(mutationRate.node)
+assertNotNull(mutationRate.enable)
+assertNotNull(mutationRate.disable)
+assertNotNull(mutationRate.step)
 
-local neatMLAI = Neat:new()
-neatMLAI:initializePool(numberOfInputs, numberOfOutputs, maxNodes)
+assertNotEquals(mutationRate.connections, mutationRate2.connections)
+assertNotEquals(mutationRate.link, mutationRate2.link)
+assertNotEquals(mutationRate.bias, mutationRate2.bias)
+assertNotEquals(mutationRate.node, mutationRate2.node)
+assertNotEquals(mutationRate.enable, mutationRate2.enable)
+assertNotEquals(mutationRate.disable, mutationRate2.disable)
+assertNotEquals(mutationRate.step, mutationRate2.step)
 
-local pool1 = Pool:new()
-local pool2 = Pool.new()
-local pool3 = Pool:new()
+mutationRate = MutationRate:copy(mutationRate2)
 
-pool3.innovation = 99
+assertEquals(mutationRate.connections, mutationRate2.connections)
+assertEquals(mutationRate.link, mutationRate2.link)
+assertEquals(mutationRate.bias, mutationRate2.bias)
+assertEquals(mutationRate.node, mutationRate2.node)
+assertEquals(mutationRate.enable, mutationRate2.enable)
+assertEquals(mutationRate.disable, mutationRate2.disable)
+assertEquals(mutationRate.step, mutationRate2.step)
 
-print (pool1.innovation)
-print (pool2.innovation)
-print (pool3.innovation)
-
-print "goodbye world"
+print("passed.")
