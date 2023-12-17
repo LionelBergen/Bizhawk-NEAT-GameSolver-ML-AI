@@ -1,5 +1,6 @@
 local Rom =  require('util/bizhawk/rom/Rom')
 local Mario = Rom:new()
+local Logger = require('util.Logger')
 -- luacheck: globals memory
 
 local romGameName = 'Super Mario World (USA)'
@@ -47,6 +48,8 @@ local function debugSprites(sprites)
     for i, sprite in pairs(sprites) do
         message = message .. i .. ": " .. sprite.value .. " "
     end
+
+    Logger.info(message)
 end
 
 function Mario.getSprites()
@@ -58,6 +61,7 @@ function Mario.getSprites()
     local spriteHighXAddress = 0x14E0
     local spriteLowYAddress = 0x00D8
     local spriteHighYAddress = 0x14D4
+    --[[
     for slot=0,spriteByteLength - 1 do
         local status = memory.readbyte(spriteStatusAddress+slot)
         local normal = 0x08
@@ -83,7 +87,26 @@ function Mario.getSprites()
             sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey, ["value"]=spritevalue}
         end
     end
+    --]]
 
+    for slot=0,spriteByteLength - 1 do
+        local status = memory.readbyte(spriteStatusAddress+slot)
+        -- https://www.smwcentral.net/?p=memorymap&a=detail&game=smw&region=ram&detail=0984148beee5
+        if status ~= 0 and status ~= 02 and status ~= 04 then
+            -- TODO: why multiply by 256?
+            spritex = memory.readbyte(spriteLowXAddress+slot) + memory.readbyte(spriteHighXAddress+slot)*256
+            spritey = memory.readbyte(spriteLowYAddress+slot) + memory.readbyte(spriteHighYAddress+slot)*256
+
+            spritevalue = -1
+            -- if carryable
+            if status == 09 then
+                spritevalue = 2
+            elseif status == 0x0B then
+                spritevalue = 3
+            end
+            sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey, ["value"]=spritevalue}
+        end
+    end
     return sprites
 end
 
@@ -106,10 +129,9 @@ function Mario.getInputs(programViewBoxRadius)
     local marioX, marioY = Mario.getPositions()
 
     local sprites = Mario.getSprites()
-    debugSprites(sprites)
     local extended = Mario.getExtendedSprites()
     local inputs = {}
-    local distx, disty, value, tile
+    -- local distx, disty, value, tile
 
     -- increment by 16 from -X to +X
     for dy=-programViewBoxRadius*16,programViewBoxRadius*16,16 do

@@ -422,7 +422,6 @@ while true do
 	local timeoutBonus = pool.currentFrame / 4
 	if timeout + timeoutBonus <= 0 then
 		local fitness = rightmost - pool.currentFrame / 2
-		Logger.info('fitness: ' .. fitness)
 
 		-- TODO: this is Super Mario USA specific
 		if rightmost > 4816 then

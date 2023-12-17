@@ -558,7 +558,7 @@ function Neat:removeWeakSpecies()
         error("pool.species was nil")
     end
 
-    local sum = self:totalAverageFitness(pool)
+    local sum = self.totalAverageFitness(pool)
     for s = 1,#pool.species do
         local species = pool.species[s]
         local breed = math.floor(species.averageFitness / sum * self.population)
