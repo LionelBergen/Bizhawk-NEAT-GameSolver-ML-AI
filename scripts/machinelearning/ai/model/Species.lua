@@ -1,6 +1,6 @@
 local Species = {}
 
-function Species:new()
+function Species.new()
     local species = {}
 
     species.topFitness = 0

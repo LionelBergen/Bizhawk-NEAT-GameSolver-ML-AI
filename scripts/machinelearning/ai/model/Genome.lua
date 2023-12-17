@@ -1,7 +1,7 @@
 local Genome = {}
 
 local MutationRate = require('machinelearning.ai.model.MutationRate')
-local Gene = require('machinelearning.ai.model.Gene')
+local Validator = require('../util/Validator')
 
 function Genome:new(maxNeuron, mutateConnectionsChance, linkMutationChance, biasMutationChance,
                     nodeMutationChance, enableMutationChance, disableMutationChance, stepSize)
@@ -16,30 +16,34 @@ function Genome:new(maxNeuron, mutateConnectionsChance, linkMutationChance, bias
     genome.network = {}
     genome.maxNeuron = maxNeuron or 0
     genome.globalRank = 0
-    genome.mutationRates = MutationRate:new(mutateConnectionsChance, linkMutationChance, biasMutationChance,
+    genome.mutationRates = MutationRate.new(mutateConnectionsChance, linkMutationChance, biasMutationChance,
             nodeMutationChance, enableMutationChance, disableMutationChance, stepSize)
 
     return genome
 end
 
-function Genome:createCopy(genome)
+function Genome:copy(genome)
     -- Create a new genome and copy the genes from the passed genome
     local genomeCopy = self:new()
     for _, gene in pairs(genome.genes) do
-        table.insert(genomeCopy.genes, Gene:copy(gene))
+        genomeCopy:addGene(gene)
     end
 
-    -- TODO: should this copy network?
     genomeCopy.network = {}
-    genomeCopy.mutationRates = MutationRate:copy(genomeCopy.mutationRates)
+    genomeCopy.mutationRates = MutationRate.copy(genomeCopy.mutationRates)
 
     -- copy the rest of the values
     genomeCopy.fitness = genome.fitness
     genomeCopy.adjustedFitness = genome.adjustedFitness
     genomeCopy.maxNeuron = genome.maxNeuron
-    genomeCopy.globalRank = genomeCopy.globalRank
+    genomeCopy.globalRank = genome.globalRank
 
     return genomeCopy
+end
+
+function Genome:addGene(gene)
+    Validator.validateGene(gene)
+    table.insert(self.genes, gene)
 end
 
 return Genome

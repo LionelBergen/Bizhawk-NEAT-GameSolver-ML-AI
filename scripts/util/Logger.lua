@@ -17,12 +17,26 @@ local function dump(o)
     end
 end
 
+local function print(message)
+    console.log(message)
+end
+
 function Logger.info(message)
     if type(message) == 'table' then
         local string = dump(message)
-        console.log(string)
+        print(string)
     else
-        console.log(message)
+        print(message)
+    end
+end
+
+function Logger.error(message)
+    print(debug.traceback())
+    if type(message) == 'table' then
+        local string = dump(message)
+        print(string)
+    else
+        print(message)
     end
 end
 
@@ -32,7 +46,7 @@ function Logger.debug(message)
         debugFunction(string)
     else
         debugFunction(message)
-        console.log(message)
+        print(message)
     end
 end
 

@@ -1,12 +1,7 @@
 local Gene = {}
 
-function Gene:new()
+function Gene.new()
     local gene = {}
-    self = self or gene
-    self.__index = self
-    setmetatable(gene, self)
-
-
     gene.into = 0
     gene.out = 0
     gene.weight = 0.0
@@ -16,8 +11,8 @@ function Gene:new()
     return gene
 end
 
-function Gene:copy(gene)
-    local geneCopy = Gene:new()
+function Gene.copy(gene)
+    local geneCopy = Gene.new()
     geneCopy.into = gene.into
     geneCopy.out = gene.out
     geneCopy.weight = gene.weight

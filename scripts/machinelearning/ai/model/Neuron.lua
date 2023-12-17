@@ -1,6 +1,6 @@
 local Neuron = {}
 
-function Neuron:new()
+function Neuron.new()
     local neuron = {}
     neuron.incoming = {}
     neuron.value = 0.0

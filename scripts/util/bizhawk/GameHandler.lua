@@ -2,8 +2,9 @@ local GameHandler = {}
 
 local FileUtil = require('../util/FileUtil')
 local Logger = require('../util/Logger')
+local Validator = require('../util/Validator')
 
--- luacheck: globals savestate
+-- luacheck: globals savestate joypad
 
 -- Load a save game from the relative path specified
 function GameHandler.loadSavedGame(fileLocation)
@@ -35,6 +36,9 @@ end
 
 -- Gets info about a pool and saves it to a file
 function GameHandler.saveFileFromPool(filename, pool)
+	-- before writing to file, validate the pool
+	Validator.validatePool(pool)
+
 	local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
 	file:write(pool.maxFitness .. "\n")
@@ -68,6 +72,14 @@ function GameHandler.saveFileFromPool(filename, pool)
 		end
 	end
 	file:close()
+end
+
+function GameHandler.clearJoypad(rom)
+	local controller = {}
+	for b = 1,#rom.getButtonOutputs() do
+		controller["P1 " .. rom.getButtonOutputs()[b]] = false
+	end
+	joypad.set(controller)
 end
 
 

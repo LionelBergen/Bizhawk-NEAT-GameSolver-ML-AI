@@ -31,8 +31,8 @@ local function assertEquals(value1, value2)
 end
 
 -- MutationRate tests
-local mutationRate = MutationRate:new()
-local mutationRate2 = MutationRate:new(1, 1, 1, 1, 1, 1, 1)
+local mutationRate = MutationRate.new()
+local mutationRate2 = MutationRate.new(1, 1, 1, 1, 1, 1, 1)
 assertNotNull(mutationRate.connections)
 assertNotNull(mutationRate.link)
 assertNotNull(mutationRate.bias)
@@ -49,7 +49,7 @@ assertNotEquals(mutationRate.enable, mutationRate2.enable)
 assertNotEquals(mutationRate.disable, mutationRate2.disable)
 assertNotEquals(mutationRate.step, mutationRate2.step)
 
-mutationRate = MutationRate:copy(mutationRate2)
+mutationRate = MutationRate.copy(mutationRate2)
 
 assertEquals(mutationRate.connections, mutationRate2.connections)
 assertEquals(mutationRate.link, mutationRate2.link)

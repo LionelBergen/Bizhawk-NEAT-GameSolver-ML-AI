@@ -6,6 +6,14 @@ local GameHandler = require('util/bizhawk/GameHandler')
 local Neat = require('machinelearning/ai/Neat')
 local Species = require('machinelearning.ai.model.Species')
 local Mario = require('util/bizhawk/rom/Mario')
+local Validator = require('../util/Validator')
+
+local MODE = {
+	MANUAL = 1,
+	AI = 2
+}
+
+local mode = MODE.MANUAL
 
 local rom = Mario
 local saveFileName = 'SMW.state'
@@ -34,7 +42,7 @@ local timeout = 0
 
 -- Declare variables that are defined in Bizhawk already.
 -- This is just to satisfy LuaCheck, to make it easier to find actual issues
--- luacheck: globals forms controller joypad inputs gui emu event gameinfo
+-- luacheck: globals forms joypad gui emu event gameinfo
 
 local form = forms.newform(200, 260, "Fitness")
 local maxFitnessLabel = forms.label(form, "Max Fitness: nil", 5, 8)
@@ -46,6 +54,7 @@ local showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 --local saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 --local playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 local hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
+local controller = {}
 
 local function saveNewBackup(pool, poolGeneration, saveFolderName, filePostfix)
 	local newFileName = saveFolderName .. "backup." .. poolGeneration .. "." .. filePostfix
@@ -56,18 +65,10 @@ local function sigmoid(x)
 	return 2 / (1 + math.exp(-4.9 * x)) - 1
 end
 
-local function clearJoypad()
-	controller = {}
-	for b = 1,#rom.getButtonOutputs() do
-		controller["P1 " .. rom.getButtonOutputs()[b]] = false
-	end
-	joypad.set(controller)
-end
-
 local function evaluateCurrent(neatObject)
 	local genome = neatObject:getCurrentGenome()
 
-	inputs = rom.getInputs(ProgramViewBoxRadius)
+	local inputs = rom.getInputs(ProgramViewBoxRadius)
 	controller = neatObject.evaluateNetwork(genome.network, inputSize, inputs, rom.getButtonOutputs(), maxNodes)
 
 	if controller["P1 Left"] and controller["P1 Right"] then
@@ -88,11 +89,12 @@ local function initializeRun(neatObject)
 	rightmost = 0
 	neatObject.pool.currentFrame = 0
 	timeout = TimeoutConstant
-	clearJoypad()
+	GameHandler.clearJoypad(rom)
 
 	local genome = neatObject:getCurrentGenome()
 
 	neatObject.generateNetwork(genome, inputSize, outputSize, maxNodes)
+	Validator.validatePool(neatObject.pool)
 	evaluateCurrent(neatObject)
 end
 
@@ -267,7 +269,7 @@ local function loadFile2(filename, neatObject)
 
 	local numSpecies = file:read("*number")
 	for _=1,numSpecies do
-		local species = Species:new()
+		local species = Species.new()
 		table.insert(pool.species, species)
 		species.topFitness = file:read("*number")
 		species.staleness = file:read("*number")
@@ -389,14 +391,14 @@ while true do
 		gui.drawBox(0, 0, 300, 26, topOverlayBackgroundColor, topOverlayBackgroundColor)
 	end
 
-	-- debug
-	gui.drawBox(0, 200, 300, 600, topOverlayBackgroundColor, 0x80808080)
-	gui.drawText(0, 200, debugMessage, 0xFF000000, nil, 10)
+	if (mode == MODE.MANUAL) then
+		-- debug
+		gui.drawBox(0, 200, 300, 600, topOverlayBackgroundColor, 0x80808080)
+		gui.drawText(0, 200, debugMessage, 0xFF000000, nil, 10)
+	end
 
-	-- TODO: create getCurrentSpecies and getCurrentGenome methods
-	local species = neatMLAI.pool.species[neatMLAI.pool.currentSpecies]
-	local genome = species.genomes[neatMLAI.pool.currentGenome]
 	local pool = neatMLAI.pool
+	local genome = pool:getCurrentGenome()
 
 	if forms.ischecked(showNetwork) then
 		displayGenome(genome)
@@ -406,6 +408,7 @@ while true do
 		evaluateCurrent(neatMLAI)
 	end
 
+	-- TODO: 'controller' shouldnt have to be a class wide local
 	joypad.set(controller)
 	-- TODO: 'marioX', 'marioY'
 	local marioX, _ = rom:getPositions()
@@ -419,7 +422,7 @@ while true do
 	local timeoutBonus = pool.currentFrame / 4
 	if timeout + timeoutBonus <= 0 then
 		local fitness = rightmost - pool.currentFrame / 2
-		print(fitness)
+		Logger.info('fitness: ' .. fitness)
 
 		-- TODO: this is Super Mario USA specific
 		if rightmost > 4816 then
