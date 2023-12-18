@@ -1,5 +1,7 @@
 local Rom =  require('util/bizhawk/rom/Rom')
 local Mario = Rom:new()
+local Logger = require('util.Logger')
+-- luacheck: globals memory
 
 local romGameName = 'Super Mario World (USA)'
 -- No need for both Y and X since they do the same thing.
@@ -13,6 +15,10 @@ local buttonNames = {
     "Right",
 }
 
+-- https://www.smwcentral.net/?p=memorymap&game=smw&u=0&address=000095&
+local xPositionInMemory = 0x94
+local yPositionMemory = 0x96
+
 function Mario.getRomName()
     return romGameName
 end
@@ -22,29 +28,67 @@ function Mario.getButtonOutputs()
 end
 
 function Mario.getPositions()
-    local marioX = memory.read_s16_le(0x94)
-    local marioY = memory.read_s16_le(0x96)
+    -- Read Signed 16 Little Endian
+    local marioX = memory.read_s16_le(xPositionInMemory)
+    local marioY = memory.read_s16_le(yPositionMemory)
 
     return marioX, marioY
 end
 
 function Mario.getTile(dx, dy)
-    marioX, marioY = Mario.getPositions()
-    x = math.floor((marioX+dx+8)/16)
-    y = math.floor((marioY+dy)/16)
+    local marioX, marioY = Mario.getPositions()
+    local x = math.floor((marioX+dx+8)/16)
+    local y = math.floor((marioY+dy)/16)
 
     return memory.readbyte(0x1C800 + math.floor(x/0x10)*0x1B0 + y*0x10 + x%0x10)
 end
 
+local function debugSprites(sprites)
+    local message = ""
+    for i, sprite in pairs(sprites) do
+        message = message .. i .. ": " .. sprite.value .. " "
+    end
+
+    Logger.info(message)
+end
+
 function Mario.getSprites()
     local sprites = {}
-    -- https://www.smwcentral.net/?p=memorymap&game=smw&u=0&address=&sizeOperation=%3D&sizeValue=&region[]=ram&type=*&description=koopa
+    -- https://www.smwcentral.net/
     local spriteByteLength = 12
     local spriteStatusAddress = 0x14C8
     local spriteLowXAddress = 0x00E4
     local spriteHighXAddress = 0x14E0
     local spriteLowYAddress = 0x00D8
     local spriteHighYAddress = 0x14D4
+    --[[
+    for slot=0,spriteByteLength - 1 do
+        local status = memory.readbyte(spriteStatusAddress+slot)
+        local normal = 0x08
+        local carryable = 0x09
+        local kicked = 0x0A
+        local carried = 0x0B
+        if status == normal or status == carryable or status == kicked or status == carried then
+            -- TODO: why multiply by 256?
+            local spritex = (memory.readbyte(spriteLowXAddress+slot) + memory.readbyte(spriteHighXAddress+slot)) * 256
+            local spritey = (memory.readbyte(spriteLowYAddress+slot) + memory.readbyte(spriteHighYAddress+slot)) * 256
+            local spritevalue = -1
+
+            if status == normal then
+                spritevalue = 2
+            elseif status == kicked then
+                spritevalue = 3
+            elseif status == carried then
+                spritevalue = 4
+            elseif status == carryable then
+                spritevalue = 5
+            end
+
+            sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey, ["value"]=spritevalue}
+        end
+    end
+    --]]
+
     for slot=0,spriteByteLength - 1 do
         local status = memory.readbyte(spriteStatusAddress+slot)
         -- https://www.smwcentral.net/?p=memorymap&a=detail&game=smw&region=ram&detail=0984148beee5
@@ -63,12 +107,12 @@ function Mario.getSprites()
             sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey, ["value"]=spritevalue}
         end
     end
-
     return sprites
 end
 
 function Mario.getExtendedSprites()
     local extended = {}
+    local spritex, spritey
     for slot=0,11 do
         local number = memory.readbyte(0x170B+slot)
         if number ~= 0 then
@@ -82,13 +126,14 @@ function Mario.getExtendedSprites()
 end
 
 function Mario.getInputs(programViewBoxRadius)
-    marioX, marioY = Mario.getPositions()
+    local marioX, marioY = Mario.getPositions()
 
-    sprites = Mario.getSprites()
-    extended = Mario.getExtendedSprites()
-
+    local sprites = Mario.getSprites()
+    local extended = Mario.getExtendedSprites()
     local inputs = {}
+    -- local distx, disty, value, tile
 
+    -- increment by 16 from -X to +X
     for dy=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
         for dx=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
             inputs[#inputs+1] = 0
