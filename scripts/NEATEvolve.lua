@@ -8,13 +8,6 @@ local Species = require('machinelearning.ai.model.Species')
 local Mario = require('util/bizhawk/rom/Mario')
 local Validator = require('../util/Validator')
 
-local MODE = {
-	MANUAL = 1,
-	AI = 2
-}
-
-local mode = MODE.MANUAL
-
 local rom = Mario
 local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
@@ -389,12 +382,6 @@ forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(neatMLAI.pool.maxFi
 while true do
 	if not forms.ischecked(hideBanner) then
 		gui.drawBox(0, 0, 300, 26, topOverlayBackgroundColor, topOverlayBackgroundColor)
-	end
-
-	if (mode == MODE.MANUAL) then
-		-- debug
-		gui.drawBox(0, 200, 300, 600, topOverlayBackgroundColor, 0x80808080)
-		gui.drawText(0, 200, debugMessage, 0xFF000000, nil, 10)
 	end
 
 	local pool = neatMLAI.pool
