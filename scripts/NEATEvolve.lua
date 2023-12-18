@@ -4,13 +4,18 @@ local FileUtil = require('util/FileUtil')
 local Logger = require('util.Logger')
 local GameHandler = require('util/bizhawk/GameHandler')
 local Neat = require('machinelearning/ai/Neat')
+local Species = require('machinelearning.ai.model.Species')
 local Mario = require('util/bizhawk/rom/Mario')
+local Validator = require('../util/Validator')
 
+local rom = Mario
 local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
 local poolFileNamePostfix = poolFileNamePrefix .. ".pool"
 local machineLearningProjectName = 'Mario_testing'
-local poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
+local poolSavesFolder = FileUtil.getCurrentDirectory() ..
+		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
+local neatMLAI = Neat:new()
 
 -- You can use https://jscolor.com/ to find colours
 -- Used for the top bar overlay that displays the gen, speciies etc.
@@ -20,29 +25,15 @@ local topOverlayBackgroundColor = 0xD0FFFFFF
 local ProgramViewBoxRadius = 6
 local inputSize = (ProgramViewBoxRadius*2+1)*(ProgramViewBoxRadius*2+1)
 inputSize = inputSize + 1
-local outputSize = #Mario.getButtonOutputs()
-
-local Population = 300
-local DeltaDisjoint = 2.0
-local DeltaWeights = 0.4
-local DeltaThreshold = 1.0
-
-local StaleSpecies = 15
-
-local MutateConnectionsChance = 0.25
-local PerturbChance = 0.90
-local CrossoverChance = 0.75
-local LinkMutationChance = 2.0
-local NodeMutationChance = 0.50
-local BiasMutationChance = 0.40
-local StepSize = 0.1
-local DisableMutationChance = 0.4
-local EnableMutationChance = 0.2
+local outputSize = #rom.getButtonOutputs()
 
 local TimeoutConstant = 20
 
 local maxNodes = 1000000
 
+-- Declare variables that are defined in Bizhawk already.
+-- This is just to satisfy LuaCheck, to make it easier to find actual issues
+-- luacheck: globals forms joypad gui emu event gameinfo
 local function saveNewBackup(pool, poolGeneration, poolSavesFolder, filePostfix)
 	local newFileName = "backup." .. poolGeneration .. "." .. filePostfix
 	writeFile(poolSavesFolder .. newFileName, pool)
