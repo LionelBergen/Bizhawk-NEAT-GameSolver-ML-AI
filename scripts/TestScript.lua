@@ -59,4 +59,44 @@ assertEquals(mutationRate.enable, mutationRate2.enable)
 assertEquals(mutationRate.disable, mutationRate2.disable)
 assertEquals(mutationRate.step, mutationRate2.step)
 
+local function displayAIInputs(width, height)
+    local cells = {}
+    local i = 1
+
+    -- display beginning cell at position xStart * cellWidth, yStart * cellHeight
+    local xStart = 4
+    local yStart = 8
+    local cellWidth = 5
+    local cellHeight = 5
+    local xEnd = xStart + (width * 2)
+    local yEnd = yStart + (height * 2)
+
+    for dx=xStart,xEnd do
+        for dy=yStart,yEnd do
+            cell = {}
+            cell.x = (cellWidth * dx)
+            cell.y = (cellHeight * dy)
+            -- cell.value = network.neurons[i].value
+            cells[i] = cell
+            i = i + 1
+        end
+    end
+
+    table.sort(cells, function (a,b)
+        if a.x == b.x then
+            return a.y < b.y
+        else
+            return a.x < b.x
+        end
+    end)
+    for _,cell in pairs(cells) do
+        print(cell.x)
+        print(cell.y)
+    end
+
+    return cells
+    end
+
+displayAIInputs(6, 6)
+
 print("passed.")

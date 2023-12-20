@@ -134,8 +134,8 @@ function Mario.getInputs(programViewBoxRadius)
     -- local distx, disty, value, tile
 
     -- increment by 16 from -X to +X
-    for dy=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
-        for dx=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
+    for dx=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
+        for dy=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
             inputs[#inputs+1] = 0
 
             tile = Mario.getTile(dx, dy)

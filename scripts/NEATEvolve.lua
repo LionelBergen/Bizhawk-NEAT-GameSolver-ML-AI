@@ -110,22 +110,37 @@ local function isFitnessMeasured(pool)
 	return genome.fitness ~= 0
 end
 
-local function displayGenome(genome)
-	local network = genome.network
+local function displayAIInputs(network, width, height)
 	local cells = {}
-	local cell
-	local biasCell = {}
 	local i = 1
-	for dy=-ProgramViewBoxRadius,ProgramViewBoxRadius do
-		for dx=-ProgramViewBoxRadius,ProgramViewBoxRadius do
+
+	-- display beginning cell at position xStart * cellWidth, yStart * cellHeight
+	local xStart = 4
+	local yStart = 8
+	local cellWidth = 5
+	local cellHeight = 5
+	local xEnd = xStart + (width * 2)
+	local yEnd = yStart + (height * 2)
+
+	for dx=xStart,xEnd do
+		for dy=yStart,yEnd do
 			cell = {}
-			cell.x = 50+5 * dx
-			cell.y = 70+5 * dy
+			cell.x = (cellWidth * dx)
+			cell.y = (cellHeight * dy)
 			cell.value = network.neurons[i].value
 			cells[i] = cell
 			i = i + 1
 		end
 	end
+
+	return cells
+end
+
+-- TODO: Taking apart this method.
+local function displayGenome(genome)
+	local network = genome.network
+	local cells = displayAIInputs(network, ProgramViewBoxRadius, ProgramViewBoxRadius)
+	local biasCell = {}
 	biasCell.x = 80
 	biasCell.y = 110
 	biasCell.value = network.neurons[inputSize].value
@@ -143,7 +158,7 @@ local function displayGenome(genome)
 		else
 			color = 0xFF000000
 		end
-		gui.drawText(223, 24+8*o, rom.getButtonOutputs()[o], color, 9)
+		gui.drawText(223, 24+8*o, rom.getButtonOutputs()[o] .. ' DEBUG', color, 9)
 	end
 
 	for n,neuron in pairs(network.neurons) do
