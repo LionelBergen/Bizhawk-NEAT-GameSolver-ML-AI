@@ -16,6 +16,7 @@ local machineLearningProjectName = 'Mario_testing'
 local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 
+---@type Neat
 local neatMLAI = Neat:new()
 
 -- You can use https://jscolor.com/ to find colours
@@ -49,6 +50,7 @@ local showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 local hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
 local controller = {}
 
+---@param pool Pool
 local function saveNewBackup(pool, poolGeneration, saveFolderName, filePostfix)
 	local newFileName = saveFolderName .. "backup." .. poolGeneration .. "." .. filePostfix
 	GameHandler.saveFileFromPool(newFileName, pool)
@@ -58,6 +60,7 @@ local function sigmoid(x)
 	return 2 / (1 + math.exp(-4.9 * x)) - 1
 end
 
+---@param neatObject Neat
 local function evaluateCurrent(neatObject)
 	local genome = neatObject:getCurrentGenome()
 
@@ -76,6 +79,7 @@ local function evaluateCurrent(neatObject)
 	joypad.set(controller)
 end
 
+---@param neatObject Neat
 local function initializeRun(neatObject)
 	-- Load the beginning of a level
 	GameHandler.loadSavedGame('..\\assets\\savedstates\\' .. saveFileName)
@@ -91,6 +95,7 @@ local function initializeRun(neatObject)
 	evaluateCurrent(neatObject)
 end
 
+---@param neatObject Neat
 local function nextGenome(neatObject)
 	local pool = neatObject.pool
 	pool.currentGenome = pool.currentGenome + 1
@@ -105,11 +110,13 @@ local function nextGenome(neatObject)
 	end
 end
 
+---@param pool Pool
 local function isFitnessMeasured(pool)
 	local genome = pool:getCurrentGenome()
 	return genome.fitness ~= 0
 end
 
+---@param network Network
 local function displayAIInputs(network, width, height)
 	local cells = {}
 	local i = 1
@@ -124,7 +131,7 @@ local function displayAIInputs(network, width, height)
 
 	for dx=xStart,xEnd do
 		for dy=yStart,yEnd do
-			cell = {}
+			local cell = {}
 			cell.x = (cellWidth * dx)
 			cell.y = (cellHeight * dy)
 			cell.value = network.neurons[i].value
@@ -137,6 +144,7 @@ local function displayAIInputs(network, width, height)
 end
 
 -- TODO: Taking apart this method.
+---@param genome Genome
 local function displayGenome(genome)
 	local network = genome.network
 	local cells = displayAIInputs(network, ProgramViewBoxRadius, ProgramViewBoxRadius)
@@ -147,7 +155,7 @@ local function displayGenome(genome)
 	cells[inputSize] = biasCell
 
 	for o = 1,outputSize do
-		cell = {}
+		local cell = {}
 		cell.x = 220
 		cell.y = 30 + 8 * o
 		cell.value = network.neurons[maxNodes + o].value
@@ -162,7 +170,7 @@ local function displayGenome(genome)
 	end
 
 	for n,neuron in pairs(network.neurons) do
-		cell = {}
+		local cell = {}
 		if n > inputSize and n <= maxNodes then
 			cell.x = 140
 			cell.y = 40
@@ -268,6 +276,7 @@ local function savePool()
 end
 
 -- TODO: should pretty much be a function inside Neat; To load a pool/etc from a file
+---@param neatObject Neat
 local function loadFile2(filename, neatObject)
 	Logger.info('loadfile: ' .. filename)
 	local file = io.open(filename, "r")
@@ -316,6 +325,7 @@ local function loadFile2(filename, neatObject)
 	pool.currentFrame = pool.currentFrame + 1
 end
 
+---@param neatObject Neat
 local function loadFile(saveFolderName, neatObject)
 	local latestBackupFile = GameHandler.getLatestBackupFile(saveFolderName)
 	if latestBackupFile ~= nil then

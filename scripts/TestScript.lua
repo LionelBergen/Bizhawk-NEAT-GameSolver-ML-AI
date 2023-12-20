@@ -73,7 +73,7 @@ local function displayAIInputs(width, height)
 
     for dx=xStart,xEnd do
         for dy=yStart,yEnd do
-            cell = {}
+            local cell = {}
             cell.x = (cellWidth * dx)
             cell.y = (cellHeight * dy)
             -- cell.value = network.neurons[i].value
