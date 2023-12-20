@@ -1,3 +1,4 @@
+---@class MutationRate
 local MutationRate = {}
 
 local defaultMutateConnectionsChance = 0.25
@@ -8,8 +9,10 @@ local defaultEnableMutationChance = 0.2
 local defaultDisableMutationChance = 0.4
 local defaultStepSize = 0.1
 
+---@return MutationRate
 function MutationRate.new(mutateConnectionsChance, linkMutationChance, biasMutationChance, nodeMutationChance,
                           enableMutationChance, disableMutationChance, stepSize)
+    ---@type MutationRate
     local mutationRate = {}
     mutationRate.connections = mutateConnectionsChance or defaultMutateConnectionsChance
     mutationRate.link = linkMutationChance or defaultLinkMutationChance
@@ -22,7 +25,10 @@ function MutationRate.new(mutateConnectionsChance, linkMutationChance, biasMutat
     return mutationRate
 end
 
+---@param mutationRates MutationRate
+---@return MutationRate
 function MutationRate.copy(mutationRates)
+    ---@type MutationRate
     local mutationRatesCopy = MutationRate.new()
     mutationRatesCopy.connections = mutationRates.connections
     mutationRatesCopy.link = mutationRates.link

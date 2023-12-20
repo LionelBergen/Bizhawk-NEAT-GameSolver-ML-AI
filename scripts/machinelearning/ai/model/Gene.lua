@@ -1,6 +1,9 @@
+---@class Gene
 local Gene = {}
 
+---@return Gene
 function Gene.new()
+    ---@type Gene
     local gene = {}
     gene.into = 0
     gene.out = 0
@@ -11,7 +14,10 @@ function Gene.new()
     return gene
 end
 
+---@param gene Gene
+---@return Gene
 function Gene.copy(gene)
+    ---@type Gene
     local geneCopy = Gene.new()
     geneCopy.into = gene.into
     geneCopy.out = gene.out

@@ -18,6 +18,7 @@ function Validator.validateIsNotNull(value, errorMessage)
     end
 end
 
+---@param pool Pool
 function Validator.validatePool(pool)
     Validator.validateIsNotNull(pool, 'pool was nil.')
     Validator.validateNumber(pool.generation, 'pool.generation was invalid.')
@@ -29,6 +30,7 @@ function Validator.validatePool(pool)
     end
 end
 
+---@param gene Gene
 function Validator.validateGene(gene)
     Validator.validateIsNotNull(gene, 'genome.genes was nil.')
 
@@ -38,6 +40,7 @@ function Validator.validateGene(gene)
     Validator.validateNumber(gene.innovation, 'pool.species.genome.innovation was invalid.')
 end
 
+---@param species Species
 function Validator.validateSpecies(species)
     Validator.validateNumber(species.topFitness, 'pool.species.topFitness was invalid.')
     Validator.validateNumber(species.staleness, 'pool.species.staleness was invalid.')
@@ -48,6 +51,7 @@ function Validator.validateSpecies(species)
     end
 end
 
+---@param genome Genome
 function Validator.validateGenome(genome)
     Validator.validateNumber(genome.fitness, 'pool.species.genome.fitness was invalid.')
     Validator.validateNumber(genome.maxNeuron, 'pool.species.genome.maxNeuron was invalid.')
