@@ -5,6 +5,7 @@ local Genome = require('machinelearning.ai.model.Genome')
 local Gene = require('machinelearning.ai.model.Gene')
 local Neuron = require('machinelearning.ai.model.Neuron')
 local Species = require('machinelearning.ai.model.Species')
+local Network = require('machinelearning.ai.model.Network')
 local Logger = require('util.Logger')
 local Validator = require('../util/Validator')
 
@@ -160,8 +161,7 @@ function Neat:createBasicGenome(inputSize, outputSize, maxNodes)
 end
 
 function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs, maxNodes)
-    local network = {}
-    network.neurons = {}
+    local network = Network.new()
 
     for i=1,numberOfInputs do
         network.neurons[i] = Neuron.new()
