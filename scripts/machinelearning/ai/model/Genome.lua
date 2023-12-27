@@ -22,7 +22,7 @@ function Genome:new(maxNeuron, mutateConnectionsChance, linkMutationChance, bias
     genome.maxNeuron = maxNeuron or 0
     genome.globalRank = 0
     ---@type MutationRate
-    genome.mutationRates = MutationRate.new(mutateConnectionsChance, linkMutationChance, biasMutationChance,
+    genome.mutationRates = MutationRate:new(mutateConnectionsChance, linkMutationChance, biasMutationChance,
             nodeMutationChance, enableMutationChance, disableMutationChance, stepSize)
 
     return genome

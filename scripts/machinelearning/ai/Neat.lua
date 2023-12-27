@@ -103,7 +103,7 @@ end
 
 ---@param genome Genome
 local function pointMutate(genome, perturbChance)
-    local step = genome.mutationRates["step"]
+    local step = genome.mutationRates.values.step
 
     for _, gene in pairs(genome.genes) do
         if math.random() < perturbChance then
@@ -285,8 +285,8 @@ function Neat:crossover(g1, g2)
 
     child.maxNeuron = math.max(g1.maxNeuron,g2.maxNeuron)
 
-    for mutation,rate in pairs(g1.mutationRates) do
-        child.mutationRates[mutation] = rate
+    for mutation,rate in pairs(g1.mutationRates.values) do
+        child.mutationRates.values[mutation] = rate
     end
 
     return child
@@ -424,21 +424,15 @@ end
 
 ---@param genome Genome
 function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
+    genome.mutationRates:mutate()
     Validator.validateGenome(genome)
-    for mutation,rate in pairs(genome.mutationRates) do
-        if math.random(1,2) == 1 then
-            genome.mutationRates[mutation] = 0.95 * rate
-        else
-            genome.mutationRates[mutation] = 1.05263 * rate
-        end
-    end
 
-    if math.random() < genome.mutationRates["connections"] then
+    if math.random() < genome.mutationRates.values.connections then
         genome = pointMutate(genome, self.perturbChance)
         Validator.validateGenome(genome)
     end
 
-    local p = genome.mutationRates["link"]
+    local p = genome.mutationRates.values.link
     while p > 0 do
         if math.random() < p then
             self:linkMutate(genome, false, numberOfInputs, numberOfOutputs, maxNodes)
@@ -446,7 +440,7 @@ function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
         p = p - 1
     end
 
-    p = genome.mutationRates["bias"]
+    p = genome.mutationRates.values.bias
     while p > 0 do
         if math.random() < p then
             self:linkMutate(genome, true, numberOfInputs, numberOfOutputs, maxNodes)
@@ -454,7 +448,7 @@ function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
         p = p - 1
     end
 
-    p = genome.mutationRates["node"]
+    p = genome.mutationRates.values.node
     while p > 0 do
         if math.random() < p then
             self:nodeMutate(genome)
@@ -462,7 +456,7 @@ function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
         p = p - 1
     end
 
-    p = genome.mutationRates["enable"]
+    p = genome.mutationRates.values.enable
     while p > 0 do
         if math.random() < p then
             self.enableDisableMutate(genome, true)
@@ -470,7 +464,7 @@ function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
         p = p - 1
     end
 
-    p = genome.mutationRates["disable"]
+    p = genome.mutationRates.values.disable
     while p > 0 do
         if math.random() < p then
             self.enableDisableMutate(genome, false)

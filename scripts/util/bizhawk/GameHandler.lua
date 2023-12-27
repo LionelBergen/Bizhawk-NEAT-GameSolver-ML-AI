@@ -35,6 +35,7 @@ function GameHandler.getLatestBackupFile(poolSavesFolder)
 end
 
 -- Gets info about a pool and saves it to a file
+---@param pool Pool
 function GameHandler.saveFileFromPool(filename, pool)
 	-- before writing to file, validate the pool
 	Validator.validatePool(pool)
@@ -51,7 +52,8 @@ function GameHandler.saveFileFromPool(filename, pool)
 		for _,genome in pairs(species.genomes) do
 			file:write(genome.fitness .. "\n")
 			file:write(genome.maxNeuron .. "\n")
-			for mutation,rate in pairs(genome.mutationRates) do
+			-- write out each mutationRate. E.G step: 0.0, link: 0.0
+			for mutation,rate in pairs(genome.mutationRates.values) do
 				file:write(mutation .. "\n")
 				file:write(rate .. "\n")
 			end

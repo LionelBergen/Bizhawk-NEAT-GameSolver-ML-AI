@@ -5,6 +5,7 @@ local Logger = require('util.Logger')
 local GameHandler = require('util/bizhawk/GameHandler')
 local Neat = require('machinelearning/ai/Neat')
 local Species = require('machinelearning.ai.model.Species')
+local Cell = require('machinelearning.ai.model.display.Cell')
 local Mario = require('util/bizhawk/rom/Mario')
 local Validator = require('../util/Validator')
 
@@ -23,10 +24,12 @@ local neatMLAI = Neat:new()
 -- Used for the top bar overlay that displays the gen, speciies etc.
 local topOverlayBackgroundColor = 0xD0FFFFFF
 
+-- TODO: get rid of 'ProgramViewBoxRadius'.. It's not as user friendly as 'width' and 'height'.
 -- this is the Programs 'view'
 local ProgramViewBoxRadius = 6
-local inputSize = (ProgramViewBoxRadius*2+1)*(ProgramViewBoxRadius*2+1)
-inputSize = inputSize + 1
+local programViewWidth = 13
+local programViewHeight = 13
+local inputSize = (programViewWidth * programViewHeight) + 1
 local outputSize = #rom.getButtonOutputs()
 
 local TimeoutConstant = 20
@@ -64,7 +67,7 @@ end
 local function evaluateCurrent(neatObject)
 	local genome = neatObject:getCurrentGenome()
 
-	local inputs = rom.getInputs(ProgramViewBoxRadius)
+	local inputs = rom.getInputs(programViewWidth, programViewHeight)
 	controller = neatObject.evaluateNetwork(genome.network, inputSize, inputs, rom.getButtonOutputs(), maxNodes)
 
 	if controller["P1 Left"] and controller["P1 Right"] then
@@ -117,7 +120,9 @@ local function isFitnessMeasured(pool)
 end
 
 ---@param network Network
-local function displayAIInputs(network, width, height)
+---@return Cell[]
+local function getCellInputs(network, width, height)
+	---@type Cell[]
 	local cells = {}
 	local i = 1
 
@@ -131,7 +136,8 @@ local function displayAIInputs(network, width, height)
 
 	for dx=xStart,xEnd do
 		for dy=yStart,yEnd do
-			local cell = {}
+			---@type Cell
+			local cell = Cell:new()
 			cell.x = (cellWidth * dx)
 			cell.y = (cellHeight * dy)
 			cell.value = network.neurons[i].value
@@ -146,31 +152,36 @@ end
 -- TODO: Taking apart this method.
 ---@param genome Genome
 local function displayGenome(genome)
+	---@type Network
 	local network = genome.network
-	local cells = displayAIInputs(network, ProgramViewBoxRadius, ProgramViewBoxRadius)
-	local biasCell = {}
-	biasCell.x = 80
-	biasCell.y = 110
-	biasCell.value = network.neurons[inputSize].value
-	cells[inputSize] = biasCell
+	---@type Cell[]
+	local cells = getCellInputs(network, ProgramViewBoxRadius, ProgramViewBoxRadius)
+	-- Bias cell/node is a special input neuron that is always active
+	---@type Cell
+	local biasCell = Cell:new(80, 110, network.neurons[#cells + 1].value)
+	cells[#cells + 1] = biasCell
 
 	for o = 1,outputSize do
-		local cell = {}
+		local cell = Cell:new()
+		local black = 0xFF000000
+		local blue = 0xFF0000FF
 		cell.x = 220
 		cell.y = 30 + 8 * o
 		cell.value = network.neurons[maxNodes + o].value
 		cells[maxNodes+o] = cell
 		local color
 		if cell.value > 0 then
-			color = 0xFF0000FF
+			color = black
 		else
-			color = 0xFF000000
+			color = blue
 		end
-		gui.drawText(223, 24+8*o, rom.getButtonOutputs()[o] .. ' DEBUG', color, 9)
+		-- draw the programs outputs (E.G X button). Black if not pressed, blue if pressed
+		gui.drawText(223, 24+8*o, rom.getButtonOutputs()[o], color, 9)
 	end
 
+	-- Neurons that are not inputs (170) or output buttons (X,Y, up down..)
 	for n,neuron in pairs(network.neurons) do
-		local cell = {}
+		local cell = Cell:new()
 		if n > inputSize and n <= maxNodes then
 			cell.x = 140
 			cell.y = 40
@@ -219,7 +230,8 @@ local function displayGenome(genome)
 	gui.drawBox(50-ProgramViewBoxRadius*5-3,
 			70-ProgramViewBoxRadius*5-3,
 			50+ProgramViewBoxRadius*5+2,
-			70+ProgramViewBoxRadius*5+2,0xFF000000,
+			70+ProgramViewBoxRadius*5+2,
+			0xFF000000,
 			0x80808080)
 	for n,celln in pairs(cells) do
 		if n > inputSize or celln.value ~= 0 then
@@ -262,7 +274,7 @@ local function displayGenome(genome)
 
 	if forms.ischecked(showMutationRates) then
 		local pos = 100
-		for mutation,rate in pairs(genome.mutationRates) do
+		for mutation,rate in pairs(genome.mutationRates.values) do
 			gui.drawText(100, pos, mutation .. ": " .. rate, 0xFF000000, 10)
 			pos = pos + 8
 		end
@@ -275,7 +287,7 @@ local function savePool()
 	--writeFile(filename)
 end
 
--- TODO: should pretty much be a function inside Neat; To load a pool/etc from a file
+-- TODO: should pretty much be a function inside another class; To load a pool/etc from a file
 ---@param neatObject Neat
 local function loadFile2(filename, neatObject)
 	Logger.info('loadfile: ' .. filename)
@@ -298,7 +310,7 @@ local function loadFile2(filename, neatObject)
 			genome.maxNeuron = file:read("*number")
 			local line = file:read("*line")
 			while line ~= "done" do
-				genome.mutationRates[line] = file:read("*number")
+				genome.mutationRates.values[line] = file:read("*number")
 				line = file:read("*line")
 			end
 			local numGenes = file:read("*number")
@@ -409,7 +421,9 @@ while true do
 		gui.drawBox(0, 0, 300, 26, topOverlayBackgroundColor, topOverlayBackgroundColor)
 	end
 
+	---@type Pool
 	local pool = neatMLAI.pool
+	---@type Genome
 	local genome = pool:getCurrentGenome()
 
 	if forms.ischecked(showNetwork) then

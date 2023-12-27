@@ -5,6 +5,7 @@ local Neuron = {}
 function Neuron.new()
     ---@type Neuron
     local neuron = {}
+    ---@type Gene[]
     neuron.incoming = {}
     neuron.value = 0.0
 
