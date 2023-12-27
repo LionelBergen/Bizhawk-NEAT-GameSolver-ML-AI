@@ -171,9 +171,9 @@ local function displayGenome(genome)
 		cells[maxNodes+o] = cell
 		local color
 		if cell.value > 0 then
-			color = black
-		else
 			color = blue
+		else
+			color = black
 		end
 		-- draw the programs outputs (E.G X button). Black if not pressed, blue if pressed
 		gui.drawText(223, 24+8*o, rom.getButtonOutputs()[o], color, 9)
