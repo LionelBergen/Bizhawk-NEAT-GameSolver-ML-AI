@@ -212,7 +212,9 @@ function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs, maxNodes)
     genome.network = network
 end
 
+---@param network Network
 function Neat.evaluateNetwork(network, inputSize, inputs, outputs, maxNodes)
+    -- TODO: this is probably for the 'bias' cell
     table.insert(inputs, 1)
 
     if #inputs ~= inputSize then
@@ -293,6 +295,7 @@ function Neat:crossover(g1, g2)
 end
 
 ---@param genes Gene[]
+---@return number
 function Neat.randomNeuron(genes, isInput, inputSize, outputSize, maxNodes)
     local neurons = {}
     if isInput then
@@ -304,14 +307,12 @@ function Neat.randomNeuron(genes, isInput, inputSize, outputSize, maxNodes)
         neurons[maxNodes+o] = true
     end
     for i=1,#genes do
-        Validator.validateGene(genes[i])
         if isInput or genes[i].into > inputSize then
             neurons[genes[i].into] = true
         end
         if isInput or genes[i].out > inputSize then
             neurons[genes[i].out] = true
         end
-        Validator.validateGene(genes[i])
     end
 
     local count = 0
@@ -345,9 +346,11 @@ end
 ---@param genome Genome
 function Neat:linkMutate(genome, forceBias, numberOfInputs, numberOfOutputs, maxNodes)
     Validator.validateGenome(genome)
+    ---@type number
     local neuron1 = self.randomNeuron(genome.genes, true, numberOfInputs, numberOfOutputs, maxNodes)
+    ---@type number
     local neuron2 = self.randomNeuron(genome.genes, false, numberOfInputs, numberOfOutputs, maxNodes)
-
+    ---@type Gene
     local newLink = Gene.new()
     if neuron1 <= numberOfInputs and neuron2 <= numberOfInputs then
         -- Both input nodes
