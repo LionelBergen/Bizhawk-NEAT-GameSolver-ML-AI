@@ -125,17 +125,20 @@ function Mario.getExtendedSprites()
     return extended
 end
 
-function Mario.getInputs(programViewBoxRadius)
+function Mario.getInputs(programViewWidth, programViewHeight)
+    local tileSize = 16
     local marioX, marioY = Mario.getPositions()
 
     local sprites = Mario.getSprites()
     local extended = Mario.getExtendedSprites()
     local inputs = {}
+    local beginX = 6 * tileSize
+    local beginY = 6 * tileSize
     -- local distx, disty, value, tile
 
     -- increment by 16 from -X to +X
-    for dx=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
-        for dy=-programViewBoxRadius*16,programViewBoxRadius*16,16 do
+    for dx=-beginX, beginX,tileSize do
+        for dy=-beginY,beginY,tileSize do
             inputs[#inputs+1] = 0
 
             tile = Mario.getTile(dx, dy)

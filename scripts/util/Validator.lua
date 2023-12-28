@@ -57,14 +57,26 @@ function Validator.validateGenome(genome)
     Validator.validateNumber(genome.maxNeuron, 'pool.species.genome.maxNeuron was invalid.')
     Validator.validateIsNotNull(genome.mutationRates, 'genome.mutationRates was nil.')
 
-    for mutation,rate in pairs(genome.mutationRates) do
-        Validator.validateIsNotNull(mutation, 'pool.species.genome.mutationRates.mutation was invalid.')
-        Validator.validateNumber(rate, 'pool.species.genome.mutationRates.rate was invalid.')
-    end
+    Validator.validateMutationRates(genome.mutationRates)
     Validator.validateIsNotNull(genome.genes, 'genome.genes was nil.')
 
     for _,gene in pairs(genome.genes) do
         Validator.validateGene(gene)
+    end
+end
+
+---@param mutationRate MutationRate
+function Validator.validateMutationRates(mutationRate)
+    Validator.validateIsNotNull(mutationRate, 'genome.mutationRates was nil.')
+    Validator.validateIsNotNull(mutationRate.rates, 'genome.mutationRates.Rate was nil.')
+    Validator.validateIsNotNull(mutationRate.values, 'genome.mutationRates Values nil.')
+
+    for mutation,rate in pairs(mutationRate.rates) do
+        Validator.validateIsNotNull(mutation, 'pool.species.genome.mutationRates.mutation was invalid.')
+        Validator.validateNumber(rate, 'pool.species.genome.mutationRates.rates.rate was invalid.')
+
+        Validator.validateIsNotNull(mutationRate.values[mutation], 'pool.species.genome.mutationRates.mutation was invalid.')
+        Validator.validateNumber(mutationRate.values[mutation], 'pool.species.genome.mutationRates.rates.rate was invalid.')
     end
 end
 
