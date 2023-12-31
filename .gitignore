@@ -1,2 +1,3 @@
 .idea/
 machine_learning_outputs/**/*.pool
+machine_learning_outputs/**/*.json
