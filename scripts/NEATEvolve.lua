@@ -283,8 +283,14 @@ end
 
 local function savePool()
 	error('unimplemented')
-	--local filename = saveLoadFile
-	--writeFile(filename)
+end
+
+local function loadPool()
+	error('unimplemented')
+end
+
+local function playTop(pool)
+	error('unimplemented')
 end
 
 ---@param neatObject Neat
@@ -309,35 +315,6 @@ local function loadFile(saveFolderName, neatObject)
 	else
 		Logger.info('No backup file to load from. looked in directory: ' .. saveFolderName .. ' will continue new program')
 	end
-end
-
-local function loadPool()
-	error('unimplemented')
-	--local filename = saveLoadFile
-	--loadFile(filename)
-end
-
-local function playTop(pool)
-	Logger.info('playTop')
-	local maxfitness = 0
-	local maxs, maxg
-	for s,species in pairs(pool.species) do
-		for g,genome in pairs(species.genomes) do
-			if genome.fitness > maxfitness then
-				maxfitness = genome.fitness
-				maxs = s
-				maxg = g
-			end
-		end
-	end
-
-	pool.currentSpecies = maxs
-	pool.currentGenome = maxg
-	pool.maxFitness = maxfitness
-	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-	initializeRun()
-	pool.currentFrame = pool.currentFrame + 1
-	return
 end
 
 local function onExit()
