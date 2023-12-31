@@ -12,7 +12,7 @@ local Validator = require('../util/Validator')
 local rom = Mario
 local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
-local poolFileNamePostfix = poolFileNamePrefix .. ".pool"
+local poolFileNamePostfix = poolFileNamePrefix .. ".json"
 local machineLearningProjectName = 'Mario_testing'
 local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
@@ -287,49 +287,11 @@ local function savePool()
 	--writeFile(filename)
 end
 
--- TODO: should pretty much be a function inside another class; To load a pool/etc from a file
 ---@param neatObject Neat
-local function loadFile2(filename, neatObject)
-	Logger.info('loadfile: ' .. filename)
-	local file = io.open(filename, "r")
-	local pool = neatObject:createNewPool(outputSize)
-	pool.generation = file:read("*number")
-	pool.maxFitness = file:read("*number")
-
-	local numSpecies = file:read("*number")
-	for _=1,numSpecies do
-		local species = Species.new()
-		table.insert(pool.species, species)
-		species.topFitness = file:read("*number")
-		species.staleness = file:read("*number")
-		local numGenomes = file:read("*number")
-		for _=1,numGenomes do
-			local genome = neatObject:createNewGenome()
-			table.insert(species.genomes, genome)
-			genome.fitness = file:read("*number")
-			genome.maxNeuron = file:read("*number")
-			local line = file:read("*line")
-			while line ~= "done" do
-				genome.mutationRates.values[line] = file:read("*number")
-				line = file:read("*line")
-			end
-			local numGenes = file:read("*number")
-			for _=1,numGenes do
-				local gene = neatObject:createNewGene()
-				table.insert(genome.genes, gene)
-				local enabled gene.into, gene.out, gene.weight,
-					gene.innovation, enabled =
-						file:read("*number", "*number", "*number", "*number", "*number")
-				if enabled == 0 then
-					gene.enabled = false
-				else
-					gene.enabled = true
-				end
-			end
-		end
-	end
-	file:close()
-
+local function loadFileAndInitialize(filename, neatObject)
+	local pool = GameHandler.loadFromFile(filename, outputSize)
+	neatObject.pool = pool
+	Logger.info('current genome?: ' .. pool.currentGenome)
 	while isFitnessMeasured(neatObject.pool) do
 		nextGenome(neatObject)
 	end
@@ -342,7 +304,7 @@ local function loadFile(saveFolderName, neatObject)
 	local latestBackupFile = GameHandler.getLatestBackupFile(saveFolderName)
 	if latestBackupFile ~= nil then
 		Logger.info('attempting to load file for pool...: ' .. latestBackupFile)
-		loadFile2(saveFolderName .. latestBackupFile, neatObject)
+		loadFileAndInitialize(saveFolderName .. latestBackupFile, neatObject)
 		Logger.info('loaded backfile: ' .. latestBackupFile)
 	else
 		Logger.info('No backup file to load from. looked in directory: ' .. saveFolderName .. ' will continue new program')

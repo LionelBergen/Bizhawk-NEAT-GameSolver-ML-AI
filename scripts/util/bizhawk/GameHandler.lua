@@ -3,6 +3,11 @@ local GameHandler = {}
 local FileUtil = require('../util/FileUtil')
 local Logger = require('../util/Logger')
 local Validator = require('../util/Validator')
+local Pool = require('machinelearning.ai.model.Pool')
+local Species = require('machinelearning.ai.model.Species')
+local Genome = require('machinelearning.ai.model.Genome')
+local Gene = require('machinelearning.ai.model.Gene')
+local Json = require('../lib/json')
 
 -- luacheck: globals savestate joypad
 
@@ -34,46 +39,62 @@ function GameHandler.getLatestBackupFile(poolSavesFolder)
 	return latestBackupFile
 end
 
+---@return Pool
+function GameHandler.loadFromFile(filename, innovation)
+	Logger.info('loadfile: ' .. filename)
+
+	local file = io.open(filename, "r")
+	local line = file:read()
+	local poolFromFile = Json.decode(line)
+	file:close()
+
+	---@type Pool
+	local pool = Pool.copy(poolFromFile)
+	pool.innovation = innovation
+	Validator.validatePool(pool)
+
+	return pool
+end
+
 -- Gets info about a pool and saves it to a file
 ---@param pool Pool
 function GameHandler.saveFileFromPool(filename, pool)
 	-- before writing to file, validate the pool
 	Validator.validatePool(pool)
 
-	local file = io.open(filename, "w")
-	file:write(pool.generation .. "\n")
-	file:write(pool.maxFitness .. "\n")
-	file:write(#pool.species .. "\n")
+	local fileJson = io.open(filename, "w")
+	-- Create an object that wont have functions
+	local rawPool = {}
+	rawPool.generation = pool.generation
+	rawPool.maxFitness = pool.maxFitness
 
-	for _,species in pairs(pool.species) do
-		file:write(species.topFitness .. "\n")
-		file:write(species.staleness .. "\n")
-		file:write(#species.genomes .. "\n")
-		for _,genome in pairs(species.genomes) do
-			file:write(genome.fitness .. "\n")
-			file:write(genome.maxNeuron .. "\n")
-			-- write out each mutationRate. E.G step: 0.0, link: 0.0
-			for mutation,rate in pairs(genome.mutationRates.values) do
-				file:write(mutation .. "\n")
-				file:write(rate .. "\n")
-			end
-			file:write("done\n")
+	rawPool.species = {}
+	for i, species in pairs(pool.species) do
+		rawPool.species[i] = {}
+		rawPool.species[i].topFitness = species.topFitness
+		rawPool.species[i].staleness = species.staleness
+		rawPool.species[i].genomes = {}
 
-			file:write(#genome.genes .. "\n")
-			for _,gene in pairs(genome.genes) do
-				file:write(gene.into .. " ")
-				file:write(gene.out .. " ")
-				file:write(gene.weight .. " ")
-				file:write(gene.innovation .. " ")
-				if(gene.enabled) then
-					file:write("1\n")
-				else
-					file:write("0\n")
-				end
+		for j,genome in pairs(species.genomes) do
+			rawPool.species[i].genomes[j] = {}
+			rawPool.species[i].genomes[j].fitness = genome.fitness
+			rawPool.species[i].genomes[j].maxNeuron = genome.maxNeuron
+			rawPool.species[i].genomes[j].mutationRates = genome.mutationRates
+			rawPool.species[i].genomes[j].genes = {}
+
+			for k,gene in pairs(genome.genes) do
+				rawPool.species[i].genomes[j].genes[k] = {}
+				rawPool.species[i].genomes[j].genes[k].into = gene.into
+				rawPool.species[i].genomes[j].genes[k].out = gene.out
+				rawPool.species[i].genomes[j].genes[k].weight = gene.weight
+				rawPool.species[i].genomes[j].genes[k].innovation = gene.innovation
+				rawPool.species[i].genomes[j].genes[k].enabled = gene.enabled
 			end
 		end
 	end
-	file:close()
+
+	fileJson:write(Json.encode(rawPool))
+	fileJson:close()
 end
 
 function GameHandler.clearJoypad(rom)

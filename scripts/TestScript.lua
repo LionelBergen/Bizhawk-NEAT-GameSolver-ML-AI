@@ -1,4 +1,20 @@
 local MutationRate = require('machinelearning.ai.model.MutationRate')
+local machineLearningProjectName = 'Mario_testing'
+local FileUtil = require('util/FileUtil')
+local Pool  = require('machinelearning.ai.model.Pool')
+local poolSavesFolder = FileUtil.getCurrentDirectory() ..
+        '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
+local GameHandler = require('util.bizhawk.GameHandler')
+
+console = {}
+function console.log(message)
+    print(message)
+end
+
+---@type Pool
+local pool = GameHandler.loadFromFile(poolSavesFolder .. 'backup.14.SuperMario_ML_pools.json', 5)
+-- local newFileName = poolSavesFolder .. "backup.123"
+-- GameHandler.saveFileFromPool(newFileName, pool)
 
 local function assertTrue(value, message)
     if value == nil then
@@ -92,12 +108,12 @@ local function displayAIInputs(width, height)
         end
     end)
     for _,cell in pairs(cells) do
-        print(cell.x)
-        print(cell.y)
+        --print(cell.x)
+        --print(cell.y)
     end
 
     return cells
-    end
+end
 
 displayAIInputs(6, 6)
 
