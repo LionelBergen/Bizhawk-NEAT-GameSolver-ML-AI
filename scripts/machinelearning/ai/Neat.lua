@@ -554,7 +554,7 @@ function Neat:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes)
         child = self:crossover(g1, g2)
     else
         local g = species.genomes[math.random(1, #species.genomes)]
-        child = Genome:copy(g)
+        child = Genome.copy(g)
     end
 
     self:mutate(child, numberOfInputs, numberOfOutputs, maxNodes)
@@ -688,6 +688,7 @@ end
 function Neat:initializePool(numberOfInputs, numberOfOutputs, maxNodes)
     local innovation = numberOfOutputs
     self.pool = self:createNewPool(innovation)
+    Validator.validatePool(self.pool)
 
     for _=1,self.population do
         local basic = self:createBasicGenome(numberOfInputs, numberOfOutputs, maxNodes)

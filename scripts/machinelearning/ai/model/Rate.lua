@@ -25,13 +25,13 @@ function Rate.copy(rate)
     if (rate ~= nil) then
         rateCopy = Rate.new()
 
-        rateCopy.connections = rate.connections
-        rateCopy.link = rate.link
-        rateCopy.bias = rate.bias
-        rateCopy.node = rate.node
-        rateCopy.enable = rate.enable
-        rateCopy.disable = rate.disable
-        rateCopy.step = rate.step
+        rateCopy.connections = rate.connections or rateCopy.connections
+        rateCopy.link = rate.link or rateCopy.link
+        rateCopy.bias = rate.bias or rateCopy.bias
+        rateCopy.node = rate.node or rateCopy.node
+        rateCopy.enable = rate.enable or rateCopy.enable
+        rateCopy.disable = rate.disable or rateCopy.disable
+        rateCopy.step = rate.step or rateCopy.step
     end
 
     return rateCopy

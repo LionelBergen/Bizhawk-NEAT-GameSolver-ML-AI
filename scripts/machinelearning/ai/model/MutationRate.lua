@@ -56,13 +56,13 @@ function MutationRate.copy(mutationRates)
     mutationRatesCopy.rates = Rate.copy(mutationRates.rates)
     mutationRatesCopy.values = {}
 
-    mutationRatesCopy.values.connections = mutationRates.values.connections
-    mutationRatesCopy.values.link = mutationRates.values.link
-    mutationRatesCopy.values.bias = mutationRates.values.bias
-    mutationRatesCopy.values.node = mutationRates.values.node
-    mutationRatesCopy.values.enable = mutationRates.values.enable
-    mutationRatesCopy.values.disable = mutationRates.values.disable
-    mutationRatesCopy.values.step = mutationRates.values.step
+    mutationRatesCopy.values.connections = mutationRates.values.connections or mutationRatesCopy.values.connections
+    mutationRatesCopy.values.link = mutationRates.values.link or mutationRatesCopy.values.link
+    mutationRatesCopy.values.bias = mutationRates.values.bias or mutationRatesCopy.values.bias
+    mutationRatesCopy.values.node = mutationRates.values.node or mutationRatesCopy.values.node
+    mutationRatesCopy.values.enable = mutationRates.values.enable or mutationRatesCopy.values.enable
+    mutationRatesCopy.values.disable = mutationRates.values.disable or mutationRatesCopy.values.disable
+    mutationRatesCopy.values.step = mutationRates.values.step or mutationRatesCopy.values.step
 
     return mutationRatesCopy
 end

@@ -30,23 +30,23 @@ end
 
 ---@param genome Genome
 ---@return Genome
-function Genome:copy(genome)
+function Genome.copy(genome)
     -- Create a new genome and copy the genes from the passed genome
     ---@type Genome
-    local genomeCopy = self:new()
+    local genomeCopy = Genome:new()
     for _, gene in pairs(genome.genes) do
         genomeCopy:addGene(gene)
     end
 
     ---@type Network
     genomeCopy.network = {}
-    genomeCopy.mutationRates = MutationRate.copy(genomeCopy.mutationRates)
+    genomeCopy.mutationRates = MutationRate.copy(genome.mutationRates)
 
     -- copy the rest of the values
-    genomeCopy.fitness = genome.fitness
-    genomeCopy.adjustedFitness = genome.adjustedFitness
-    genomeCopy.maxNeuron = genome.maxNeuron
-    genomeCopy.globalRank = genome.globalRank
+    genomeCopy.fitness = genome.fitness or genomeCopy.fitness
+    genomeCopy.adjustedFitness = genome.adjustedFitness or genomeCopy.adjustedFitness
+    genomeCopy.maxNeuron = genome.maxNeuron or genomeCopy.maxNeuron
+    genomeCopy.globalRank = genome.globalRank or genomeCopy.globalRank
 
     return genomeCopy
 end

@@ -1,5 +1,6 @@
 ---@class Pool
 local Pool = {}
+local Species = require('machinelearning.ai.model.Species')
 
 -- innovation number used to track gene.
 ---@return Pool
@@ -20,6 +21,29 @@ function Pool:new(innovation)
     pool.maxFitness = 0
 
     return pool
+end
+
+function Pool.copy(pool)
+    ---@type Pool
+    local poolCopy
+
+    if (pool ~= nil) then
+        poolCopy = Pool:new()
+
+        poolCopy.generation = pool.generation or poolCopy.generation
+        poolCopy.innovation = pool.innovation or poolCopy.innovation
+        poolCopy.currentSpecies = pool.currentSpecies or poolCopy.currentSpecies
+        poolCopy.currentGenome = pool.currentGenome or poolCopy.currentGenome
+        poolCopy.currentFrame = pool.currentFrame or poolCopy.currentFrame
+        poolCopy.maxFitness = pool.maxFitness or poolCopy.maxFitness
+
+        poolCopy.species = {}
+        for k, v in pairs(pool.species) do
+            poolCopy.species[k] = Species.copy(v)
+        end
+    end
+
+    return poolCopy
 end
 
 ---@return Species
