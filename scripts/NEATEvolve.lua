@@ -8,6 +8,7 @@ local Species = require('machinelearning.ai.model.Species')
 local Cell = require('machinelearning.ai.model.display.Cell')
 local Mario = require('util/bizhawk/rom/Mario')
 local Validator = require('../util/Validator')
+local Colour = require('machinelearning.ai.model.display.Colour')
 
 local rom = Mario
 local saveFileName = 'SMW.state'
@@ -51,12 +52,20 @@ local showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 --local saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 --local playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 local hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
+local Mode = {Manual = 1, Auto = 2}
+local mode = Mode.Manual
 local controller = {}
+
+if mode == Mode.Manual then
+	TimeoutConstant = 200000
+end
 
 ---@param pool Pool
 local function saveNewBackup(pool, poolGeneration, saveFolderName, filePostfix)
-	local newFileName = saveFolderName .. "backup." .. poolGeneration .. "." .. filePostfix
-	GameHandler.saveFileFromPool(newFileName, pool)
+	if mode ~= Mode.Manual then
+		local newFileName = saveFolderName .. "backup." .. poolGeneration .. "." .. filePostfix
+		GameHandler.saveFileFromPool(newFileName, pool)
+	end
 end
 
 local function sigmoid(x)
@@ -70,16 +79,19 @@ local function evaluateCurrent(neatObject)
 	local inputs = rom.getInputs(programViewWidth, programViewHeight)
 	controller = neatObject.evaluateNetwork(genome.network, inputSize, inputs, rom.getButtonOutputs(), maxNodes)
 
-	if controller["P1 Left"] and controller["P1 Right"] then
-		controller["P1 Left"] = false
-		controller["P1 Right"] = false
-	end
-	if controller["P1 Up"] and controller["P1 Down"] then
-		controller["P1 Up"] = false
-		controller["P1 Down"] = false
-	end
+	if mode ~= Mode.Manual then
+		if controller["P1 Left"] and controller["P1 Right"] then
+			controller["P1 Left"] = false
+			controller["P1 Right"] = false
+		end
+		if controller["P1 Up"] and controller["P1 Down"] then
+			controller["P1 Up"] = false
+			controller["P1 Down"] = false
+		end
 
-	joypad.set(controller)
+
+		joypad.set(controller)
+	end
 end
 
 ---@param neatObject Neat
@@ -90,7 +102,6 @@ local function initializeRun(neatObject)
 	neatObject.pool.currentFrame = 0
 	timeout = TimeoutConstant
 	GameHandler.clearJoypad(rom)
-
 	local genome = neatObject:getCurrentGenome()
 
 	neatObject.generateNetwork(genome, inputSize, outputSize, maxNodes)
@@ -227,12 +238,20 @@ local function displayGenome(genome)
 		end
 	end
 
-	gui.drawBox(50-ProgramViewBoxRadius*5-3,
-			70-ProgramViewBoxRadius*5-3,
-			50+ProgramViewBoxRadius*5+2,
-			70+ProgramViewBoxRadius*5+2,
-			0xFF000000,
-			0x80808080)
+	local lineColour = Colour.BLACK
+	local backgroundColour = Colour.GREY
+	local startX = 17 -- 50 - (ProgramViewBoxRadius*5) - 3
+	local startY = 37 -- 70 - (ProgramViewBoxRadius*5)-3
+	local endX = 82 -- 50 + (ProgramViewBoxRadius*5)+2
+	local endY = 102 -- 70 + (ProgramViewBoxRadius*5)+2
+	-- 17, 37, 82, 102
+	--gui.drawBox(int x, int y, int x2, int y2, [luacolor line = nil], [luacolor background = nil], [string surfacename = nil])
+	gui.drawBox(startX,
+			startY,
+			endX,
+			endY,
+			lineColour,
+			backgroundColour)
 	for n,celln in pairs(cells) do
 		if n > inputSize or celln.value ~= 0 then
 			local color = math.floor((celln.value+1)/2*256)
@@ -374,7 +393,9 @@ while true do
 	end
 
 	-- TODO: 'controller' shouldnt have to be a class wide local
-	joypad.set(controller)
+	if mode ~= Mode.Manual then
+		joypad.set(controller)
+	end
 	-- TODO: 'marioX', 'marioY'
 	local marioX, _ = rom:getPositions()
 	if marioX > rightmost then

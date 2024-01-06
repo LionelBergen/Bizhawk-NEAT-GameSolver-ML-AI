@@ -43,15 +43,6 @@ function Mario.getTile(dx, dy)
     return memory.readbyte(0x1C800 + math.floor(x/0x10)*0x1B0 + y*0x10 + x%0x10)
 end
 
-local function debugSprites(sprites)
-    local message = ""
-    for i, sprite in pairs(sprites) do
-        message = message .. i .. ": " .. sprite.value .. " "
-    end
-
-    Logger.info(message)
-end
-
 function Mario.getSprites()
     local sprites = {}
     -- https://www.smwcentral.net/
