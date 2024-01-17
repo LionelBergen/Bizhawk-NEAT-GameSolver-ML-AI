@@ -13,7 +13,7 @@ Download ROM for game (E.G SMW)
 Run the game, and create a `.state` file, at the beginning of the level, give it a name and save it to `/asserts/savedstates/nameoffile.state`  
 Change the `saveFileName` inside `NEATEvolve.lua` to have the filename E.G: `saveFileName = SMW.state`  
 Run Lua script: `source/NEATEvolve.lua` in Bizhawk  
-
+**NOTE**: If you get an error similair to 'unprotected error in call to Lua API', make sure you've changed the state file to one to a recent one. An issue occurs if bizhawk updates, or the ROM was downloaded from a different place than the one used for the state file.   
 
 
 
