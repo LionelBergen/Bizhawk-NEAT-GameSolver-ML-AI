@@ -2,6 +2,9 @@ local MutationRate = require('machinelearning.ai.model.MutationRate')
 local machineLearningProjectName = 'Mario_testing'
 local FileUtil = require('util/FileUtil')
 local Pool  = require('machinelearning.ai.model.Pool')
+local Network  = require('machinelearning.ai.model.Network')
+local Neuron  = require('machinelearning.ai.model.Neuron')
+local Cell  = require('machinelearning.ai.model.display.Cell')
 local poolSavesFolder = FileUtil.getCurrentDirectory() ..
         '\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 local GameHandler = require('util.bizhawk.GameHandler')
@@ -11,10 +14,41 @@ function console.log(message)
     print(message)
 end
 
----@type Pool
-local pool = GameHandler.loadFromFile(poolSavesFolder .. 'backup.14.SuperMario_ML_pools.json', 5)
--- local newFileName = poolSavesFolder .. "backup.123"
--- GameHandler.saveFileFromPool(newFileName, pool)
+
+
+local width = 13
+local height = 13
+---@type Cell[]
+local cells = {}
+local i = 1
+
+-- display beginning cell at position xStart * cellWidth, yStart * cellHeight
+local xStart = 4
+local yStart = 8
+local cellWidth = 5
+local cellHeight = 5
+local xEnd = xStart + (width - 1)
+local yEnd = yStart + (height - 1)
+
+for dx=xStart,xEnd do
+    for dy=yStart,yEnd do
+        ---@type Cell
+        local cell = Cell:new()
+        cell.x = (cellWidth * dx)
+        cell.y = (cellHeight * dy)
+        cell.value = 1234
+        cells[i] = cell
+        i = i + 1
+    end
+end
+
+print('here: ' .. #cells)
+
+
+
+
+
+
 
 local function assertTrue(value, message)
     if value == nil then

@@ -1,5 +1,6 @@
 local Validator = {}
 local Logger = require('../util/Logger')
+local NeuronType = require('machinelearning.ai.model.NeuronType')
 
 local poolKeys = {'species', 'generation', 'innovation', 'currentSpecies', 'currentGenome', 'currentFrame', 'maxFitness'}
 local geneKeys = {'into', 'out', 'weight', 'enabled', 'innovation'}
@@ -69,10 +70,23 @@ end
 function Validator.validateGene(gene)
     Validator.validateIsNotNull(gene, 'genome.genes was nil.')
 
-    Validator.validateNumber(gene.into, 'pool.species.genome.into was invalid.')
-    Validator.validateNumber(gene.out, 'pool.species.genome.out was invalid.')
+    Validator.validateIsNotNull(gene.into, 'genome.genes.info was nil.')
+    Validator.validateIsNotNull(gene.out, 'genome.genes.out was nil.')
+
+    Validator.validateNumber(gene.into.index, 'pool.species.genome.into.index was invalid.')
+    Validator.validateNumber(gene.out.index, 'pool.species.genome.out.index was invalid.')
     Validator.validateNumber(gene.weight, 'pool.species.genome.weight was invalid.')
     Validator.validateNumber(gene.innovation, 'pool.species.genome.innovation was invalid.')
+
+    if gene.out.type == NeuronType.INPUT and gene.out.index > 169 then
+        Logger.error('input of gene.out too large.')
+        error('input too large.')
+    end
+
+    if gene.into.type == NeuronType.INPUT and gene.into.index > 169 then
+        Logger.error('input of gene.into too large.')
+        error('input too large.')
+    end
 
     validateObjectKeys(gene, geneKeys, 'gene')
 end

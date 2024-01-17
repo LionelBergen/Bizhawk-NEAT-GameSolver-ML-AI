@@ -7,6 +7,8 @@ local Gene = require('machinelearning.ai.model.Gene')
 local Neuron = require('machinelearning.ai.model.Neuron')
 local Species = require('machinelearning.ai.model.Species')
 local Network = require('machinelearning.ai.model.Network')
+local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
+local NeuronType = require('machinelearning.ai.model.NeuronType')
 local Logger = require('util.Logger')
 local Validator = require('../util/Validator')
 
@@ -29,6 +31,10 @@ local staleSpecies = 15
 
 local function sigmoid(x)
     return 2 / (1 + math.exp(-4.9 * x)) - 1
+end
+
+local function generateRandomWeight()
+    return math.random() * 4 - 2
 end
 
 -- Counts the number of non-matching innovation's in genes1 and genes2 then divides by
@@ -107,9 +113,11 @@ local function pointMutate(genome, perturbChance)
 
     for _, gene in pairs(genome.genes) do
         if math.random() < perturbChance then
-            gene.weight = gene.weight + ((math.random() * (step * 2)) - step)
+            -- Generate a random number between -step and step
+            local randomPerturbation = (math.random() * 2 * step) - step
+            gene.weight = gene.weight + randomPerturbation
         else
-            gene.weight = (math.random() * 4) - 2
+            gene.weight = generateRandomWeight()
         end
     end
 
@@ -157,55 +165,50 @@ function Neat:createNewGenome(maxNeuron)
             self.nodeMutationChance, self.enableMutationChance, self.disableMutationChance, self.stepSize)
 end
 
----@return Gene
-function Neat.createNewGene()
-    return Gene.new()
-end
-
 ---@return Genome
 function Neat:getCurrentGenome()
     return self.pool:getCurrentGenome()
 end
 
 ---@return Genome
-function Neat:createBasicGenome(inputSize, outputSize, maxNodes)
+function Neat:createBasicGenome(inputSizeWithoutBiasNode, outputSize)
+    -- TODO: 1
     ---@type Genome
-    local genome = self:createNewGenome(inputSize)
+    local genome = self:createNewGenome(1)
 
-    self:mutate(genome, inputSize, outputSize, maxNodes)
+    self:mutate(genome, inputSizeWithoutBiasNode, outputSize)
 
     return genome
 end
 
 ---@param genome Genome
-function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs, maxNodes)
+function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs)
     ---@type Network
-    local network = Network.new()
+    local network = Network:new()
 
-    for i=1,numberOfInputs do
-        network.neurons[i] = Neuron.new()
+    for _=1, numberOfInputs do
+        network:addInputNeuron(Neuron.new())
     end
 
-    for o=1,numberOfOutputs do
-        network.neurons[maxNodes+o] = Neuron.new()
+    network:setBiasNeuron(Neuron.new())
+
+    for _=1, numberOfOutputs do
+        network:addOutputNeuron(Neuron.new())
     end
 
     table.sort(genome.genes, function (a,b)
-        return (a.out < b.out)
+        return (a.out.index < b.out.index)
     end)
 
     for i=1,#genome.genes do
         local gene = genome.genes[i]
         if gene.enabled then
-            if network.neurons[gene.out] == nil then
-                network.neurons[gene.out] = Neuron.new()
-            end
-
-            local neuron = network.neurons[gene.out]
+            ---@type Neuron
+            local neuron = network:getOrCreateNeuron(gene.out)
             table.insert(neuron.incoming, gene)
-            if network.neurons[gene.into] == nil then
-                network.neurons[gene.into] = Neuron.new()
-            end
+
+            -- create new neuron to the network if applicable
+            network:getOrCreateNeuron(gene.into)
         end
     end
 
@@ -213,24 +216,16 @@ function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs, maxNodes)
 end
 
 ---@param network Network
-function Neat.evaluateNetwork(network, inputSize, inputs, outputs, maxNodes)
-    -- TODO: this is probably for the 'bias' cell
-    table.insert(inputs, 1)
+function Neat.evaluateNetwork(network, inputs, outputs)
+    -- set the input values
+    network:setInputValues(inputs)
+    network.biasNeuron.value = 1
 
-    if #inputs ~= inputSize then
-        Logger.info("Incorrect number of neural network inputs.")
-        error("Incorrect number of neural network inputs.")
-    end
-
-    for i=1,#inputs do
-        network.neurons[i].value = inputs[i]
-    end
-
-    for _,neuron in pairs(network.neurons) do
+    for _,neuron in pairs(network:getAllNeurons()) do
         local sum = 0
         for j = 1,#neuron.incoming do
             local incoming = neuron.incoming[j]
-            local other = network.neurons[incoming.into]
+            local other = network:getOrCreateNeuron(incoming.into)
             sum = sum + incoming.weight * other.value
         end
 
@@ -244,7 +239,7 @@ function Neat.evaluateNetwork(network, inputSize, inputs, outputs, maxNodes)
         local output = outputs[o]
         -- TODO: "P1 " is related to controller in BizHawk. Maybe we should convert it outside this method
         local newOutput = "P1 " .. output
-        if network.neurons[maxNodes+o].value > 0 then
+        if network.outputNeurons[o].value > 0 then
             newOutputs[newOutput] = true
         else
             newOutputs[newOutput] = false
@@ -295,40 +290,40 @@ function Neat:crossover(g1, g2)
 end
 
 ---@param genes Gene[]
----@return number
-function Neat.randomNeuron(genes, isInput, inputSize, outputSize, maxNodes)
+---@return NeuronInfo
+function Neat.getRandomNeuronInfo(genes, isInput, inputSizeWithoutBiasNode, outputSize)
     local neurons = {}
+
+    -- Add input Neurons if applicable
     if isInput then
-        for i=1,inputSize do
-            neurons[i] = true
+        for i=1,inputSizeWithoutBiasNode do
+            neurons[i] = NeuronInfo.new(i, NeuronType.INPUT)
         end
+
+        if #neurons >= 170 then
+            error(#neurons)
+        end
+
+        neurons[#neurons + 1] = NeuronInfo.new(1, NeuronInfo.BIAS)
     end
-    for o=1,outputSize do
-        neurons[maxNodes+o] = true
+
+    -- Add output neurons
+    for i=1,outputSize do
+        neurons[#neurons + 1] = NeuronInfo.new(i, NeuronType.OUTPUT)
     end
+
+    -- Add neurons from Genes
     for i=1,#genes do
-        if isInput or genes[i].into > inputSize then
-            neurons[genes[i].into] = true
+        if isInput or genes[i].into.type ~= NeuronType.INPUT then
+            neurons[#neurons + 1] = NeuronInfo.new(genes[i].into.index, genes[i].into.type)
         end
-        if isInput or genes[i].out > inputSize then
-            neurons[genes[i].out] = true
-        end
-    end
-
-    local count = 0
-    for _,_ in pairs(neurons) do
-        count = count + 1
-    end
-    local n = math.random(1, count)
-
-    for k,_ in pairs(neurons) do
-        n = n-1
-        if n == 0 then
-            return k
+        if isInput or genes[i].out.type ~= NeuronType.INPUT then
+            neurons[#neurons + 1] = NeuronInfo.new(genes[i].out.index, genes[i].out.type)
         end
     end
 
-    return 0
+    local randomIndex = math.random(1, #neurons)
+    return neurons[randomIndex]
 end
 
 -- TODO: Should have a method equals() inside Gene
@@ -337,36 +332,39 @@ end
 function Neat.containsLink(genes, link)
     for i=1,#genes do
         local gene = genes[i]
-        if gene.into == link.into and gene.out == link.out then
+        if gene.into.index == link.into.index and gene.into.type == link.into.type
+                and gene.out.index == link.out.index and gene.out.type == link.out.type then
             return true
         end
     end
 end
 
 ---@param genome Genome
-function Neat:linkMutate(genome, forceBias, numberOfInputs, numberOfOutputs, maxNodes)
+function Neat:linkMutate(genome, forceBias, inputSizeWithoutBiasNode, numberOfOutputs)
     Validator.validateGenome(genome)
-    ---@type number
-    local neuron1 = self.randomNeuron(genome.genes, true, numberOfInputs, numberOfOutputs, maxNodes)
-    ---@type number
-    local neuron2 = self.randomNeuron(genome.genes, false, numberOfInputs, numberOfOutputs, maxNodes)
+    ---@type NeuronInfo
+    local sourceNeuronInfo = self.getRandomNeuronInfo(genome.genes, true, inputSizeWithoutBiasNode, numberOfOutputs)
+    ---@type NeuronInfo
+    local targetNeuronInfo = self.getRandomNeuronInfo(genome.genes, false, inputSizeWithoutBiasNode, numberOfOutputs)
     ---@type Gene
     local newLink = Gene.new()
-    if neuron1 <= numberOfInputs and neuron2 <= numberOfInputs then
+
+    -- Ensure connections between input nodes are not mutated
+    if sourceNeuronInfo.type == NeuronType.INPUT and targetNeuronInfo.type == NeuronType.INPUT then
         -- Both input nodes
         return
     end
-    if neuron2 <= numberOfInputs then
+    if targetNeuronInfo.type == NeuronType.INPUT then
         -- Swap output and input
-        local temp = neuron1
-        neuron1 = neuron2
-        neuron2 = temp
+        local temp = sourceNeuronInfo
+        sourceNeuronInfo = targetNeuronInfo
+        targetNeuronInfo = temp
     end
 
-    newLink.into = neuron1
-    newLink.out = neuron2
+    newLink.into = sourceNeuronInfo
+    newLink.out = targetNeuronInfo
     if forceBias then
-        newLink.into = numberOfInputs
+        newLink.into = NeuronInfo.new(1, NeuronType.BIAS)
     end
 
     if self.containsLink(genome.genes, newLink) then
@@ -374,7 +372,7 @@ function Neat:linkMutate(genome, forceBias, numberOfInputs, numberOfOutputs, max
     end
 
     newLink.innovation = self:newInnovation()
-    newLink.weight = math.random() * 4 - 2
+    newLink.weight = generateRandomWeight()
 
     genome:addGene(newLink)
     Validator.validateGenome(genome)
@@ -386,7 +384,12 @@ function Neat:nodeMutate(genome)
         return
     end
 
-    genome.maxNeuron = genome.maxNeuron + 1
+    genome.maxNeuron = genome.network.processingNeurons ~= nil and (#genome.network.processingNeurons + 1) or 1
+
+    if genome.maxNeuron ~= 1 then
+        Logger.info('max neuron set to: ' .. genome.maxNeuron)
+
+    end
 
     local gene = genome.genes[math.random(1,#genome.genes)]
     if not gene.enabled then
@@ -395,14 +398,14 @@ function Neat:nodeMutate(genome)
     gene.enabled = false
 
     local gene1 = Gene.copy(gene)
-    gene1.out = genome.maxNeuron
+    gene1.out = NeuronInfo.new(genome.maxNeuron, NeuronType.PROCESSING)
     gene1.weight = 1.0
     gene1.innovation = self:newInnovation()
     gene1.enabled = true
     genome:addGene(gene1)
 
     local gene2 = Gene.copy(gene)
-    gene2.into = genome.maxNeuron
+    gene2.into = NeuronInfo.new(genome.maxNeuron, NeuronType.PROCESSING)
     gene2.innovation = self:newInnovation()
     gene2.enabled = true
     genome:addGene(gene2)
@@ -426,7 +429,7 @@ function Neat.enableDisableMutate(genome, enable)
 end
 
 ---@param genome Genome
-function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
+function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
     genome.mutationRates:mutate()
     Validator.validateGenome(genome)
 
@@ -438,7 +441,7 @@ function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
     local p = genome.mutationRates.values.link
     while p > 0 do
         if math.random() < p then
-            self:linkMutate(genome, false, numberOfInputs, numberOfOutputs, maxNodes)
+            self:linkMutate(genome, false, inputSizeWithoutBiasNode, numberOfOutputs)
         end
         p = p - 1
     end
@@ -446,7 +449,7 @@ function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
     p = genome.mutationRates.values.bias
     while p > 0 do
         if math.random() < p then
-            self:linkMutate(genome, true, numberOfInputs, numberOfOutputs, maxNodes)
+            self:linkMutate(genome, true, inputSizeWithoutBiasNode, numberOfOutputs)
         end
         p = p - 1
     end
@@ -545,7 +548,7 @@ function Neat.cullSpecies(pool, cutToOne)
 end
 
 ---@param species Species
-function Neat:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes)
+function Neat:breedChild(species, numberOfInputs, numberOfOutputs)
     ---@type Genome
     local child
     if math.random() < crossoverChance then
@@ -557,7 +560,7 @@ function Neat:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes)
         child = Genome.copy(g)
     end
 
-    self:mutate(child, numberOfInputs, numberOfOutputs, maxNodes)
+    self:mutate(child, numberOfInputs, numberOfOutputs)
 
     return child
 end
@@ -630,7 +633,7 @@ function Neat:addToSpecies(child)
     end
 end
 
-function Neat:newGeneration(numberOfInputs, numberOfOutputs, maxNodes)
+function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     if self.pool.species == nil then
         error("pool.species was nil")
     end
@@ -669,13 +672,13 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs, maxNodes)
         local species = pool.species[s]
         local breed = math.floor(species.averageFitness / sum * self.population) - 1
         for _=1,breed do
-            table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes))
+            table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
         end
     end
     self.cullSpecies(pool, true) -- Cull all but the top member of each species
     while #children + #pool.species < self.population do
         local species = pool.species[math.random(1, #pool.species)]
-        table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes))
+        table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
     end
     for c=1,#children do
         local child = children[c]
@@ -685,13 +688,13 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs, maxNodes)
     pool.generation = pool.generation + 1
 end
 
-function Neat:initializePool(numberOfInputs, numberOfOutputs, maxNodes)
+function Neat:initializePool(inputSizeWithoutBiasNode, numberOfOutputs)
     local innovation = numberOfOutputs
     self.pool = self:createNewPool(innovation)
     Validator.validatePool(self.pool)
 
-    for _=1,self.population do
-        local basic = self:createBasicGenome(numberOfInputs, numberOfOutputs, maxNodes)
+    for _=1, self.population do
+        local basic = self:createBasicGenome(inputSizeWithoutBiasNode, numberOfOutputs)
         self:addToSpecies(basic)
     end
 end

@@ -9,6 +9,7 @@ local Cell = require('machinelearning.ai.model.display.Cell')
 local Mario = require('util/bizhawk/rom/Mario')
 local Validator = require('../util/Validator')
 local Colour = require('machinelearning.ai.model.display.Colour')
+local NeuronType = require('machinelearning.ai.model.NeuronType')
 
 local rom = Mario
 local saveFileName = 'SMW.state'
@@ -30,11 +31,12 @@ local topOverlayBackgroundColor = 0xD0FFFFFF
 local ProgramViewBoxRadius = 6
 local programViewWidth = 13
 local programViewHeight = 13
-local inputSize = (programViewWidth * programViewHeight) + 1
+local inputSizeWithoutBiasNode = (programViewWidth * programViewHeight)
+local inputSize = inputSizeWithoutBiasNode + 1
 local outputSize = #rom.getButtonOutputs()
 
 local TimeoutConstant = 20
-local maxNodes = 1000000
+local newNodeIndexStart = 1000000
 local rightmost = 0
 local timeout = 0
 
@@ -53,7 +55,7 @@ local showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 --local playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 local hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
 local Mode = {Manual = 1, Auto = 2}
-local mode = Mode.Manual
+local mode = Mode.Auto
 local controller = {}
 
 if mode == Mode.Manual then
@@ -77,7 +79,7 @@ local function evaluateCurrent(neatObject)
 	local genome = neatObject:getCurrentGenome()
 
 	local inputs = rom.getInputs(programViewWidth, programViewHeight)
-	controller = neatObject.evaluateNetwork(genome.network, inputSize, inputs, rom.getButtonOutputs(), maxNodes)
+	controller = neatObject.evaluateNetwork(genome.network, inputs, rom.getButtonOutputs())
 
 	if mode ~= Mode.Manual then
 		if controller["P1 Left"] and controller["P1 Right"] then
@@ -104,7 +106,7 @@ local function initializeRun(neatObject)
 	GameHandler.clearJoypad(rom)
 	local genome = neatObject:getCurrentGenome()
 
-	neatObject.generateNetwork(genome, inputSize, outputSize, maxNodes)
+	neatObject.generateNetwork(genome, inputSizeWithoutBiasNode, outputSize)
 	Validator.validatePool(neatObject.pool)
 	evaluateCurrent(neatObject)
 end
@@ -117,7 +119,7 @@ local function nextGenome(neatObject)
 		pool.currentGenome = 1
 		pool.currentSpecies = pool.currentSpecies + 1
 		if pool.currentSpecies > #pool.species then
-			neatObject:newGeneration(inputSize, outputSize, maxNodes)
+			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
 			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
 			pool.currentSpecies = 1
 		end
@@ -142,8 +144,15 @@ local function getCellInputs(network, width, height)
 	local yStart = 8
 	local cellWidth = 5
 	local cellHeight = 5
-	local xEnd = xStart + (width * 2)
-	local yEnd = yStart + (height * 2)
+	local xEnd = xStart + (width - 1)
+	local yEnd = yStart + (height - 1)
+
+	---@type Neuron[]
+	local neurons = network.inputNeurons
+
+	if (width * height) > #neurons then
+		error('Cannot get CellInputs, values were too large.')
+	end
 
 	for dx=xStart,xEnd do
 		for dy=yStart,yEnd do
@@ -151,7 +160,8 @@ local function getCellInputs(network, width, height)
 			local cell = Cell:new()
 			cell.x = (cellWidth * dx)
 			cell.y = (cellHeight * dy)
-			cell.value = network.neurons[i].value
+			cell.value = neurons[i].value
+			cell.neuronType = NeuronType.INPUT
 			cells[i] = cell
 			i = i + 1
 		end
@@ -160,26 +170,67 @@ local function getCellInputs(network, width, height)
 	return cells
 end
 
--- TODO: Taking apart this method.
+-- TODO: Shouldn't be in this class. Maybe a 'dispaly' handler util class
+-- Inline function to filter items
+---@param arr Cell[]
+---@param neuronType NeuronType
+---@return Cell[]
+local function filterCellsByNeuronType(arr, neuronType)
+	local result = {}
+	for _, item in ipairs(arr) do
+		if item.neuronType == neuronType then
+			table.insert(result, item)
+		end
+	end
+	return result
+end
+
+---@param haystack Cell[]
+---@param needle NeuronInfo
+---@return Cell
+local function findCellFromGene(haystack, needle)
+	local cells = filterCellsByNeuronType(haystack, needle.type)
+
+	if needle.type == NeuronType.BIAS then
+		-- bias has only 1
+		return cells[1]
+	end
+
+	if cells[needle.index] == nil then
+		Logger.info('------------------- ERROR: -------------------------')
+		Logger.info(cells)
+		Logger.info(needle.type .. ' index: ' .. needle.index)
+		error(1)
+	end
+
+	return cells[needle.index]
+end
+
 ---@param genome Genome
 local function displayGenome(genome)
 	---@type Network
 	local network = genome.network
 	---@type Cell[]
-	local cells = getCellInputs(network, ProgramViewBoxRadius, ProgramViewBoxRadius)
+	local cells = getCellInputs(network, programViewWidth, programViewHeight)
 	-- Bias cell/node is a special input neuron that is always active
 	---@type Cell
-	local biasCell = Cell:new(80, 110, network.neurons[#cells + 1].value)
+	local biasCell = Cell:new(80, 110, network.biasNeuron.value, NeuronType.BIAS)
 	cells[#cells + 1] = biasCell
 
-	for o = 1,outputSize do
+	local numAdjustmentIterations = 4
+	local preservationWeight = 0.75
+	local explorationWeight = 0.25
+
+	for o,outputNeuron in pairs(network.outputNeurons) do
+		---@type Cell
 		local cell = Cell:new()
 		local black = 0xFF000000
 		local blue = 0xFF0000FF
 		cell.x = 220
 		cell.y = 30 + 8 * o
-		cell.value = network.neurons[maxNodes + o].value
-		cells[maxNodes+o] = cell
+		cell.value = outputNeuron.value
+		cell.neuronType = NeuronType.OUTPUT
+		cells[#cells + 1] = cell
 		local color
 		if cell.value > 0 then
 			color = blue
@@ -190,49 +241,53 @@ local function displayGenome(genome)
 		gui.drawText(223, 24+8*o, rom.getButtonOutputs()[o], color, 9)
 	end
 
-	-- Neurons that are not inputs (170) or output buttons (X,Y, up down..)
-	for n,neuron in pairs(network.neurons) do
+	for _,neuron in pairs(network.processingNeurons) do
 		local cell = Cell:new()
-		if n > inputSize and n <= maxNodes then
-			cell.x = 140
-			cell.y = 40
-			cell.value = neuron.value
-			cells[n] = cell
-		end
+		cell.x = 140
+		cell.y = 40
+		cell.value = neuron.value
+		cell.neuronType = NeuronType.PROCESSING
+		cells[#cells + 1] = cell
 	end
 
-	for _=1,4 do
-		for _,gene in pairs(genome.genes) do
+	for _=1, numAdjustmentIterations do
+		for _, gene in pairs(genome.genes) do
 			if gene.enabled then
-				local c1 = cells[gene.into]
-				local c2 = cells[gene.out]
-				if gene.into > inputSize and gene.into <= maxNodes then
-					c1.x = 0.75*c1.x + 0.25*c2.x
-					if c1.x >= c2.x then
-						c1.x = c1.x - 40
-					end
-					if c1.x < 90 then
-						c1.x = 90
-					end
+				local sourceCell = findCellFromGene(cells, gene.into)
+				local targetCell = findCellFromGene(cells, gene.out)
 
-					if c1.x > 220 then
-						c1.x = 220
-					end
-					c1.y = 0.75*c1.y + 0.25*c2.y
-
+				if sourceCell == nil then
+					Logger.error('source cell null. heres type: ' .. gene.into.type .. ' and index: ' .. gene.into.index)
+					error(1)
 				end
-				if gene.out > inputSize and gene.out <= maxNodes then
-					c2.x = 0.25*c1.x + 0.75*c2.x
-					if c1.x >= c2.x then
-						c2.x = c2.x + 40
+
+				if gene.into.type == NeuronType.OUTPUT or gene.into.type == NeuronType.BIAS then
+					sourceCell.x = (preservationWeight * sourceCell.x) + (explorationWeight * targetCell.x)
+					if sourceCell.x >= targetCell.x then
+						sourceCell.x = sourceCell.x - 40
 					end
-					if c2.x < 90 then
-						c2.x = 90
+					if sourceCell.x < 90 then
+						sourceCell.x = 90
 					end
-					if c2.x > 220 then
-						c2.x = 220
+
+					if sourceCell.x > 220 then
+						sourceCell.x = 220
 					end
-					c2.y = 0.25*c1.y + 0.75*c2.y
+					sourceCell.y = (preservationWeight * sourceCell.y) + (explorationWeight * targetCell.y)
+				end
+
+				if gene.out.type == NeuronType.OUTPUT or gene.out.type == NeuronType.BIAS then
+					targetCell.x = explorationWeight * sourceCell.x + preservationWeight * targetCell.x
+					if sourceCell.x >= targetCell.x then
+						targetCell.x = targetCell.x + 40
+					end
+					if targetCell.x < 90 then
+						targetCell.x = 90
+					end
+					if targetCell.x > 220 then
+						targetCell.x = 220
+					end
+					targetCell.y = explorationWeight * sourceCell.y + preservationWeight * targetCell.y
 				end
 			end
 		end
@@ -252,8 +307,8 @@ local function displayGenome(genome)
 			endY,
 			lineColour,
 			backgroundColour)
-	for n,celln in pairs(cells) do
-		if n > inputSize or celln.value ~= 0 then
+	for n, celln in pairs(cells) do
+		if celln.neuronType ~= NeuronType.INPUT or celln.value ~= 0 then
 			local color = math.floor((celln.value+1)/2*256)
 			if color > 255 then color = 255 end
 			if color < 0 then color = 0 end
@@ -272,8 +327,8 @@ local function displayGenome(genome)
 	end
 	for _,gene in pairs(genome.genes) do
 		if gene.enabled then
-			local c1 = cells[gene.into]
-			local c2 = cells[gene.out]
+			local c1 = findCellFromGene(cells, gene.into)
+			local c2 = findCellFromGene(cells, gene.out)
 			local opacity = 0xA0000000
 			if c1.value == 0 then
 				opacity = 0x20000000
@@ -344,19 +399,6 @@ if gameinfo.getromname() ~= rom.getRomName() then
 	error('Unsupported Game Rom! Please play rom: ' .. rom.getRomName() .. ' Rom currently is: ' .. gameinfo.getromname())
 end
 
-local debugMessage = nil
-local function debug(message)
-	if type(message) == 'string' then
-		if string.len(message) > 50 then
-			debugMessage = string.sub(message, 0, 20) .. '\n' .. string.sub(message, 20)
-		else
-			debugMessage = message
-		end
-	end
-end
-Logger.setDebugFunction(debug)
-
-
 Logger.info('starting Mar I/O...')
 
 -- set exit function to destroy the form
@@ -369,9 +411,10 @@ forms.setproperty(showNetwork, "Checked", true)
 loadFile(poolSavesFolder, neatMLAI)
 
 if neatMLAI.pool == nil then
-	neatMLAI:initializePool(inputSize, outputSize, maxNodes)
+	neatMLAI:initializePool(inputSizeWithoutBiasNode, outputSize)
 end
 initializeRun(neatMLAI)
+
 forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(neatMLAI.pool.maxFitness))
 
 while true do
