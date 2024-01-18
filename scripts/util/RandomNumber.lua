@@ -21,13 +21,29 @@ local function generateRandomNumber()
 end
 
 ---@return RandomNumber
-function RandomNumber.new()
+function RandomNumber:new(seed)
     ---@type RandomNumber
-    local randomNumberInstance = {}
+    local randomNumber = {}
+    self = self or randomNumber
+    self.__index = self
+    setmetatable(randomNumber, self)
 
-    randomNumberInstance.count = 0
+    randomNumber.count = 0
 
-    return randomNumberInstance
+    if seed then
+        math.randomseed(seed)
+        randomNumber.seed = seed
+    end
+
+    return randomNumber
+end
+
+-- Reset the RandomNumber object with a new seed.
+---@param seed number
+function RandomNumber:reset(seed)
+    math.randomseed(seed)
+    self.count = 0
+    self.seed = seed
 end
 
 function RandomNumber:generate()
@@ -35,10 +51,22 @@ function RandomNumber:generate()
     return generateRandomNumber()
 end
 
+-- Jumps to a point in the random number sequence.
+-- Warning: Will produce new random seed if no seed was ever given
 ---@param iteration number
 function RandomNumber:jumpToIteration(iteration)
-    for _ = 1, iteration do
-        generateRandomNumber()
+    if type(iteration) ~= "number" or iteration < 0 then
+        error("Invalid argument, expected a number 0 or greater: " .. iteration)
+    end
+    local difference = iteration - self.count
+
+    if difference > 0 then
+        for _ = 1, difference do
+            generateRandomNumber()
+        end
+    elseif difference < 0 then
+        self = RandomNumber:new(self.seed)
+        self:jumpToIteration(iteration)
     end
 
     self.count = iteration
