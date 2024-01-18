@@ -2,7 +2,7 @@
 local lu = require('luaunit')
 
 -- Import the RandomNumber class
-local RandomNumber = require('util.RandomNumber')
+local RandomNumber = require('RandomNumber')
 
 -- Test the RandomNumber class
 TestRandomNumber = {}

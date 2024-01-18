@@ -9,8 +9,9 @@
     reset,
 
     Usage:
-    local rng = RandomNumber.new()           -- Generate a random number
-    RandomNumber:jumpToIteration(10)         -- (optionally), Jump to the 10th iteration.
+    local rng = RandomNumber:new(seed)       -- Instantiate class, 'seed' is optional but suggested
+    rng:jumpToIteration(10)                  -- Jump to the 10th iteration. Next generate() method will be the 11th
+    rng:generate()                           -- generate a random number
 --]]
 ---@class RandomNumber
 local RandomNumber = {}
