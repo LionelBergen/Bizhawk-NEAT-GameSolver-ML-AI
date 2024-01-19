@@ -10,6 +10,7 @@ local Mario = require('util/bizhawk/rom/Mario')
 local Validator = require('../util/Validator')
 local Colour = require('machinelearning.ai.model.display.Colour')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
+local MathUtil = require('util.MathUtil')
 
 local rom = Mario
 local saveFileName = 'SMW.state'
@@ -68,10 +69,6 @@ local function saveNewBackup(pool, poolGeneration, saveFolderName, filePostfix)
 		local newFileName = saveFolderName .. "backup." .. poolGeneration .. "." .. filePostfix
 		GameHandler.saveFileFromPool(newFileName, pool)
 	end
-end
-
-local function sigmoid(x)
-	return 2 / (1 + math.exp(-4.9 * x)) - 1
 end
 
 ---@param neatObject Neat
@@ -334,7 +331,7 @@ local function displayGenome(genome)
 				opacity = 0x20000000
 			end
 
-			local color = 0x80-math.floor(math.abs(sigmoid(gene.weight))*0x80)
+			local color = 0x80-math.floor(math.abs(MathUtil.sigmoid(gene.weight))*0x80)
 			if gene.weight > 0 then
 				color = opacity + 0x8000 + 0x10000*color
 			else

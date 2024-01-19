@@ -17,8 +17,8 @@
 local RandomNumber = {}
 
 -- Wrapper for math.random() in case we want to change in the future
-local function generateRandomNumber()
-    return math.random()
+local function generateRandomNumber(a, b)
+    return math.random(a, b)
 end
 
 ---@return RandomNumber
@@ -47,9 +47,9 @@ function RandomNumber:reset(seed)
     self.seed = seed
 end
 
-function RandomNumber:generate()
+function RandomNumber:generate(a, b)
     self.count = self.count + 1
-    return generateRandomNumber()
+    return generateRandomNumber(a, b)
 end
 
 -- Jumps to a point in the random number sequence.

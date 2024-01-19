@@ -2,6 +2,7 @@
 local MutationRate = {}
 
 local Rate = require('machinelearning.ai.model.Rate')
+local MathUtil = require('util.MathUtil')
 
 local defaultMutateConnectionsChance = 0.25
 local defaultLinkMutationChance = 2.0
@@ -72,7 +73,7 @@ function MutationRate:mutate(amountA, amountB)
     amountA = amountA or defaultMutationAmount1
     amountB = amountB or defaultMutationAmount2
     for key,rate in pairs(self.rates) do
-        if math.random(1,2) == 1 then
+        if MathUtil.random(1,2) == 1 then
             self.values[key] = amountA * rate
         else
             self.values[key] = amountB * rate

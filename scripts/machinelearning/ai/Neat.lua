@@ -11,6 +11,7 @@ local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 local Logger = require('util.Logger')
 local Validator = require('../util/Validator')
+local MathUtil = require('util.MathUtil')
 
 local defaultMutateConnectionsChance = 0.25
 local defaultLinkMutationChance = 2.0
@@ -29,12 +30,8 @@ local deltaThreshold = 1.0
 local crossoverChance = 0.75
 local staleSpecies = 15
 
-local function sigmoid(x)
-    return 2 / (1 + math.exp(-4.9 * x)) - 1
-end
-
 local function generateRandomWeight()
-    return math.random() * 4 - 2
+    return MathUtil.random() * 4 - 2
 end
 
 -- Counts the number of non-matching innovation's in genes1 and genes2 then divides by
@@ -112,9 +109,9 @@ local function pointMutate(genome, perturbChance)
     local step = genome.mutationRates.values.step
 
     for _, gene in pairs(genome.genes) do
-        if math.random() < perturbChance then
+        if MathUtil.random() < perturbChance then
             -- Generate a random number between -step and step
-            local randomPerturbation = (math.random() * 2 * step) - step
+            local randomPerturbation = (MathUtil.random() * 2 * step) - step
             gene.weight = gene.weight + randomPerturbation
         else
             gene.weight = generateRandomWeight()
@@ -230,7 +227,7 @@ function Neat.evaluateNetwork(network, inputs, outputs)
         end
 
         if #neuron.incoming > 0 then
-            neuron.value = sigmoid(sum)
+            neuron.value = MathUtil.sigmoid(sum)
         end
     end
 
@@ -273,7 +270,7 @@ function Neat:crossover(g1, g2)
     for i=1,#g1.genes do
         local gene1 = g1.genes[i]
         local gene2 = innovations2[gene1.innovation]
-        if gene2 ~= nil and math.random(2) == 1 and gene2.enabled then
+        if gene2 ~= nil and MathUtil.random(2) == 1 and gene2.enabled then
             table.insert(child.genes, Gene.copy(gene2))
         else
             table.insert(child.genes, Gene.copy(gene1))
@@ -322,7 +319,7 @@ function Neat.getRandomNeuronInfo(genes, isInput, inputSizeWithoutBiasNode, outp
         end
     end
 
-    local randomIndex = math.random(1, #neurons)
+    local randomIndex = MathUtil.random(1, #neurons)
     return neurons[randomIndex]
 end
 
@@ -391,7 +388,7 @@ function Neat:nodeMutate(genome)
 
     end
 
-    local gene = genome.genes[math.random(1,#genome.genes)]
+    local gene = genome.genes[MathUtil.random(1,#genome.genes)]
     if not gene.enabled then
         return
     end
@@ -424,7 +421,7 @@ function Neat.enableDisableMutate(genome, enable)
         return
     end
 
-    local gene = candidates[math.random(1,#candidates)]
+    local gene = candidates[MathUtil.random(1,#candidates)]
     gene.enabled = not gene.enabled
 end
 
@@ -433,14 +430,14 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
     genome.mutationRates:mutate()
     Validator.validateGenome(genome)
 
-    if math.random() < genome.mutationRates.values.connections then
+    if MathUtil.random() < genome.mutationRates.values.connections then
         genome = pointMutate(genome, self.perturbChance)
         Validator.validateGenome(genome)
     end
 
     local p = genome.mutationRates.values.link
     while p > 0 do
-        if math.random() < p then
+        if MathUtil.random() < p then
             self:linkMutate(genome, false, inputSizeWithoutBiasNode, numberOfOutputs)
         end
         p = p - 1
@@ -448,7 +445,7 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
 
     p = genome.mutationRates.values.bias
     while p > 0 do
-        if math.random() < p then
+        if MathUtil.random() < p then
             self:linkMutate(genome, true, inputSizeWithoutBiasNode, numberOfOutputs)
         end
         p = p - 1
@@ -456,7 +453,7 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
 
     p = genome.mutationRates.values.node
     while p > 0 do
-        if math.random() < p then
+        if MathUtil.random() < p then
             self:nodeMutate(genome)
         end
         p = p - 1
@@ -464,7 +461,7 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
 
     p = genome.mutationRates.values.enable
     while p > 0 do
-        if math.random() < p then
+        if MathUtil.random() < p then
             self.enableDisableMutate(genome, true)
         end
         p = p - 1
@@ -472,7 +469,7 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
 
     p = genome.mutationRates.values.disable
     while p > 0 do
-        if math.random() < p then
+        if MathUtil.random() < p then
             self.enableDisableMutate(genome, false)
         end
         p = p - 1
@@ -551,12 +548,12 @@ end
 function Neat:breedChild(species, numberOfInputs, numberOfOutputs)
     ---@type Genome
     local child
-    if math.random() < crossoverChance then
-        local g1 = species.genomes[math.random(1, #species.genomes)]
-        local g2 = species.genomes[math.random(1, #species.genomes)]
+    if MathUtil.random() < crossoverChance then
+        local g1 = species.genomes[MathUtil.random(1, #species.genomes)]
+        local g2 = species.genomes[MathUtil.random(1, #species.genomes)]
         child = self:crossover(g1, g2)
     else
-        local g = species.genomes[math.random(1, #species.genomes)]
+        local g = species.genomes[MathUtil.random(1, #species.genomes)]
         child = Genome.copy(g)
     end
 
@@ -677,7 +674,7 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     end
     self.cullSpecies(pool, true) -- Cull all but the top member of each species
     while #children + #pool.species < self.population do
-        local species = pool.species[math.random(1, #pool.species)]
+        local species = pool.species[MathUtil.random(1, #pool.species)]
         table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
     end
     for c=1,#children do
