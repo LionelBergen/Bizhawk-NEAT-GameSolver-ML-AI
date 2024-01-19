@@ -39,7 +39,7 @@ function GameHandler.getLatestBackupFile(poolSavesFolder)
 	return latestBackupFile
 end
 
----@return Pool
+---@return Pool, any
 function GameHandler.loadFromFile(filename, innovation)
 	Logger.info('loadfile: ' .. filename)
 
@@ -53,12 +53,12 @@ function GameHandler.loadFromFile(filename, innovation)
 	pool.innovation = innovation
 	Validator.validatePool(pool)
 
-	return pool
+	return pool, poolFromFile.additionalFields
 end
 
 -- Gets info about a pool and saves it to a file
 ---@param pool Pool
-function GameHandler.saveFileFromPool(filename, pool)
+function GameHandler.saveFileFromPool(filename, pool, additionalFields)
 	-- before writing to file, validate the pool
 	Validator.validatePool(pool)
 
@@ -67,6 +67,10 @@ function GameHandler.saveFileFromPool(filename, pool)
 	local rawPool = {}
 	rawPool.generation = pool.generation
 	rawPool.maxFitness = pool.maxFitness
+	rawPool.innovation = pool.innovation
+
+	-- extra fields that dont exist in the class
+	rawPool.additionalFields = additionalFields
 
 	rawPool.species = {}
 	for i, species in pairs(pool.species) do

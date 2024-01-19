@@ -19,6 +19,9 @@ local poolFileNamePostfix = poolFileNamePrefix .. ".json"
 local machineLearningProjectName = 'Mario_testing'
 local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
+local seed = 12345
+
+MathUtil.init(seed)
 
 ---@type Neat
 local neatMLAI = Neat:new()
@@ -67,7 +70,7 @@ end
 local function saveNewBackup(pool, poolGeneration, saveFolderName, filePostfix)
 	if mode ~= Mode.Manual then
 		local newFileName = saveFolderName .. "backup." .. poolGeneration .. "." .. filePostfix
-		GameHandler.saveFileFromPool(newFileName, pool)
+		GameHandler.saveFileFromPool(newFileName, pool, { seed = seed, numbersGenerated = MathUtil.getIteration() })
 	end
 end
 
@@ -366,8 +369,9 @@ end
 
 ---@param neatObject Neat
 local function loadFileAndInitialize(filename, neatObject)
-	local pool = GameHandler.loadFromFile(filename, outputSize)
+	local pool, additionalFields = GameHandler.loadFromFile(filename, outputSize)
 	neatObject.pool = pool
+	MathUtil.reset(additionalFields.seed, additionalFields.numbersGenerated)
 	Logger.info('current genome?: ' .. pool.currentGenome)
 	while isFitnessMeasured(neatObject.pool) do
 		nextGenome(neatObject)

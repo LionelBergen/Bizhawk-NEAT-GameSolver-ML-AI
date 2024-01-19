@@ -18,7 +18,13 @@ local RandomNumber = {}
 
 -- Wrapper for math.random() in case we want to change in the future
 local function generateRandomNumber(a, b)
-    return math.random(a, b)
+    if a and b then
+        return math.random(a, b)
+    elseif a then
+        return math.random(a)
+    end
+
+    return math.random()
 end
 
 ---@return RandomNumber
