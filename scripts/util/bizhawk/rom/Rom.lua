@@ -27,4 +27,8 @@ function Rom.isWin()
     error('unimplemented method isWin')
 end
 
+function Rom.isDead()
+    error('unimplemented method isDead')
+end
+
 return Rom

@@ -187,4 +187,11 @@ function Mario.isWin()
     return endLevelTimer and endLevelTimer > 1
 end
 
+function Mario.isDead()
+    local lockAnimationFlagMemoryLocation = 0x009d
+    local lockAnimationFlag = memory.readbyte(lockAnimationFlagMemoryLocation)
+
+    return lockAnimationFlag and lockAnimationFlag ~= 0
+end
+
 return Mario

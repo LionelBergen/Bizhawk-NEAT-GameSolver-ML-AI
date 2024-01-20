@@ -22,6 +22,7 @@ local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 local seed = 12345
 local LEVEL_COMPLETE_FITNESS_BONUS = 1000
+local DEATH_FITNESS_BONUS = -50
 
 MathUtil.init(seed)
 
@@ -468,7 +469,7 @@ while true do
 
 	local timeoutBonus = pool.currentFrame / 4
 
-	if rom:isWin() then
+	if rom:isWin() or rom:isDead() then
 		timeout = -timeoutBonus
 	end
 	if timeout + timeoutBonus <= 0 then
@@ -476,6 +477,8 @@ while true do
 
 		if rom:isWin() then
 			fitness = fitness + LEVEL_COMPLETE_FITNESS_BONUS
+		elseif rom:isDead() then
+			fitness = fitness - DEATH_FITNESS_BONUS
 		end
 		if fitness == 0 then
 			fitness = -1
