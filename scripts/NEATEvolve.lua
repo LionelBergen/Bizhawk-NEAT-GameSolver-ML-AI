@@ -11,6 +11,7 @@ local Validator = require('../util/Validator')
 local Colour = require('machinelearning.ai.model.display.Colour')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 local MathUtil = require('util.MathUtil')
+local MarioInputType = require('util.bizhawk.rom.MarioInputType')
 
 local rom = Mario
 local saveFileName = 'SMW.state'
@@ -317,14 +318,29 @@ local function displayGenome(genome)
 				opacity = 0x50000000
 			end
 			color = opacity + color*0x10000 + color*0x100 + color
-			if celln.value == 2 then
+
+			if celln.value == MarioInputType.TILE then
+				color = 0xFFFFFFFF
+			elseif celln.value == MarioInputType.SPRITE_NORMAL then
 				color = 0xFF1717FF
-			elseif celln.value == 3 then
+			elseif celln.value == MarioInputType.SPRITE_CARRYABLE then
 				color = 0x0F16FFFF
+			elseif celln.value == MarioInputType.SPRITE_KICKED then
+				color = 0xFF1818FF
+			elseif celln.value == MarioInputType.SPRITE_CARRIED then
+				color = 0x635A58FF
+			elseif celln.value == MarioInputType.SPRITE_EXTENDED then
+				color = 0x641DFF80
+			elseif celln.value == MarioInputType.SPRITE_POWERUP then
+				color = 0xFBFF0BC9
+			elseif celln.value ~= 0 and celln.neuronType == NeuronType.INPUT then
+				error(celln.value .. ' type: ' .. celln.neuronType)
 			end
-			gui.drawBox(celln.x-2,celln.y-2,celln.x+2,celln.y+2,opacity,color)
+
+			gui.drawBox(celln.x-2, celln.y-2, celln.x+2, celln.y+2, opacity, color)
 		end
 	end
+
 	for _,gene in pairs(genome.genes) do
 		if gene.enabled then
 			local c1 = findCellFromGene(cells, gene.into)

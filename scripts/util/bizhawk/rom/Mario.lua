@@ -1,6 +1,8 @@
 local Rom =  require('util/bizhawk/rom/Rom')
 local Mario = Rom:new()
 local Logger = require('util.Logger')
+local MarioInputType = require('util.bizhawk.rom.MarioInputType')
+
 -- luacheck: globals memory
 
 local romGameName = 'Super Mario World (USA)'
@@ -62,18 +64,24 @@ function Mario.getSprites()
     -- https://www.smwcentral.net/
     local spriteByteLength = 12
     local spriteStatusAddress = 0x14C8
+    local spriteTypeAddress = 0x009e
     local spriteLowXAddress = 0x00E4
     local spriteHighXAddress = 0x14E0
     local spriteLowYAddress = 0x00D8
     local spriteHighYAddress = 0x14D4
 
+    local MUSHROOM_BUSHES_POWERUP = 199
+    local MUSHROOM_POWER = 116
+    local FEATHER_POWERUP = 119
+
     for slot=0,spriteByteLength - 1 do
         local status = memory.readbyte(spriteStatusAddress+slot)
+        local type = memory.readbyte(spriteTypeAddress + slot)
         local normal = 0x08
         local carryable = 0x09
         local kicked = 0x0A
         local carried = 0x0B
-        if status == normal or status == carryable or status == kicked or status == carried then
+        if (status == normal or status == carryable or status == kicked or status == carried) and type ~= MUSHROOM_BUSHES_POWERUP then
             -- multiply by 256 to get the Tile position (16*16 = 256)
             local lowByteX = memory.readbyte(spriteLowXAddress+slot)
             local highByteX = memory.readbyte(spriteHighXAddress+slot) * 256
@@ -86,13 +94,17 @@ function Mario.getSprites()
             local spriteValue = -1
 
             if status == normal then
-                spriteValue = 2
+                if type == FEATHER_POWERUP or type == MUSHROOM_POWER then
+                    spriteValue = MarioInputType.SPRITE_POWERUP
+                else
+                    spriteValue = MarioInputType.SPRITE_NORMAL
+                end
             elseif status == kicked then
-                spriteValue = 3
+                spriteValue = MarioInputType.SPRITE_KICKED
             elseif status == carried then
-                spriteValue = 4
+                spriteValue = MarioInputType.SPRITE_CARRIED
             elseif status == carryable then
-                spriteValue = 5
+                spriteValue = MarioInputType.SPRITE_CARRYABLE
             end
 
             sprites[#sprites+1] = {["x"] = spriteX, ["y"] = spriteY, ["value"] = spriteValue}
@@ -142,7 +154,7 @@ function Mario.getInputs(programViewWidth, programViewHeight)
 
             tileValue = Mario.getTile(offsetX, offsetY)
             if tileValue == 1 then
-                inputs[#inputs] = 1
+                inputs[#inputs] = MarioInputType.TILE
             end
 
             for i = 1, #sprites do
@@ -159,7 +171,7 @@ function Mario.getInputs(programViewWidth, programViewHeight)
                 distY = math.abs(extended[i]["y"] - (marioY + offsetY))
                 if distX < distancethreshold and distY < distancethreshold then
                     -- TODO: -1 for all extended sprites is not good
-                    inputs[#inputs] = -1
+                    inputs[#inputs] = MarioInputType.SPRITE_EXTENDED
                 end
             end
         end
