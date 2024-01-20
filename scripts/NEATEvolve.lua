@@ -6,12 +6,12 @@ local GameHandler = require('util/bizhawk/GameHandler')
 local Neat = require('machinelearning/ai/Neat')
 local Species = require('machinelearning.ai.model.Species')
 local Cell = require('machinelearning.ai.model.display.Cell')
-local Mario = require('util/bizhawk/rom/Mario')
+local Mario = require('util.bizhawk.rom.super_mario_usa.Mario')
 local Validator = require('../util/Validator')
 local Colour = require('machinelearning.ai.model.display.Colour')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 local MathUtil = require('util.MathUtil')
-local MarioInputType = require('util.bizhawk.rom.MarioInputType')
+local MarioInputType = require('util.bizhawk.rom.super_mario_usa.MarioInputType')
 
 local rom = Mario
 local saveFileName = 'SMW.state'
@@ -21,6 +21,7 @@ local machineLearningProjectName = 'Mario_testing'
 local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 local seed = 12345
+local LEVEL_COMPLETE_FITNESS_BONUS = 1000
 
 MathUtil.init(seed)
 
@@ -466,12 +467,15 @@ while true do
 	timeout = timeout - 1
 
 	local timeoutBonus = pool.currentFrame / 4
+
+	if rom:isWin() then
+		timeout = -timeoutBonus
+	end
 	if timeout + timeoutBonus <= 0 then
 		local fitness = rightmost - pool.currentFrame / 2
 
-		-- TODO: this is Super Mario USA specific
-		if rightmost > 4816 then
-			fitness = fitness + 1000
+		if rom:isWin() then
+			fitness = fitness + LEVEL_COMPLETE_FITNESS_BONUS
 		end
 		if fitness == 0 then
 			fitness = -1

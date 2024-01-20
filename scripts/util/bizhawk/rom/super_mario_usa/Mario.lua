@@ -1,7 +1,8 @@
 local Rom =  require('util/bizhawk/rom/Rom')
 local Mario = Rom:new()
+local SMW = require('util.bizhawk.rom.super_mario_usa.SMW')
 local Logger = require('util.Logger')
-local MarioInputType = require('util.bizhawk.rom.MarioInputType')
+local MarioInputType = require('util.bizhawk.rom.super_mario_usa.MarioInputType')
 
 -- luacheck: globals memory
 
@@ -70,7 +71,6 @@ function Mario.getSprites()
     local spriteLowYAddress = 0x00D8
     local spriteHighYAddress = 0x14D4
 
-    local MUSHROOM_BUSHES_POWERUP = 199
     local MUSHROOM_POWER = 116
     local FEATHER_POWERUP = 119
 
@@ -81,7 +81,7 @@ function Mario.getSprites()
         local carryable = 0x09
         local kicked = 0x0A
         local carried = 0x0B
-        if (status == normal or status == carryable or status == kicked or status == carried) and type ~= MUSHROOM_BUSHES_POWERUP then
+        if (status == normal or status == carryable or status == kicked or status == carried) and type ~= SMW.SPRITE.INVISIBLE_MUSHROOM then
             -- multiply by 256 to get the Tile position (16*16 = 256)
             local lowByteX = memory.readbyte(spriteLowXAddress+slot)
             local highByteX = memory.readbyte(spriteHighXAddress+slot) * 256
@@ -94,7 +94,7 @@ function Mario.getSprites()
             local spriteValue = -1
 
             if status == normal then
-                if type == FEATHER_POWERUP or type == MUSHROOM_POWER then
+                if SMW.SPRITE.isPowerUp(type) then
                     spriteValue = MarioInputType.SPRITE_POWERUP
                 else
                     spriteValue = MarioInputType.SPRITE_NORMAL
@@ -178,6 +178,13 @@ function Mario.getInputs(programViewWidth, programViewHeight)
     end
 
     return inputs
+end
+
+function Mario.isWin()
+    local endLevelTimerMemoryLocation = 0x1493
+    local endLevelTimer = memory.readbyte(endLevelTimerMemoryLocation)
+
+    return endLevelTimer and endLevelTimer > 1
 end
 
 return Mario

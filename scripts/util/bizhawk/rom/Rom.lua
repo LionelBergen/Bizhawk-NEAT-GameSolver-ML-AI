@@ -23,4 +23,8 @@ function Rom.getButtonOutputs()
     error('unimplemented method getButtonOutputs')
 end
 
+function Rom.isWin()
+    error('unimplemented method isWin')
+end
+
 return Rom
