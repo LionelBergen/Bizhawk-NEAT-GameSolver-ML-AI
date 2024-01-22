@@ -5,8 +5,8 @@ local MarioInputType = {
     SPRITE_CARRYABLE = 3,
     SPRITE_KICKED = 4,
     SPRITE_CARRIED = 5,
-    SPRITE_EXTENDED = 6,
-    SPRITE_POWERUP = 7,
+    SPRITE_EXTENDED = 2,
+    SPRITE_POWERUP = 2,
 }
 
 return MarioInputType

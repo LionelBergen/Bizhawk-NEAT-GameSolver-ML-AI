@@ -132,6 +132,8 @@ function Mario.getExtendedSprites()
     return extended
 end
 
+-- Gets an array to be used as inputs for an AI program based on memory values
+---@return MarioInputType[]
 function Mario.getInputs(programViewWidth, programViewHeight)
     local tileSize = marioGameTileSize
     local marioX, marioY = Mario.getPositions()
@@ -170,7 +172,7 @@ function Mario.getInputs(programViewWidth, programViewHeight)
                 distX = math.abs(extended[i]["x"] - (marioX + offsetX))
                 distY = math.abs(extended[i]["y"] - (marioY + offsetY))
                 if distX < distancethreshold and distY < distancethreshold then
-                    -- TODO: -1 for all extended sprites is not good
+                    -- TODO: same value for all extended sprites is not good
                     inputs[#inputs] = MarioInputType.SPRITE_EXTENDED
                 end
             end
