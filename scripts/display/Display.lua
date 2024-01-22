@@ -173,7 +173,7 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
             local color
             local opacity = celln.value == 0 and 0x50000000 or 0xFF000000
 
-            if celln.neuronType ~= NeuronType.INPUT then
+            if celln.neuronType == NeuronType.INPUT then
                 if celln.value == MarioInputType.TILE then
                     color = 0xFFFFFFFF
                 elseif celln.value == MarioInputType.SPRITE_NORMAL then
