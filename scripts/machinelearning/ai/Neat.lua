@@ -169,9 +169,8 @@ end
 
 ---@return Genome
 function Neat:createBasicGenome(inputSizeWithoutBiasNode, outputSize)
-    -- TODO: 1
     ---@type Genome
-    local genome = self:createNewGenome(1)
+    local genome = self:createNewGenome(nil)
 
     self:mutate(genome, inputSizeWithoutBiasNode, outputSize)
 
@@ -686,8 +685,7 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
 end
 
 function Neat:initializePool(inputSizeWithoutBiasNode, numberOfOutputs)
-    local innovation = numberOfOutputs
-    self.pool = self:createNewPool(innovation)
+    self.pool = self:createNewPool(1)
     Validator.validatePool(self.pool)
 
     for _=1, self.population do
