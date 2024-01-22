@@ -4,13 +4,9 @@ local FileUtil = require('util/FileUtil')
 local Logger = require('util.Logger')
 local GameHandler = require('util/bizhawk/GameHandler')
 local Neat = require('machinelearning/ai/Neat')
-local Cell = require('machinelearning.ai.model.display.Cell')
 local Mario = require('util.bizhawk.rom.super_mario_usa.Mario')
 local Validator = require('../util/Validator')
-local Colour = require('machinelearning.ai.model.display.Colour')
-local NeuronType = require('machinelearning.ai.model.NeuronType')
 local MathUtil = require('util.MathUtil')
-local MarioInputType = require('util.bizhawk.rom.super_mario_usa.MarioInputType')
 local Display = require('display.Display')
 
 local rom = Mario
@@ -205,7 +201,8 @@ while true do
 	local genome = pool:getCurrentGenome()
 
 	if forms.ischecked(showNetwork) then
-		Display.displayGenome(genome, programViewWidth, programViewHeight, rom.getButtonOutputs(), forms.ischecked(showMutationRates))
+		Display.displayGenome(genome, programViewWidth, programViewHeight,
+				rom.getButtonOutputs(), forms.ischecked(showMutationRates))
 	end
 
 	if pool.currentFrame%5 == 0 then

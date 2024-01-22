@@ -1,6 +1,5 @@
 ---@class Cell
 local Cell = {}
-local NeuronType = require('machinelearning.ai.model.NeuronType')
 
 ---@param neuronType NeuronType
 ---@return Cell

@@ -4,9 +4,6 @@ local FileUtil = require('../util/FileUtil')
 local Logger = require('../util/Logger')
 local Validator = require('../util/Validator')
 local Pool = require('machinelearning.ai.model.Pool')
-local Species = require('machinelearning.ai.model.Species')
-local Genome = require('machinelearning.ai.model.Genome')
-local Gene = require('machinelearning.ai.model.Gene')
 local Json = require('../lib/json')
 
 -- luacheck: globals savestate joypad

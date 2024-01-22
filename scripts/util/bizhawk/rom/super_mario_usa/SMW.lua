@@ -12,7 +12,11 @@ SMW.SPRITE = {
 }
 
 function SMW.SPRITE.isPowerUp(value)
-    return value == SMW.SPRITE.FEATHER or value == SMW.SPRITE.FLOWER or value == SMW.SPRITE.MUSHROOM or value == SMW.SPRITE.MUSHROOM_1_UP or value == SMW.SPRITE.STAR
+    return value == SMW.SPRITE.FEATHER
+            or value == SMW.SPRITE.FLOWER
+            or value == SMW.SPRITE.MUSHROOM
+            or value == SMW.SPRITE.MUSHROOM_1_UP
+            or value == SMW.SPRITE.STAR
 end
 
 

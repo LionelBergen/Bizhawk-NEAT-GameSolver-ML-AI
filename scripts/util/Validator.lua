@@ -2,7 +2,8 @@ local Validator = {}
 local Logger = require('../util/Logger')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 
-local poolKeys = {'species', 'generation', 'innovation', 'currentSpecies', 'currentGenome', 'currentFrame', 'maxFitness'}
+local poolKeys = {'species', 'generation', 'innovation', 'currentSpecies',
+                  'currentGenome', 'currentFrame', 'maxFitness'}
 local geneKeys = {'into', 'out', 'weight', 'enabled', 'innovation'}
 local speciesKeys = {'topFitness', 'staleness', 'averageFitness', 'genomes' }
 local genomeKeys = {'genes', 'fitness', 'adjustedFitness', 'network', 'maxNeuron', 'globalRank', 'mutationRates'}
@@ -23,7 +24,7 @@ end
 
 local function validateObjectKeys(objectToValidate, validKeys, objectName)
     -- Validate that no additional fields exist
-    for i, v in pairs(objectToValidate) do
+    for i, _ in pairs(objectToValidate) do
         if not hasValue(validKeys, i) and not hasValue(commonAllowedKeys, i) then
             Logger.error('Invalid object.key: ' .. objectName .. '.' .. i)
             error('Invalid object.key: ' .. objectName .. '.' .. i)
@@ -129,8 +130,10 @@ function Validator.validateMutationRates(mutationRate)
         Validator.validateIsNotNull(mutation, 'pool.species.genome.mutationRates.mutation was invalid.')
         Validator.validateNumber(rate, 'pool.species.genome.mutationRates.rates.rate was invalid.')
 
-        Validator.validateIsNotNull(mutationRate.values[mutation], 'pool.species.genome.mutationRates.mutation was invalid.')
-        Validator.validateNumber(mutationRate.values[mutation], 'pool.species.genome.mutationRates.rates.rate was invalid.')
+        Validator.validateIsNotNull(mutationRate.values[mutation],
+                'pool.species.genome.mutationRates.mutation was invalid.')
+        Validator.validateNumber(mutationRate.values[mutation],
+                'pool.species.genome.mutationRates.rates.rate was invalid.')
     end
 
     validateObjectKeys(mutationRate, mutationRateKeys, 'mutationRate')
