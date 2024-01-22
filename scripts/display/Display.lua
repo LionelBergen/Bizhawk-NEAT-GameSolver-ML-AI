@@ -7,6 +7,9 @@ local Colour = require('machinelearning.ai.model.display.Colour')
 local MathUtil = require('util.MathUtil')
 local ErrorHandler = require('util.ErrorHandler')
 
+local black = 0xFF000000
+local blue = 0xFF0000FF
+
 -- luacheck: globals gui
 
 -- Creates a 2d array of Cell's based on the neurons passed
@@ -95,29 +98,19 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
     for o,outputNeuron in pairs(network.outputNeurons) do
         ---@type Cell
         local cell = Cell:new()
-        local black = 0xFF000000
-        local blue = 0xFF0000FF
         cell.x = 220
         cell.y = 30 + 8 * o
         cell.value = outputNeuron.value
         cell.neuronType = NeuronType.OUTPUT
         cells[#cells + 1] = cell
-        local color
-        if cell.value > 0 then
-            color = blue
-        else
-            color = black
-        end
+        local color = cell.value > 0 and blue or black
+
         -- draw the programs outputs (E.G X button). Black if not pressed, blue if pressed
         gui.drawText(223, 24+8*o, buttonOutputs[o], color, 9)
     end
 
     for _,neuron in pairs(network.processingNeurons) do
-        local cell = Cell:new()
-        cell.x = 140
-        cell.y = 40
-        cell.value = neuron.value
-        cell.neuronType = NeuronType.PROCESSING
+        local cell = Cell:new(140, 40, neuron.value, NeuronType.PROCESSING)
         cells[#cells + 1] = cell
     end
 
@@ -182,10 +175,8 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
             local color = math.floor((celln.value+1)/2*256)
             if color > 255 then color = 255 end
             if color < 0 then color = 0 end
-            local opacity = 0xFF000000
-            if celln.value == 0 then
-                opacity = 0x50000000
-            end
+
+            local opacity = celln.value == 0 and 0x50000000 or 0xFF000000
             color = opacity + color*0x10000 + color*0x100 + color
 
             if celln.value == MarioInputType.TILE then
