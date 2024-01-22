@@ -96,17 +96,15 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
     local explorationWeight = 0.25
 
     for o,outputNeuron in pairs(network.outputNeurons) do
+        -- Print outputs X, Y, up down.. in a row
+        local y = 30 + (8 * o)
         ---@type Cell
-        local cell = Cell:new()
-        cell.x = 220
-        cell.y = 30 + 8 * o
-        cell.value = outputNeuron.value
-        cell.neuronType = NeuronType.OUTPUT
+        local cell = Cell:new(220, y, outputNeuron.value, NeuronType.OUTPUT)
         cells[#cells + 1] = cell
         local color = cell.value > 0 and blue or black
 
         -- draw the programs outputs (E.G X button). Black if not pressed, blue if pressed
-        gui.drawText(223, 24+8*o, buttonOutputs[o], color, 9)
+        gui.drawText(223, 24+(8*o), buttonOutputs[o], color, 9)
     end
 
     for _,neuron in pairs(network.processingNeurons) do
@@ -162,8 +160,7 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
     local startY = 37 -- 70 - (ProgramViewBoxRadius*5)-3
     local endX = 82 -- 50 + (ProgramViewBoxRadius*5)+2
     local endY = 102 -- 70 + (ProgramViewBoxRadius*5)+2
-    -- 17, 37, 82, 102
-    --gui.drawBox(int x, int y, int x2, int y2, [luacolor_line], [luacolor_background], [surfacename])
+
     gui.drawBox(startX,
             startY,
             endX,
@@ -171,30 +168,35 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
             lineColour,
             backgroundColour)
     for _, celln in pairs(cells) do
+        -- don't display inputs with a 0 value
         if celln.neuronType ~= NeuronType.INPUT or celln.value ~= 0 then
-            local color = math.floor((celln.value+1)/2*256)
-            if color > 255 then color = 255 end
-            if color < 0 then color = 0 end
-
+            local color
             local opacity = celln.value == 0 and 0x50000000 or 0xFF000000
-            color = opacity + color*0x10000 + color*0x100 + color
 
-            if celln.value == MarioInputType.TILE then
-                color = 0xFFFFFFFF
-            elseif celln.value == MarioInputType.SPRITE_NORMAL then
-                color = 0xFF1717FF
-            elseif celln.value == MarioInputType.SPRITE_CARRYABLE then
-                color = 0x0F16FFFF
-            elseif celln.value == MarioInputType.SPRITE_KICKED then
-                color = 0xFF1818FF
-            elseif celln.value == MarioInputType.SPRITE_CARRIED then
-                color = 0x635A58FF
-            elseif celln.value == MarioInputType.SPRITE_EXTENDED then
-                color = 0x641DFF80
-            elseif celln.value == MarioInputType.SPRITE_POWERUP then
-                color = 0xFBFF0BC9
-            elseif celln.value ~= 0 and celln.neuronType == NeuronType.INPUT then
-                ErrorHandler.error(celln.value .. ' type: ' .. celln.neuronType)
+            if celln.neuronType ~= NeuronType.INPUT then
+                if celln.value == MarioInputType.TILE then
+                    color = 0xFFFFFFFF
+                elseif celln.value == MarioInputType.SPRITE_NORMAL then
+                    color = 0xFF1717FF
+                elseif celln.value == MarioInputType.SPRITE_CARRYABLE then
+                    color = 0x0F16FFFF
+                elseif celln.value == MarioInputType.SPRITE_KICKED then
+                    color = 0xFF1818FF
+                elseif celln.value == MarioInputType.SPRITE_CARRIED then
+                    color = 0x635A58FF
+                elseif celln.value == MarioInputType.SPRITE_EXTENDED then
+                    color = 0x641DFF80
+                elseif celln.value == MarioInputType.SPRITE_POWERUP then
+                    color = 0xFBFF0BC9
+                elseif celln.value ~= 0 and celln.neuronType == NeuronType.INPUT then
+                    ErrorHandler.error(celln.value .. ' type: ' .. celln.neuronType)
+                end
+            else
+                color = math.floor(((celln.value + 1) / 2) * 256)
+                if color > 255 then color = 255 end
+                if color < 0 then color = 0 end
+
+                color = opacity + (color*0x10000) + (color*0x100) + color
             end
 
             gui.drawBox(celln.x-2, celln.y-2, celln.x+2, celln.y+2, opacity, color)
@@ -205,12 +207,11 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
         if gene.enabled then
             local c1 = findCellFromGene(cells, gene.into)
             local c2 = findCellFromGene(cells, gene.out)
-            local opacity = 0xA0000000
-            if c1.value == 0 then
-                opacity = 0x20000000
-            end
+            local opacity = c1.value == 0 and 0x20000000 or 0xA0000000
 
-            local color = 0x80-math.floor(math.abs(MathUtil.sigmoid(gene.weight))*0x80)
+            -- create a colour from 0, 128 then invert it resulting in higher weight genes darker
+            local colourScale = 0x80
+            local color = colourScale - math.floor(math.abs(MathUtil.sigmoid(gene.weight)) * colourScale)
             if gene.weight > 0 then
                 color = opacity + 0x8000 + 0x10000*color
             else
@@ -220,7 +221,8 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
         end
     end
 
-    gui.drawBox(49,71,51,78,0x00000000,0x80FF0000)
+    -- draw the center line on the input 'grid/screen'
+    gui.drawBox(49, 71, 51, 78, 0x00000000, 0x80FF0000)
 
     if showMutationRates then
         local pos = 100
