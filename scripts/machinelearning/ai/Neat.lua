@@ -384,7 +384,6 @@ function Neat:nodeMutate(genome)
 
     if genome.maxNeuron ~= 1 then
         Logger.info('max neuron set to: ' .. genome.maxNeuron)
-
     end
 
     local gene = genome.genes[MathUtil.random(1,#genome.genes)]

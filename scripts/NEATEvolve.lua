@@ -19,6 +19,7 @@ local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 local seed = 12345
 local LEVEL_COMPLETE_FITNESS_BONUS = 1000
 local DEATH_FITNESS_BONUS = 0
+local evaluateEveryNthFrame = 1
 
 MathUtil.init(seed)
 
@@ -191,21 +192,12 @@ initializeRun(neatMLAI)
 forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(neatMLAI.pool.maxFitness))
 
 while true do
-	if not forms.ischecked(hideBanner) then
-		gui.drawBox(0, 0, 300, 26, topOverlayBackgroundColor, topOverlayBackgroundColor)
-	end
-
 	---@type Pool
 	local pool = neatMLAI.pool
 	---@type Genome
 	local genome = pool:getCurrentGenome()
 
-	if forms.ischecked(showNetwork) then
-		Display.displayGenome(genome, programViewWidth, programViewHeight,
-				rom.getButtonOutputs(), forms.ischecked(showMutationRates))
-	end
-
-	if pool.currentFrame%5 == 0 then
+	if (pool.currentFrame % evaluateEveryNthFrame) == 0 then
 		evaluateCurrent(neatMLAI)
 	end
 
@@ -228,13 +220,14 @@ while true do
 		timeout = -timeoutBonus
 	end
 	if timeout + timeoutBonus <= 0 then
-		local fitness = rightmost - pool.currentFrame / 2
+		local fitness = rightmost - (pool.currentFrame / 2)
 
 		if rom:isWin() then
 			fitness = fitness + LEVEL_COMPLETE_FITNESS_BONUS
 		elseif rom:isDead() then
 			fitness = fitness - DEATH_FITNESS_BONUS
 		end
+
 		if fitness == 0 then
 			fitness = -1
 		end
@@ -266,13 +259,24 @@ while true do
 			end
 		end
 	end
+
+	if forms.ischecked(showNetwork) then
+		Display.displayGenome(genome, programViewWidth, programViewHeight,
+				rom.getButtonOutputs(), forms.ischecked(showMutationRates))
+	end
+
 	if not forms.ischecked(hideBanner) then
+		gui.drawBox(0, 0, 300, 32, topOverlayBackgroundColor, topOverlayBackgroundColor)
+
 		gui.drawText(0, 0, "Gen " .. pool.generation .. " species " ..
 				pool.currentSpecies .. " genome " .. pool.currentGenome ..
 				" (" .. math.floor(measured/total*100) .. "%)", 0xFF000000, 11)
 		gui.drawText(0, 12, "Fitness: " ..
 				math.floor(rightmost - (pool.currentFrame) / 2 - (timeout + timeoutBonus)*2/3), 0xFF000000, 11)
 		gui.drawText(100, 12, " Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
+
+		gui.drawText(0, 24, "timeout bonus: " .. timeoutBonus, 0xFF000000, 11)
+		gui.drawText(150, 24, "timeout: " .. timeout, 0xFF000000, 11)
 	end
 
 	pool.currentFrame = pool.currentFrame + 1
