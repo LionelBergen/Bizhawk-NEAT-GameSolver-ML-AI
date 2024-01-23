@@ -429,6 +429,7 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
     Validator.validateGenome(genome)
 
     if MathUtil.random() < genome.mutationRates.values.connections then
+        -- modifies gene's weight
         genome = pointMutate(genome, self.perturbChance)
         Validator.validateGenome(genome)
     end
@@ -436,6 +437,7 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
     local p = genome.mutationRates.values.link
     while p > 0 do
         if MathUtil.random() < p then
+            -- adds to gene's
             self:linkMutate(genome, false, inputSizeWithoutBiasNode, numberOfOutputs)
         end
         p = p - 1
@@ -475,7 +477,6 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
     Validator.validateGenome(genome)
 end
 
--- TODO: This method doesn't do anything
 ---@param pool Pool
 function Neat.rankGlobally(pool)
     local global = {}
@@ -524,18 +525,15 @@ function Neat.totalAverageFitness(pool)
 end
 
 ---@param pool Pool
+---@param cutToOne boolean
 function Neat.cullSpecies(pool, cutToOne)
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-
+    for _, species in pairs(pool.species) do
         table.sort(species.genomes, function (a,b)
             return (a.fitness > b.fitness)
         end)
 
-        local remaining = math.ceil(#species.genomes/2)
-        if cutToOne then
-            remaining = 1
-        end
+        local remaining = cutToOne and 1 or math.ceil(#species.genomes/2)
+
         while #species.genomes > remaining do
             table.remove(species.genomes)
         end
@@ -565,9 +563,7 @@ function Neat.removeStaleSpecies(pool)
     ---@type Species[]
     local survived = {}
 
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-
+    for _, species in pairs(pool.species) do
         table.sort(species.genomes, function (a,b)
             return (a.fitness > b.fitness)
         end)
@@ -575,10 +571,15 @@ function Neat.removeStaleSpecies(pool)
         if species.genomes[1].fitness > species.topFitness then
             species.topFitness = species.genomes[1].fitness
             species.staleness = 0
+
+            if species.genomes[1].fitness > pool.maxFitness then
+                pool.maxFitness = species.genomes[1].fitness
+            end
         else
             species.staleness = species.staleness + 1
         end
-        if species.staleness < staleSpecies or species.topFitness >= pool.maxFitness then
+
+        if species.staleness < staleSpecies or species.genomes[1].fitness >= pool.maxFitness then
             table.insert(survived, species)
         end
     end

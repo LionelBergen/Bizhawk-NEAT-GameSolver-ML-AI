@@ -193,4 +193,8 @@ function Mario.isDead()
     return lockAnimationFlag and lockAnimationFlag ~= 0
 end
 
+function Mario.calculateFitness(rightmost, currentFrame)
+    return rightmost - (currentFrame / 2)
+end
+
 return Mario

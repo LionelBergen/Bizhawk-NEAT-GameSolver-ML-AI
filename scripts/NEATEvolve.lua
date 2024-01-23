@@ -150,7 +150,6 @@ local function loadFileAndInitialize(filename, neatObject)
 		nextGenome(neatObject)
 	end
 	initializeRun(neatObject)
-	pool.currentFrame = pool.currentFrame + 1
 end
 
 ---@param neatObject Neat
@@ -207,25 +206,20 @@ while true do
 	end
 	-- TODO: 'marioX', 'marioY'
 	local marioX, _ = rom:getPositions()
+
+	-- if we're moving, reset the timeout.
 	if marioX > rightmost then
 		rightmost = marioX
 		timeout = TimeoutConstant
 	end
 
-	timeout = timeout - 1
-
-	local timeoutBonus = pool.currentFrame / 4
-
-	if rom:isWin() or rom:isDead() then
-		timeout = -timeoutBonus
-	end
-	if timeout + timeoutBonus <= 0 then
-		local fitness = rightmost - (pool.currentFrame / 2)
+	if timeout <= 0 or rom:isWin() or rom:isDead() then
+		local fitness = rom.calculateFitness(rightmost, pool.currentFrame)
 
 		if rom:isWin() then
 			fitness = fitness + LEVEL_COMPLETE_FITNESS_BONUS
 		elseif rom:isDead() then
-			fitness = fitness - DEATH_FITNESS_BONUS
+			fitness = fitness + DEATH_FITNESS_BONUS
 		end
 
 		if fitness == 0 then
@@ -271,14 +265,11 @@ while true do
 		gui.drawText(0, 0, "Gen " .. pool.generation .. " species " ..
 				pool.currentSpecies .. " genome " .. pool.currentGenome ..
 				" (" .. math.floor(measured/total*100) .. "%)", 0xFF000000, 11)
-		gui.drawText(0, 12, "Fitness: " ..
-				math.floor(rightmost - (pool.currentFrame) / 2 - (timeout + timeoutBonus)*2/3), 0xFF000000, 11)
+		gui.drawText(0, 12, "Fitness: " .. rom.calculateFitness(rightmost, pool.currentFrame), 0xFF000000, 11)
 		gui.drawText(100, 12, " Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
-
-		gui.drawText(0, 24, "timeout bonus: " .. timeoutBonus, 0xFF000000, 11)
-		gui.drawText(150, 24, "timeout: " .. timeout, 0xFF000000, 11)
 	end
 
+	timeout = timeout - 1
 	pool.currentFrame = pool.currentFrame + 1
 	emu.frameadvance();
 end

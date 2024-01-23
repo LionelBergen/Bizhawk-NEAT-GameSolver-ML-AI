@@ -31,4 +31,8 @@ function Rom.isDead()
     error('unimplemented method isDead')
 end
 
+function Rom.calculateFitness(rightmost, currentFrame)
+    error('unimplemented method calculateFitness')
+end
+
 return Rom
