@@ -21,7 +21,6 @@ local seed = 12345
 local LEVEL_COMPLETE_FITNESS_BONUS = 1000
 local DEATH_FITNESS_BONUS = 0
 local evaluateEveryNthFrame = 1
-local updateHudEveryNthFrame = 10
 
 MathUtil.init(seed)
 
@@ -77,21 +76,18 @@ local function evaluateCurrent(neatObject)
 	local genome = neatObject:getCurrentGenome()
 
 	local inputs = rom.getInputs(programViewWidth, programViewHeight)
-	controller = neatObject.evaluateNetwork(genome.network, inputs, rom.getButtonOutputs())
+	local networkController = neatObject.evaluateNetwork(genome.network, inputs, rom.getButtonOutputs())
 
-	if mode ~= Mode.Manual then
-		if controller["P1 Left"] and controller["P1 Right"] then
-			controller["P1 Left"] = false
-			controller["P1 Right"] = false
-		end
-		if controller["P1 Up"] and controller["P1 Down"] then
-			controller["P1 Up"] = false
-			controller["P1 Down"] = false
-		end
-
-
-		joypad.set(controller)
+	if networkController["P1 Left"] and networkController["P1 Right"] then
+		networkController["P1 Left"] = false
+		networkController["P1 Right"] = false
 	end
+	if networkController["P1 Up"] and networkController["P1 Down"] then
+		networkController["P1 Up"] = false
+		networkController["P1 Down"] = false
+	end
+
+	return networkController
 end
 
 ---@param neatObject Neat
@@ -197,10 +193,9 @@ while true do
 	local genome = pool:getCurrentGenome()
 
 	if (pool.currentFrame % evaluateEveryNthFrame) == 0 then
-		evaluateCurrent(neatMLAI)
+		controller = evaluateCurrent(neatMLAI)
 	end
 
-	-- TODO: 'controller' shouldnt have to be a class wide local
 	if mode ~= Mode.Manual then
 		joypad.set(controller)
 	end

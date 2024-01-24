@@ -74,8 +74,6 @@ function Forms.createCheckbox(form, caption, x, y, captionWidth)
     else
         return forms.checkbox(form, "XXXXXXXXXXXXXXXXXXXXXXXXX")
     end
-
-    return createdCheckbox
 end
 
 return Forms
