@@ -671,11 +671,14 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
             table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
         end
     end
-    self.cullSpecies(pool, true) -- Cull all but the top member of each species
+    -- Remove all but the top member of each species
+    self.cullSpecies(pool, true)
+
     while #children + #pool.species < self.population do
         local species = pool.species[MathUtil.random(1, #pool.species)]
         table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
     end
+
     for c=1,#children do
         local child = children[c]
         self:addToSpecies(child)

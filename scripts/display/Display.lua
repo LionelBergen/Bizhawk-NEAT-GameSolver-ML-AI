@@ -95,16 +95,17 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
     local preservationWeight = 0.75
     local explorationWeight = 0.25
 
-    for o,outputNeuron in pairs(network.outputNeurons) do
+    for o, outputNeuron in pairs(network.outputNeurons) do
+        local buttonHeight = 8
         -- Print outputs X, Y, up down.. in a row
-        local y = 30 + (8 * o)
+        local y = 30 + (buttonHeight * o)
         ---@type Cell
         local cell = Cell:new(220, y, outputNeuron.value, NeuronType.OUTPUT)
         cells[#cells + 1] = cell
         local color = cell.value > 0 and blue or black
 
         -- draw the programs outputs (E.G X button). Black if not pressed, blue if pressed
-        gui.drawText(223, 24+(8*o), buttonOutputs[o], color, 9)
+        gui.drawText(223, (y - 6), buttonOutputs[o], color, 9)
     end
 
     for _,neuron in pairs(network.processingNeurons) do

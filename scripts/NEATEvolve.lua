@@ -8,6 +8,7 @@ local Mario = require('util.bizhawk.rom.super_mario_usa.Mario')
 local Validator = require('../util/Validator')
 local MathUtil = require('util.MathUtil')
 local Display = require('display.Display')
+local Forms = require('util.bizhawk.wrapper.Forms')
 
 local rom = Mario
 local saveFileName = 'SMW.state'
@@ -20,6 +21,7 @@ local seed = 12345
 local LEVEL_COMPLETE_FITNESS_BONUS = 1000
 local DEATH_FITNESS_BONUS = 0
 local evaluateEveryNthFrame = 1
+local updateHudEveryNthFrame = 10
 
 MathUtil.init(seed)
 
@@ -44,16 +46,16 @@ local timeout = 0
 -- This is just to satisfy LuaCheck, to make it easier to find actual issues
 -- luacheck: globals forms joypad gui emu event gameinfo
 
-local form = forms.newform(200, 260, "Fitness")
-local maxFitnessLabel = forms.label(form, "Max Fitness: nil", 5, 8)
-local showNetwork = forms.checkbox(form, "Show Map", 5, 30)
-local showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
+---@type Form
+local form = Forms.createNewForm(500, 500, "NEAT Program")
+local showNetwork = Forms.createCheckbox(form, "SHOW NETWORK:", 5, 30, 148)
+local showMutationRates = Forms.createCheckbox(form, "SHOW MUTATION RATES:", 5, 80, 148)
+local showBanner = Forms.createCheckbox(form, "SHOW BANNER", 5, 190, 148)
 --local restartButton = forms.button(form, "Restart", initializePool, 5, 77)
 --local saveButton = forms.button(form, "Save", savePool, 5, 102)
 --local loadButton = forms.button(form, "Load", loadPool, 80, 102)
 --local saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 --local playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
-local hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
 local Mode = {Manual = 1, Auto = 2}
 local mode = Mode.Auto
 local controller = {}
@@ -177,8 +179,8 @@ Logger.info('starting Mar I/O...')
 -- set exit function to destroy the form
 event.onexit(onExit)
 
--- Set the 'showNetowrk' checkbox to true, just while we mess around with it
-forms.setproperty(showNetwork, "Checked", true)
+-- Set the 'showBanner' checkbox to true
+forms.setproperty(showBanner, "Checked", true)
 
 -- Load the latest .pool file
 loadFile(poolSavesFolder, neatMLAI)
@@ -187,8 +189,6 @@ if neatMLAI.pool == nil then
 	neatMLAI:initializePool(inputSizeWithoutBiasNode, outputSize)
 end
 initializeRun(neatMLAI)
-
-forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(neatMLAI.pool.maxFitness))
 
 while true do
 	---@type Pool
@@ -229,7 +229,6 @@ while true do
 
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
-			forms.settext(maxFitnessLabel, " Max Fitness: " .. math.floor(pool.maxFitness))
 			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
 		end
 
@@ -243,31 +242,21 @@ while true do
 		initializeRun(neatMLAI)
 	end
 
-	local measured = 0
-	local total = 0
-	for _,s in pairs(pool.species) do
-		for _,g in pairs(s.genomes) do
-			total = total + 1
-			if g.fitness ~= 0 then
-				measured = measured + 1
-			end
+	-- if (pool.currentFrame % updateHudEveryNthFrame) == 0 then
+		if forms.ischecked(showNetwork) then
+			Display.displayGenome(genome, programViewWidth, programViewHeight,
+					rom.getButtonOutputs(), forms.ischecked(showMutationRates))
 		end
-	end
 
-	if forms.ischecked(showNetwork) then
-		Display.displayGenome(genome, programViewWidth, programViewHeight,
-				rom.getButtonOutputs(), forms.ischecked(showMutationRates))
-	end
+		if forms.ischecked(showBanner) then
+			gui.drawBox(0, 0, 300, 32, topOverlayBackgroundColor, topOverlayBackgroundColor)
 
-	if not forms.ischecked(hideBanner) then
-		gui.drawBox(0, 0, 300, 32, topOverlayBackgroundColor, topOverlayBackgroundColor)
-
-		gui.drawText(0, 0, "Gen " .. pool.generation .. " species " ..
-				pool.currentSpecies .. " genome " .. pool.currentGenome ..
-				" (" .. math.floor(measured/total*100) .. "%)", 0xFF000000, 11)
-		gui.drawText(0, 12, "Fitness: " .. rom.calculateFitness(rightmost, pool.currentFrame), 0xFF000000, 11)
-		gui.drawText(100, 12, " Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
-	end
+			gui.drawText(0, 0, "Gen " .. pool.generation .. " species " ..
+					pool.currentSpecies .. " genome " .. pool.currentGenome, 0xFF000000, 11)
+			gui.drawText(0, 12, "Fitness: " .. rom.calculateFitness(rightmost, pool.currentFrame), 0xFF000000, 11)
+			gui.drawText(100, 12, " Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
+		end
+	-- end
 
 	timeout = timeout - 1
 	pool.currentFrame = pool.currentFrame + 1
