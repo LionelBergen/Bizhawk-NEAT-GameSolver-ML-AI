@@ -1,6 +1,7 @@
 ---@class Network
 local Network = {}
 
+local ErrorHandler = require('util.ErrorHandler')
 local Logger = require('util.Logger')
 local Neuron = require('machinelearning.ai.model.Neuron')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
@@ -79,12 +80,11 @@ function Network:getOrCreateNeuron(neuronInfo)
 
         neuron = self.processingNeurons[neuronInfo.index]
     else
-        error('unknown neuronType: ' .. neuronInfo.type)
+        ErrorHandler.error('unknown neuronType: ' .. neuronInfo.type)
     end
 
     if neuron == nil then
-        Logger.error('neuroninfo.type: ' .. neuronInfo.type ..  ' index: ' .. neuronInfo.index)
-        error(1)
+        ErrorHandler.error('Cannot find neuron! neuroninfo.type: ' .. neuronInfo.type ..  ' index: ' .. neuronInfo.index)
     end
 
     return neuron
@@ -93,8 +93,7 @@ end
 ---@param inputs number[]
 function Network:setInputValues(inputs)
     if #inputs ~= #self.inputNeurons then
-        Logger.error('invalid inputs size: ' .. #inputs .. ' should be ' .. #self.inputNeurons)
-        error('invalid inputs size: ' .. #inputs .. ' should be ' .. #self.inputNeurons)
+        ErrorHandler.error('invalid inputs size: ' .. #inputs .. ' should be ' .. #self.inputNeurons)
     end
 
     for i, v in pairs(inputs) do

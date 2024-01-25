@@ -51,6 +51,7 @@ function Genome.copy(genome)
     return genomeCopy
 end
 
+---@param gene Gene
 function Genome:addGene(gene)
     Validator.validateGene(gene)
     table.insert(self.genes, gene)

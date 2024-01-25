@@ -58,4 +58,9 @@ function Pool:getCurrentGenome()
     return species.genomes[self.currentGenome]
 end
 
+function Pool:newInnovation()
+    self.innovation = self.innovation + 1
+    return self.innovation
+end
+
 return Pool

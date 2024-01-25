@@ -72,13 +72,24 @@ end
 function MutationRate:mutate(amountA, amountB)
     amountA = amountA or defaultMutationAmount1
     amountB = amountB or defaultMutationAmount2
+
+    -- For better readability, we won't use a for-loop.
+    self.values.connections = self.rates.connections * (MathUtil.random(1,2) == 1 and amountA or amountB)
+    self.values.link = self.rates.link * (MathUtil.random(1,2) == 1 and amountA or amountB)
+    self.values.bias = self.rates.bias * (MathUtil.random(1,2) == 1 and amountA or amountB)
+    self.values.node = self.rates.node * (MathUtil.random(1,2) == 1 and amountA or amountB)
+    self.values.enable = self.rates.enable * (MathUtil.random(1,2) == 1 and amountA or amountB)
+    self.values.disable = self.rates.disable * (MathUtil.random(1,2) == 1 and amountA or amountB)
+    self.values.step = self.rates.step * (MathUtil.random(1,2) == 1 and amountA or amountB)
+
+    -- For better readability, we won't use a for-loop.
+    --[[
     for key,rate in pairs(self.rates) do
-        if MathUtil.random(1,2) == 1 then
-            self.values[key] = amountA * rate
-        else
-            self.values[key] = amountB * rate
-        end
+        local amount = MathUtil.random(1,2) == 1 and amountA or amountB
+
+        self.values[key] = amount * rate
     end
+    -- ]]
 end
 
 return MutationRate

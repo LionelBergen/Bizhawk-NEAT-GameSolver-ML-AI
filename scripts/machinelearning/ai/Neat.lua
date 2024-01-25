@@ -30,6 +30,7 @@ local deltaThreshold = 1.0
 local crossoverChance = 0.75
 local staleSpecies = 15
 
+-- Generates a random number between -2 and 2
 local function generateRandomWeight()
     return MathUtil.random() * 4 - 2
 end
@@ -121,6 +122,96 @@ local function pointMutate(genome, perturbChance)
     return genome
 end
 
+---@param genes Gene[]
+---@return NeuronInfo
+local function getRandomNeuronInfo(genes, isInput, inputSizeWithoutBiasNode, outputSize)
+    local neurons = {}
+
+    -- Add input Neurons if applicable
+    if isInput then
+        for i=1,inputSizeWithoutBiasNode do
+            neurons[i] = NeuronInfo.new(i, NeuronType.INPUT)
+        end
+
+        neurons[#neurons + 1] = NeuronInfo.new(1, NeuronInfo.BIAS)
+    end
+
+    -- Add output neurons
+    for i=1, outputSize do
+        neurons[#neurons + 1] = NeuronInfo.new(i, NeuronType.OUTPUT)
+    end
+
+    -- Add neurons from Genes
+    for i=1, #genes do
+        if isInput or genes[i].into.type ~= NeuronType.INPUT then
+            neurons[#neurons + 1] = NeuronInfo.new(genes[i].into.index, genes[i].into.type)
+        end
+        if isInput or genes[i].out.type ~= NeuronType.INPUT then
+            neurons[#neurons + 1] = NeuronInfo.new(genes[i].out.index, genes[i].out.type)
+        end
+    end
+
+    local randomIndex = MathUtil.random(1, #neurons)
+    return neurons[randomIndex]
+end
+
+---@param genes Gene[]
+---@param link Gene
+local function containsLink(genes, link)
+    for _, gene in pairs(genes) do
+        if (gene.into.index == link.into.index) and (gene.into.type == link.into.type)
+                and (gene.out.index == link.out.index) and (gene.out.type == link.out.type) then
+            return true
+        end
+    end
+
+    return false
+end
+
+-- Creates a link between two randomly selected neurons.
+---@param genome Genome
+---@param forceBias boolean
+---@param inputSizeWithoutBiasNode number
+---@param numberOfOutputs number
+---@param pool Pool
+---@return Gene
+local function linkMutate(genome, forceBias, inputSizeWithoutBiasNode, numberOfOutputs, pool)
+    ---@type NeuronInfo
+    local sourceNeuronInfo = getRandomNeuronInfo(genome.genes, true, inputSizeWithoutBiasNode, numberOfOutputs)
+    ---@type NeuronInfo
+    local targetNeuronInfo = getRandomNeuronInfo(genome.genes, false, inputSizeWithoutBiasNode, numberOfOutputs)
+    ---@type Gene
+    local newLink = Gene.new()
+
+    -- Ensure connections between input nodes are not mutated
+    if sourceNeuronInfo.type == NeuronType.INPUT and targetNeuronInfo.type == NeuronType.INPUT then
+        -- Both input nodes
+        return
+    end
+
+    if targetNeuronInfo.type == NeuronType.INPUT then
+        -- Swap output and input
+        local temp = sourceNeuronInfo
+        sourceNeuronInfo = targetNeuronInfo
+        targetNeuronInfo = temp
+    end
+
+    newLink.into = sourceNeuronInfo
+    newLink.out = targetNeuronInfo
+    if forceBias then
+        newLink.into = NeuronInfo.new(1, NeuronType.BIAS)
+    end
+
+    if containsLink(genome.genes, newLink) then
+        return
+    end
+
+    newLink.innovation = pool:newInnovation()
+    newLink.weight = generateRandomWeight()
+
+    return newLink
+end
+
 ---@return Neat
 function Neat:new(mutateConnectionsChance, linkMutationChance, biasMutationChance, nodeMutationChance,
                   enableMutationChance, disableMutationChance, perturbChance, stepSize, population)
@@ -149,11 +240,6 @@ end
 function Neat:createNewPool(innovation)
     self.pool = Pool:new(innovation)
     return self.pool
-end
-
-function Neat:newInnovation()
-    self.pool.innovation = self.pool.innovation + 1
-    return self.pool.innovation
 end
 
 ---@return Genome
@@ -196,8 +282,7 @@ function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs)
         return (a.out.index < b.out.index)
     end)
 
-    for i=1,#genome.genes do
-        local gene = genome.genes[i]
+    for _, gene in pairs(genome.genes) do
         if gene.enabled then
             ---@type Neuron
             local neuron = network:getOrCreateNeuron(gene.out)
@@ -285,106 +370,14 @@ function Neat:crossover(g1, g2)
     return child
 end
 
----@param genes Gene[]
----@return NeuronInfo
-function Neat.getRandomNeuronInfo(genes, isInput, inputSizeWithoutBiasNode, outputSize)
-    local neurons = {}
-
-    -- Add input Neurons if applicable
-    if isInput then
-        for i=1,inputSizeWithoutBiasNode do
-            neurons[i] = NeuronInfo.new(i, NeuronType.INPUT)
-        end
-
-        if #neurons >= 170 then
-            error(#neurons)
-        end
-
-        neurons[#neurons + 1] = NeuronInfo.new(1, NeuronInfo.BIAS)
-    end
-
-    -- Add output neurons
-    for i=1,outputSize do
-        neurons[#neurons + 1] = NeuronInfo.new(i, NeuronType.OUTPUT)
-    end
-
-    -- Add neurons from Genes
-    for i=1,#genes do
-        if isInput or genes[i].into.type ~= NeuronType.INPUT then
-            neurons[#neurons + 1] = NeuronInfo.new(genes[i].into.index, genes[i].into.type)
-        end
-        if isInput or genes[i].out.type ~= NeuronType.INPUT then
-            neurons[#neurons + 1] = NeuronInfo.new(genes[i].out.index, genes[i].out.type)
-        end
-    end
-
-    local randomIndex = MathUtil.random(1, #neurons)
-    return neurons[randomIndex]
-end
-
--- TODO: Should have a method equals() inside Gene
----@param genes Gene[]
----@param link Gene
-function Neat.containsLink(genes, link)
-    for i=1,#genes do
-        local gene = genes[i]
-        if gene.into.index == link.into.index and gene.into.type == link.into.type
-                and gene.out.index == link.out.index and gene.out.type == link.out.type then
-            return true
-        end
-    end
-end
-
----@param genome Genome
-function Neat:linkMutate(genome, forceBias, inputSizeWithoutBiasNode, numberOfOutputs)
-    Validator.validateGenome(genome)
-    ---@type NeuronInfo
-    local sourceNeuronInfo = self.getRandomNeuronInfo(genome.genes, true, inputSizeWithoutBiasNode, numberOfOutputs)
-    ---@type NeuronInfo
-    local targetNeuronInfo = self.getRandomNeuronInfo(genome.genes, false, inputSizeWithoutBiasNode, numberOfOutputs)
-    ---@type Gene
-    local newLink = Gene.new()
-
-    -- Ensure connections between input nodes are not mutated
-    if sourceNeuronInfo.type == NeuronType.INPUT and targetNeuronInfo.type == NeuronType.INPUT then
-        -- Both input nodes
-        return
-    end
-    if targetNeuronInfo.type == NeuronType.INPUT then
-        -- Swap output and input
-        local temp = sourceNeuronInfo
-        sourceNeuronInfo = targetNeuronInfo
-        targetNeuronInfo = temp
-    end
-
-    newLink.into = sourceNeuronInfo
-    newLink.out = targetNeuronInfo
-    if forceBias then
-        newLink.into = NeuronInfo.new(1, NeuronType.BIAS)
-    end
-
-    if self.containsLink(genome.genes, newLink) then
-        return
-    end
-
-    newLink.innovation = self:newInnovation()
-    newLink.weight = generateRandomWeight()
-
-    genome:addGene(newLink)
-    Validator.validateGenome(genome)
-end
-
 ---@param genome Genome
 function Neat:nodeMutate(genome)
     if #genome.genes == 0 then
         return
     end
 
+    -- TODO: always 1
     genome.maxNeuron = genome.network.processingNeurons ~= nil and (#genome.network.processingNeurons + 1) or 1
-
-    if genome.maxNeuron ~= 1 then
-        Logger.info('max neuron set to: ' .. genome.maxNeuron)
-    end
 
     local gene = genome.genes[MathUtil.random(1,#genome.genes)]
     if not gene.enabled then
@@ -395,13 +388,13 @@ function Neat:nodeMutate(genome)
     local gene1 = Gene.copy(gene)
     gene1.out = NeuronInfo.new(genome.maxNeuron, NeuronType.PROCESSING)
     gene1.weight = 1.0
-    gene1.innovation = self:newInnovation()
+    gene1.innovation = self.pool:newInnovation()
     gene1.enabled = true
     genome:addGene(gene1)
 
     local gene2 = Gene.copy(gene)
     gene2.into = NeuronInfo.new(genome.maxNeuron, NeuronType.PROCESSING)
-    gene2.innovation = self:newInnovation()
+    gene2.innovation = self.pool:newInnovation()
     gene2.enabled = true
     genome:addGene(gene2)
 end
@@ -437,8 +430,11 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
     local p = genome.mutationRates.values.link
     while p > 0 do
         if MathUtil.random() < p then
-            -- adds to gene's
-            self:linkMutate(genome, false, inputSizeWithoutBiasNode, numberOfOutputs)
+            ---@type Gene
+            local newLink = linkMutate(genome, false, inputSizeWithoutBiasNode, numberOfOutputs, self.pool)
+            if newLink ~= nil then
+                genome:addGene(newLink)
+            end
         end
         p = p - 1
     end
@@ -446,7 +442,10 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
     p = genome.mutationRates.values.bias
     while p > 0 do
         if MathUtil.random() < p then
-            self:linkMutate(genome, true, inputSizeWithoutBiasNode, numberOfOutputs)
+            local newLink = linkMutate(genome, true, inputSizeWithoutBiasNode, numberOfOutputs, self.pool)
+            if newLink ~= nil then
+                genome:addGene(newLink)
+            end
         end
         p = p - 1
     end
@@ -615,6 +614,7 @@ function Neat:addToSpecies(child)
     local speciesFound = false
 
     for _, species in pairs(self.pool.species) do
+        -- Because we are combining species that are the same, we just need to check the first one as they all match
         if isSameSpecies(child, species.genomes[1]) then
             table.insert(species.genomes, child)
             speciesFound = true
