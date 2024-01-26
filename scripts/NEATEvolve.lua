@@ -115,6 +115,9 @@ local function initializeRun(neatObject)
 	neatObject.generateNetwork(genome, inputSizeWithoutBiasNode, outputSize)
 	Validator.validatePool(neatObject.pool)
 	evaluateCurrent(neatObject, genome)
+
+	Logger.info("Gen " .. neatObject.pool.generation .. " species " ..
+			neatObject.pool.currentSpecies .. " genome " .. neatObject.pool.currentGenome .. " fitness: " .. neatObject.pool:getCurrentGenome().fitness)
 end
 
 ---@param neatObject Neat
@@ -252,9 +255,6 @@ while true do
 			pool.maxFitness = fitness
 			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
 		end
-
-		Logger.info("Gen " .. pool.generation .. " species " ..
-				pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. fitness)
 		pool.currentSpecies = 1
 		pool.currentGenome = 1
 
