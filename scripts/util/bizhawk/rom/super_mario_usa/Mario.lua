@@ -1,4 +1,5 @@
 local Rom =  require('util/bizhawk/rom/Rom')
+---@class Mario
 local Mario = Rom:new()
 local SMW = require('util.bizhawk.rom.super_mario_usa.SMW')
 local MarioInputType = require('util.bizhawk.rom.super_mario_usa.MarioInputType')

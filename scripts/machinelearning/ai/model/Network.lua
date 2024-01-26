@@ -2,7 +2,7 @@
 local Network = {}
 
 local ErrorHandler = require('util.ErrorHandler')
-local Logger = require('util.Logger')
+local MathUtil = require('util.MathUtil')
 local Neuron = require('machinelearning.ai.model.Neuron')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 
@@ -98,6 +98,24 @@ function Network:setInputValues(inputs)
 
     for i, v in pairs(inputs) do
         self.inputNeurons[i].value = v
+    end
+end
+
+function Network:setAllNeuronValues(inputs)
+    self:setInputValues(inputs)
+    self.biasNeuron.value = 1
+
+    for _,neuron in pairs(self:getAllNeurons()) do
+        local sum = 0
+        for j = 1,#neuron.incoming do
+            local incoming = neuron.incoming[j]
+            local other = self:getOrCreateNeuron(incoming.into)
+            sum = sum + incoming.weight * other.value
+        end
+
+        if #neuron.incoming > 0 then
+            neuron.value = MathUtil.sigmoid(sum)
+        end
     end
 end
 

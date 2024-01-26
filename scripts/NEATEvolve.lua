@@ -10,6 +10,7 @@ local MathUtil = require('util.MathUtil')
 local Display = require('display.Display')
 local Forms = require('util.bizhawk.wrapper.Forms')
 
+---@type Mario
 local rom = Mario
 local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
@@ -71,21 +72,33 @@ local function saveNewBackup(pool, poolGeneration, saveFolderName, filePostfix)
 	end
 end
 
+local function transformNetworkOutputs(networkController)
+	local newController = {}
+	for k, v in pairs(networkController) do
+		local newKey = "P1 " .. k
+
+		newController[newKey] = v
+	end
+
+	if newController["P1 Left"] and newController["P1 Right"] then
+		newController["P1 Left"] = false
+		newController["P1 Right"] = false
+	end
+	if newController["P1 Up"] and newController["P1 Down"] then
+		newController["P1 Up"] = false
+		newController["P1 Down"] = false
+	end
+
+	return newController
+end
+
 ---@param neatObject Neat
 local function evaluateCurrent(neatObject)
 	local genome = neatObject:getCurrentGenome()
 
 	local inputs = rom.getInputs(programViewWidth, programViewHeight)
 	local networkController = neatObject.evaluateNetwork(genome.network, inputs, rom.getButtonOutputs())
-
-	if networkController["P1 Left"] and networkController["P1 Right"] then
-		networkController["P1 Left"] = false
-		networkController["P1 Right"] = false
-	end
-	if networkController["P1 Up"] and networkController["P1 Down"] then
-		networkController["P1 Up"] = false
-		networkController["P1 Down"] = false
-	end
+	networkController = transformNetworkOutputs(networkController)
 
 	return networkController
 end
@@ -109,9 +122,11 @@ end
 local function nextGenome(neatObject)
 	local pool = neatObject.pool
 	pool.currentGenome = pool.currentGenome + 1
-	if pool.currentGenome > #pool.species[pool.currentSpecies].genomes then
+	-- if we've reached the end of the genomes for the current species
+	if pool.currentGenome > #pool:getCurrentSpecies().genomes then
 		pool.currentGenome = 1
 		pool.currentSpecies = pool.currentSpecies + 1
+		-- if we've reached the end of all species
 		if pool.currentSpecies > #pool.species then
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
 			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
@@ -231,6 +246,8 @@ while true do
 				pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. fitness)
 		pool.currentSpecies = 1
 		pool.currentGenome = 1
+
+		-- set 'currentGenome' to one that isn't measured yet
 		while isFitnessMeasured(pool) do
 			nextGenome(neatMLAI)
 		end

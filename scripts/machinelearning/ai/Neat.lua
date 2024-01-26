@@ -1,6 +1,7 @@
 ---@class Neat
 local Neat = {}
 
+local ErrorHandler = require('util.ErrorHandler')
 local Pool = require('machinelearning.ai.model.Pool')
 local Genome = require('machinelearning.ai.model.Genome')
 local Gene = require('machinelearning.ai.model.Gene')
@@ -9,7 +10,6 @@ local Species = require('machinelearning.ai.model.Species')
 local Network = require('machinelearning.ai.model.Network')
 local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
-local Logger = require('util.Logger')
 local Validator = require('../util/Validator')
 local MathUtil = require('util.MathUtil')
 
@@ -103,6 +103,31 @@ local function isSameSpecies(genome1, genome2)
     local dw = deltaWeights * weights(genome1.genes, genome2.genes)
 
     return dd + dw < deltaThreshold
+end
+
+---@param speciesList Species[]
+---@return number
+local function calculateTotalFitness(speciesList)
+    local totalFitness = 0
+
+    for _, species in pairs(speciesList) do
+        for _, genome in pairs(species.genomes) do
+            totalFitness = totalFitness + genome.fitness
+        end
+    end
+
+    return totalFitness
+end
+
+---@param pool Pool
+local function getTotalAverageFitnessRank(pool)
+    local totalRank = 0
+
+    for _, species in pairs(pool.species) do
+        totalRank = totalRank + species.averageFitnessRank
+    end
+
+    return totalRank
 end
 
 ---@param genome Genome
@@ -263,6 +288,19 @@ function Neat:createBasicGenome(inputSizeWithoutBiasNode, outputSize)
     return genome
 end
 
+---@param pool Pool
+function Neat.calculateAverageFitnessRank(pool)
+    for _, species in pairs(pool.species) do
+        local speciesTotalGenomeRankings = 0
+
+        for _, genome in pairs(species.genomes) do
+            speciesTotalGenomeRankings = speciesTotalGenomeRankings + genome.globalRank
+        end
+
+        species.averageFitnessRank = speciesTotalGenomeRankings / #species.genomes
+    end
+end
+
 ---@param genome Genome
 function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs)
     ---@type Network
@@ -297,37 +335,21 @@ function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs)
 end
 
 ---@param network Network
+---@param inputs MarioInputType[]
+---@param outputs string[]
 function Neat.evaluateNetwork(network, inputs, outputs)
-    -- set the input values
-    network:setInputValues(inputs)
-    network.biasNeuron.value = 1
+    network:setAllNeuronValues(inputs)
 
-    for _,neuron in pairs(network:getAllNeurons()) do
-        local sum = 0
-        for j = 1,#neuron.incoming do
-            local incoming = neuron.incoming[j]
-            local other = network:getOrCreateNeuron(incoming.into)
-            sum = sum + incoming.weight * other.value
-        end
-
-        if #neuron.incoming > 0 then
-            neuron.value = MathUtil.sigmoid(sum)
-        end
-    end
-
-    local newOutputs = {}
-    for o=1, #outputs do
-        local output = outputs[o]
-        -- TODO: "P1 " is related to controller in BizHawk. Maybe we should convert it outside this method
-        local newOutput = "P1 " .. output
+    local outputValues = {}
+    for o, output in pairs(outputs) do
         if network.outputNeurons[o].value > 0 then
-            newOutputs[newOutput] = true
+            outputValues[output] = true
         else
-            newOutputs[newOutput] = false
+            outputValues[output] = false
         end
     end
 
-    return newOutputs
+    return outputValues
 end
 
 ---@param g1 Genome
@@ -478,49 +500,22 @@ end
 
 ---@param pool Pool
 function Neat.rankGlobally(pool)
-    local global = {}
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        for g = 1,#species.genomes do
-            table.insert(global, species.genomes[g])
+    local allGenomes = {}
+    for _, species in pairs(pool.species) do
+        for _, genome in pairs(species.genomes) do
+            table.insert(allGenomes, genome)
         end
     end
-    table.sort(global, function (a,b)
+
+    -- order from lowest to hightest
+    table.sort(allGenomes, function (a,b)
         return (a.fitness < b.fitness)
     end)
 
-    for g=1,#global do
-        global[g].globalRank = g
+    -- set globalRank from lowest fitness to highest
+    for g=1, #allGenomes do
+        allGenomes[g].globalRank = g
     end
-end
-
----@param species Species
-function Neat.calculateAverageFitness(species)
-    local total = 0
-
-    for g=1,#species.genomes do
-        local genome = species.genomes[g]
-        total = total + genome.globalRank
-    end
-
-    species.averageFitness = total / #species.genomes
-end
-
----@param pool Pool
-function Neat.totalAverageFitness(pool)
-    local total = 0
-
-    if pool.species == nil then
-        error("pool.species was nil")
-    end
-
-
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        total = total + species.averageFitness
-    end
-
-    return total
 end
 
 ---@param pool Pool
@@ -540,6 +535,7 @@ function Neat.cullSpecies(pool, cutToOne)
 end
 
 ---@param species Species
+---@return Genome
 function Neat:breedChild(species, numberOfInputs, numberOfOutputs)
     ---@type Genome
     local child
@@ -563,10 +559,12 @@ function Neat.removeStaleSpecies(pool)
     local survived = {}
 
     for _, species in pairs(pool.species) do
+        -- Sort the table from highest to lowest
         table.sort(species.genomes, function (a,b)
             return (a.fitness > b.fitness)
         end)
 
+         -- Use first element, as its now the one with the highest fitness
         if species.genomes[1].fitness > species.topFitness then
             species.topFitness = species.genomes[1].fitness
             species.staleness = 0
@@ -586,20 +584,14 @@ function Neat.removeStaleSpecies(pool)
     pool.species = survived
 end
 
-function Neat:removeWeakSpecies()
+---@param pool Pool
+function Neat.removeWeakSpecies(pool)
     ---@type Species[]
     local survived = {}
-    ---@type Pool
-    local pool = self.pool
 
-    if pool.species == nil then
-        error("pool.species was nil")
-    end
-
-    local sum = self.totalAverageFitness(pool)
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        local breed = math.floor(species.averageFitness / sum * self.population)
+    local totalAverageFitnessRanks = getTotalAverageFitnessRank(pool)
+    for _, species in pairs(pool.species) do
+        local breed = math.floor((species.averageFitnessRank / totalAverageFitnessRanks) * pool:getNumberOfGenomes())
         if breed >= 1 then
             table.insert(survived, species)
         end
@@ -608,7 +600,6 @@ function Neat:removeWeakSpecies()
     pool.species = survived
 end
 
--- TODO: What is the '1' in species.genomes[1]?
 ---@param child Genome
 function Neat:addToSpecies(child)
     local speciesFound = false
@@ -630,58 +621,49 @@ function Neat:addToSpecies(child)
 end
 
 function Neat:newGeneration(numberOfInputs, numberOfOutputs)
-    if self.pool.species == nil then
-        error("pool.species was nil")
-    end
-
     local pool = self.pool
 
     if pool.species == nil then
-        error("pool.species was nil")
+        ErrorHandler.error("pool.species was nil")
     end
 
-    -- Cull the bottom half of each species
+    -- Destroy the bottom half Genomes of each species
     self.cullSpecies(pool, false)
 
-    self.rankGlobally(pool)
+    -- Destroy any stale Species
     self.removeStaleSpecies(pool)
+
+    -- set each individual Genome.globalRank
     self.rankGlobally(pool)
 
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        self.calculateAverageFitness(species)
-    end
+    -- sets the species.averageFitnessRank for each species
+    -- Higher fitnessRank number = better fitness
+    self.calculateAverageFitnessRank(pool)
 
-    if pool.species == nil then
-        error("pool.species was nil")
-    end
+    -- Remove species with a really low averageFitnessRank
+    self.removeWeakSpecies(pool)
 
-    self:removeWeakSpecies()
+    local totalAverageFitnessRank = getTotalAverageFitnessRank(pool)
 
-    if pool.species == nil then
-        error("pool.species was nil")
-    end
-
-    local sum = self.totalAverageFitness(pool)
+    ---@type Genome[]
     local children = {}
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        local breed = math.floor(species.averageFitness / sum * self.population) - 1
-        for _=1,breed do
+    for _, species in pairs(pool.species) do
+        local breed = math.floor((species.averageFitnessRank / totalAverageFitnessRank) * self.population) - 1
+        for _=1, breed do
             table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
         end
     end
-    -- Remove all but the top member of each species
+
+    -- Remove all but the top genome of each species
     self.cullSpecies(pool, true)
 
-    while #children + #pool.species < self.population do
+    while (#children + #pool.species) < self.population do
         local species = pool.species[MathUtil.random(1, #pool.species)]
         table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
     end
 
-    for c=1,#children do
-        local child = children[c]
-        self:addToSpecies(child)
+    for _, childGenome in pairs(children) do
+        self:addToSpecies(childGenome)
     end
 
     pool.generation = pool.generation + 1
