@@ -254,7 +254,7 @@ function Neat:new(mutateConnectionsChance, linkMutationChance, biasMutationChanc
     o.disableMutationChance = disableMutationChance or defaultDisableMutationChance
     o.perturbChance = perturbChance or defaultPerturbChance
     o.stepSize = stepSize or defaultStepSize
-    o.population = population or defaultPopulation
+    o.generationStartingPopulation = population or defaultPopulation
     ---@type Pool
     o.pool = nil
     return o
@@ -518,6 +518,7 @@ function Neat.rankGlobally(pool)
     end
 end
 
+-- Destroy's genomes in all species
 ---@param pool Pool
 ---@param cutToOne boolean
 function Neat.cullSpecies(pool, cutToOne)
@@ -645,10 +646,12 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
 
     local totalAverageFitnessRank = getTotalAverageFitnessRank(pool)
 
+    local population = pool:getNumberOfGenomes()
+
     ---@type Genome[]
     local children = {}
     for _, species in pairs(pool.species) do
-        local breed = math.floor((species.averageFitnessRank / totalAverageFitnessRank) * self.population) - 1
+        local breed = math.floor((species.averageFitnessRank / totalAverageFitnessRank) * population) - 1
         for _=1, breed do
             table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
         end
@@ -657,9 +660,11 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     -- Remove all but the top genome of each species
     self.cullSpecies(pool, true)
 
-    while (#children + #pool.species) < self.population do
+    population = pool:getNumberOfGenomes()
+    while (#children + population) < self.generationStartingPopulation do
         local species = pool.species[MathUtil.random(1, #pool.species)]
         table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
+        population = population + 1
     end
 
     for _, childGenome in pairs(children) do
@@ -673,7 +678,8 @@ function Neat:initializePool(inputSizeWithoutBiasNode, numberOfOutputs)
     self.pool = self:createNewPool(1)
     Validator.validatePool(self.pool)
 
-    for _=1, self.population do
+    for _=1, self.generationStartingPopulation do
+        ---@type Genome
         local basic = self:createBasicGenome(inputSizeWithoutBiasNode, numberOfOutputs)
         self:addToSpecies(basic)
     end

@@ -93,11 +93,10 @@ local function transformNetworkOutputs(networkController)
 end
 
 ---@param neatObject Neat
-local function evaluateCurrent(neatObject)
-	local genome = neatObject:getCurrentGenome()
-
+---@param currentGenome Genome
+local function evaluateCurrent(neatObject, currentGenome)
 	local inputs = rom.getInputs(programViewWidth, programViewHeight)
-	local networkController = neatObject.evaluateNetwork(genome.network, inputs, rom.getButtonOutputs())
+	local networkController = neatObject.evaluateNetwork(currentGenome.network, inputs, rom.getButtonOutputs())
 	networkController = transformNetworkOutputs(networkController)
 
 	return networkController
@@ -108,14 +107,14 @@ local function initializeRun(neatObject)
 	-- Load the beginning of a level
 	GameHandler.loadSavedGame('..\\assets\\savedstates\\' .. saveFileName)
 	rightmost = 0
-	neatObject.pool.currentFrame = 0
 	timeout = TimeoutConstant
 	GameHandler.clearJoypad(rom)
+	neatObject.pool.currentFrame = 0
 	local genome = neatObject:getCurrentGenome()
 
 	neatObject.generateNetwork(genome, inputSizeWithoutBiasNode, outputSize)
 	Validator.validatePool(neatObject.pool)
-	evaluateCurrent(neatObject)
+	evaluateCurrent(neatObject, genome)
 end
 
 ---@param neatObject Neat
@@ -124,13 +123,17 @@ local function nextGenome(neatObject)
 	pool.currentGenome = pool.currentGenome + 1
 	-- if we've reached the end of the genomes for the current species
 	if pool.currentGenome > #pool:getCurrentSpecies().genomes then
-		pool.currentGenome = 1
 		pool.currentSpecies = pool.currentSpecies + 1
+		pool.currentGenome = 1
 		-- if we've reached the end of all species
 		if pool.currentSpecies > #pool.species then
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
 			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
 			pool.currentSpecies = 1
+			pool.currentGenome = 1
+			if pool:getNumberOfGenomes() ~= 300 then
+				error('new generation produced invalid number of genomes: ' .. pool:getNumberOfGenomes())
+			end
 		end
 	end
 end
@@ -158,11 +161,15 @@ local function loadFileAndInitialize(filename, neatObject)
 	local pool, additionalFields = GameHandler.loadFromFile(filename, outputSize)
 	neatObject.pool = pool
 	MathUtil.reset(additionalFields.seed, additionalFields.numbersGenerated)
-	Logger.info('current genome?: ' .. pool.currentGenome)
 	while isFitnessMeasured(neatObject.pool) do
 		nextGenome(neatObject)
 	end
 	initializeRun(neatObject)
+	Logger.info("Gen " .. pool.generation .. " species " ..
+			pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. pool:getCurrentGenome().fitness)
+	Logger.info('---------------------------    --------------------------    --------------------------------')
+	Logger.info('---------------------------    Done LoadFileAndinitialize    --------------------------------')
+	Logger.info('---------------------------    --------------------------    --------------------------------')
 end
 
 ---@param neatObject Neat
@@ -198,6 +205,9 @@ loadFile(poolSavesFolder, neatMLAI)
 
 if neatMLAI.pool == nil then
 	neatMLAI:initializePool(inputSizeWithoutBiasNode, outputSize)
+	if neatMLAI.pool:getNumberOfGenomes() ~= 300 then
+		error('invalid number of genomes: ' .. neatMLAI.pool:getNumberOfGenomes())
+	end
 end
 initializeRun(neatMLAI)
 
@@ -208,7 +218,7 @@ while true do
 	local genome = pool:getCurrentGenome()
 
 	if (pool.currentFrame % evaluateEveryNthFrame) == 0 then
-		controller = evaluateCurrent(neatMLAI)
+		controller = evaluateCurrent(neatMLAI, genome)
 	end
 
 	if mode ~= Mode.Manual then
@@ -232,6 +242,7 @@ while true do
 			fitness = fitness + DEATH_FITNESS_BONUS
 		end
 
+		-- We check if fitness is measured using fitness == 0, so ensure we know fitness has been measured already
 		if fitness == 0 then
 			fitness = -1
 		end
@@ -252,25 +263,23 @@ while true do
 			nextGenome(neatMLAI)
 		end
 		initializeRun(neatMLAI)
+	else
+		timeout = timeout - 1
+		pool.currentFrame = pool.currentFrame + 1
 	end
 
-	-- if (pool.currentFrame % updateHudEveryNthFrame) == 0 then
-		if forms.ischecked(showNetwork) then
-			Display.displayGenome(genome, programViewWidth, programViewHeight,
-					rom.getButtonOutputs(), forms.ischecked(showMutationRates))
-		end
+	if forms.ischecked(showNetwork) then
+		Display.displayGenome(genome, programViewWidth, programViewHeight,
+				rom.getButtonOutputs(), forms.ischecked(showMutationRates))
+	end
 
-		if forms.ischecked(showBanner) then
-			gui.drawBox(0, 0, 300, 32, topOverlayBackgroundColor, topOverlayBackgroundColor)
+	if forms.ischecked(showBanner) then
+		gui.drawBox(0, 0, 300, 32, topOverlayBackgroundColor, topOverlayBackgroundColor)
 
-			gui.drawText(0, 0, "Gen " .. pool.generation .. " species " ..
-					pool.currentSpecies .. " genome " .. pool.currentGenome, 0xFF000000, 11)
-			gui.drawText(0, 12, "Fitness: " .. rom.calculateFitness(rightmost, pool.currentFrame), 0xFF000000, 11)
-			gui.drawText(100, 12, " Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
-		end
-	-- end
-
-	timeout = timeout - 1
-	pool.currentFrame = pool.currentFrame + 1
+		gui.drawText(0, 0, "Gen " .. pool.generation .. " species " ..
+				pool.currentSpecies .. " genome " .. pool.currentGenome, 0xFF000000, 11)
+		gui.drawText(0, 12, "Fitness: " .. rom.calculateFitness(rightmost, pool.currentFrame), 0xFF000000, 11)
+		gui.drawText(100, 12, " Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
+	end
 	emu.frameadvance();
 end
