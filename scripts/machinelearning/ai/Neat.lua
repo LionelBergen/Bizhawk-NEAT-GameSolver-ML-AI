@@ -664,7 +664,6 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     while (#children + population) < self.generationStartingPopulation do
         local species = pool.species[MathUtil.random(1, #pool.species)]
         table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
-        population = population + 1
     end
 
     for _, childGenome in pairs(children) do

@@ -64,6 +64,11 @@ if mode == Mode.Manual then
 	TimeoutConstant = 200000
 end
 
+local function logCurrent()
+	Logger.info("Gen " .. neatMLAI.pool.generation .. " species " ..
+			neatMLAI.pool.currentSpecies .. " genome " .. neatMLAI.pool.currentGenome .. " fitness: " .. neatMLAI.pool:getCurrentGenome().fitness)
+end
+
 ---@param pool Pool
 local function saveNewBackup(pool, poolGeneration, saveFolderName, filePostfix)
 	if mode ~= Mode.Manual then
@@ -116,8 +121,7 @@ local function initializeRun(neatObject)
 	Validator.validatePool(neatObject.pool)
 	evaluateCurrent(neatObject, genome)
 
-	Logger.info("Gen " .. neatObject.pool.generation .. " species " ..
-			neatObject.pool.currentSpecies .. " genome " .. neatObject.pool.currentGenome .. " fitness: " .. neatObject.pool:getCurrentGenome().fitness)
+	logCurrent()
 end
 
 ---@param neatObject Neat
@@ -130,6 +134,7 @@ local function nextGenome(neatObject)
 		pool.currentGenome = 1
 		-- if we've reached the end of all species
 		if pool.currentSpecies > #pool.species then
+			Logger.info('NEW GENERATION!')
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
 			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
 			pool.currentSpecies = 1
@@ -168,8 +173,7 @@ local function loadFileAndInitialize(filename, neatObject)
 		nextGenome(neatObject)
 	end
 	initializeRun(neatObject)
-	Logger.info("Gen " .. pool.generation .. " species " ..
-			pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. pool:getCurrentGenome().fitness)
+
 	Logger.info('---------------------------    --------------------------    --------------------------------')
 	Logger.info('---------------------------    Done LoadFileAndinitialize    --------------------------------')
 	Logger.info('---------------------------    --------------------------    --------------------------------')
@@ -179,7 +183,7 @@ end
 local function loadFile(saveFolderName, neatObject)
 	local latestBackupFile = GameHandler.getLatestBackupFile(saveFolderName)
 	if latestBackupFile ~= nil then
-		Logger.info('attempting to load file for pool...: ' .. latestBackupFile)
+		Logger.debug('attempting to load file for pool: ' .. latestBackupFile)
 		loadFileAndInitialize(saveFolderName .. latestBackupFile, neatObject)
 		Logger.info('loaded backfile: ' .. latestBackupFile)
 	else
@@ -208,6 +212,7 @@ loadFile(poolSavesFolder, neatMLAI)
 
 if neatMLAI.pool == nil then
 	neatMLAI:initializePool(inputSizeWithoutBiasNode, outputSize)
+	Logger.info('Created new pool since no load file was found.')
 	if neatMLAI.pool:getNumberOfGenomes() ~= 300 then
 		error('invalid number of genomes: ' .. neatMLAI.pool:getNumberOfGenomes())
 	end
@@ -241,6 +246,8 @@ while true do
 
 		if rom:isWin() then
 			fitness = fitness + LEVEL_COMPLETE_FITNESS_BONUS
+			Logger.info("---- WIN! -----")
+			logCurrent()
 		elseif rom:isDead() then
 			fitness = fitness + DEATH_FITNESS_BONUS
 		end

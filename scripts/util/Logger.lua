@@ -1,5 +1,10 @@
 -- Simple class to wrap 'print' or 'console.log', just to make porting easier
 local Logger = {}
+local Levels = {
+    DEBUG = 1,
+    INFO = 2
+}
+Logger.level = Levels.INFO
 
 local log = require('lib.log')
 log.outfile = '../machine_learning_outputs/NEAT_PROGRAM.log'
@@ -32,6 +37,12 @@ function Logger.info(message)
         print(string)
     else
         print(message)
+    end
+end
+
+function Logger.debug(message)
+    if Logger.level == Levels.DEBUG then
+        Logger.info(message)
     end
 end
 
