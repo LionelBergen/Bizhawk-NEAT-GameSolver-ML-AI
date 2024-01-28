@@ -6,7 +6,7 @@ local poolKeys = {'species', 'generation', 'innovation', 'currentSpecies',
                   'currentGenome', 'currentFrame', 'maxFitness'}
 local geneKeys = {'into', 'out', 'weight', 'enabled', 'innovation'}
 local speciesKeys = {'topFitness', 'staleness', 'averageFitnessRank', 'genomes' }
-local genomeKeys = {'genes', 'fitness', 'adjustedFitness', 'network', 'maxNeuron', 'globalRank', 'mutationRates'}
+local genomeKeys = {'genes', 'fitness', 'network', 'maxNeuron', 'globalRank', 'mutationRates'}
 local mutationRateKeys = {'connections', 'link', 'bias', 'node', 'enable', 'disable', 'step', 'rates', 'values'}
 local mutationKeys = {'connections', 'mutateConnectionsChance', 'link', 'bias', 'node', 'enable', 'disable', 'step'}
 

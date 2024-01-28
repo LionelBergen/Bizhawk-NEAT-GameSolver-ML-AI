@@ -15,7 +15,7 @@ function GameHandler.loadSavedGame(fileLocation)
 	FileUtil.validateFilePath(fullFilePath)
 
 	savestate.load(fullFilePath)
-	Logger.info('loaded save game from file: ' .. fullFilePath)
+	Logger.debug('loaded save game from file: ' .. fullFilePath)
 end
 
 -- Gets the latest pool file, based on the number. E.G 'back.40.restofname.pool'

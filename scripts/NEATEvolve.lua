@@ -66,7 +66,8 @@ end
 
 local function logCurrent()
 	Logger.info("Gen " .. neatMLAI.pool.generation .. " species " ..
-			neatMLAI.pool.currentSpecies .. " genome " .. neatMLAI.pool.currentGenome .. " fitness: " .. neatMLAI.pool:getCurrentGenome().fitness)
+			neatMLAI.pool.currentSpecies .. " genome " .. neatMLAI.pool.currentGenome
+			.. " fitness: " .. neatMLAI.pool:getCurrentGenome().fitness)
 end
 
 ---@param pool Pool
@@ -74,6 +75,7 @@ local function saveNewBackup(pool, poolGeneration, saveFolderName, filePostfix)
 	if mode ~= Mode.Manual then
 		local newFileName = saveFolderName .. "backup." .. poolGeneration .. "." .. filePostfix
 		GameHandler.saveFileFromPool(newFileName, pool, { seed = seed, numbersGenerated = MathUtil.getIteration() })
+		Logger.info("Saved new backup file: " .. newFileName)
 	end
 end
 

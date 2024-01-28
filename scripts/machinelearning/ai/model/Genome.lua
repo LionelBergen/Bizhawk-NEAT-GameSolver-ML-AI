@@ -16,7 +16,6 @@ function Genome:new(maxNeuron, mutateConnectionsChance, linkMutationChance, bias
     ---@type Gene[]
     genome.genes = {}
     genome.fitness = 0
-    genome.adjustedFitness = 0
     ---@type Network
     genome.network = {}
     genome.maxNeuron = maxNeuron or 0
@@ -44,7 +43,6 @@ function Genome.copy(genome)
 
     -- copy the rest of the values
     genomeCopy.fitness = genome.fitness or genomeCopy.fitness
-    genomeCopy.adjustedFitness = genome.adjustedFitness or genomeCopy.adjustedFitness
     genomeCopy.maxNeuron = genome.maxNeuron or genomeCopy.maxNeuron
     genomeCopy.globalRank = genome.globalRank or genomeCopy.globalRank
 

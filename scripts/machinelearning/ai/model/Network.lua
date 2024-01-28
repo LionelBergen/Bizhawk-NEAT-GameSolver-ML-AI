@@ -84,7 +84,8 @@ function Network:getOrCreateNeuron(neuronInfo)
     end
 
     if neuron == nil then
-        ErrorHandler.error('Cannot find neuron! neuroninfo.type: ' .. neuronInfo.type ..  ' index: ' .. neuronInfo.index)
+        ErrorHandler.error('Cannot find neuron! neuroninfo.type: ' .. neuronInfo.type
+                ..  ' index: ' .. neuronInfo.index)
     end
 
     return neuron

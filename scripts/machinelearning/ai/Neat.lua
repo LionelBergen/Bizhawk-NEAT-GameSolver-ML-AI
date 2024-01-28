@@ -2,6 +2,7 @@
 local Neat = {}
 
 local ErrorHandler = require('util.ErrorHandler')
+local Logger = require('util.Logger')
 local Pool = require('machinelearning.ai.model.Pool')
 local Genome = require('machinelearning.ai.model.Genome')
 local Gene = require('machinelearning.ai.model.Gene')
@@ -623,6 +624,7 @@ end
 
 function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     local pool = self.pool
+    local startingPopulation = pool:getNumberOfGenomes()
 
     if pool.species == nil then
         ErrorHandler.error("pool.species was nil")
@@ -630,9 +632,12 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
 
     -- Destroy the bottom half Genomes of each species
     self.cullSpecies(pool, false)
+    Logger.info('Removed bottom have of species. Went from ' .. startingPopulation
+            .. ' genomes down to ' .. pool:getNumberOfGenomes())
 
     -- Destroy any stale Species
     self.removeStaleSpecies(pool)
+    Logger.info('Removed stale species. genomes left: ' .. pool:getNumberOfGenomes())
 
     -- set each individual Genome.globalRank
     self.rankGlobally(pool)
@@ -643,6 +648,7 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
 
     -- Remove species with a really low averageFitnessRank
     self.removeWeakSpecies(pool)
+    Logger.info('Removed stale species. genomes left: ' .. pool:getNumberOfGenomes())
 
     local totalAverageFitnessRank = getTotalAverageFitnessRank(pool)
 
@@ -653,9 +659,13 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     for _, species in pairs(pool.species) do
         local breed = math.floor((species.averageFitnessRank / totalAverageFitnessRank) * population) - 1
         for _=1, breed do
-            table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
+            local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs)
+            childGenome.fitness = 0
+            table.insert(children, childGenome)
         end
     end
+
+    Logger.info('Bred ' .. (population - pool:getNumberOfGenomes()) .. ' new genomes with top species')
 
     -- Remove all but the top genome of each species
     self.cullSpecies(pool, true)
@@ -668,6 +678,17 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
 
     for _, childGenome in pairs(children) do
         self:addToSpecies(childGenome)
+    end
+
+    Logger.info('Bred ' .. (population - #children) .. ' new genomes with random species')
+
+    -- Reset all the fitness
+    for _, species in pairs(pool.species) do
+        for _, genome in pairs(species.genomes) do
+            genome.fitness = 0
+        end
+
+        species.topFitness = 0
     end
 
     pool.generation = pool.generation + 1
