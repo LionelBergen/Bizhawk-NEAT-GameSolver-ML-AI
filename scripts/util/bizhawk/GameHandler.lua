@@ -13,8 +13,7 @@ function GameHandler.loadSavedGame(fileLocation)
 	local currentDir = FileUtil.getCurrentDirectory()
 	local fullFilePath = currentDir .. "\\" ..fileLocation
 	FileUtil.validateFilePath(fullFilePath)
-
-	savestate.load(fullFilePath)
+	savestate.load(fullFilePath, true)
 	Logger.debug('loaded save game from file: ' .. fullFilePath)
 end
 
