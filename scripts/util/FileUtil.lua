@@ -1,7 +1,16 @@
+---@class FileUtil
 local FileUtil = {}
 
+-- ip.popen causes a window to open which can get annoying. So 'cache' the result
+local currentDirectory
+
 function FileUtil.getCurrentDirectory()
-	return io.popen"cd":read'*l'
+	if currentDirectory then
+		return currentDirectory
+	end
+
+	currentDirectory = io.popen"cd":read'*l'
+	return currentDirectory
 end
 
 function FileUtil.scandir(directory)
