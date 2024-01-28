@@ -31,6 +31,7 @@ function Rom.isDead()
     error('unimplemented method isDead')
 end
 
+-- luacheck: ignore rightmost currentFrame
 function Rom.calculateFitness(rightmost, currentFrame)
     error('unimplemented method calculateFitness')
 end

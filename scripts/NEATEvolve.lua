@@ -51,11 +51,6 @@ local form = Forms.createNewForm(500, 500, "NEAT Program")
 local showNetwork = Forms.createCheckbox(form, "SHOW NETWORK:", 5, 30, 148)
 local showMutationRates = Forms.createCheckbox(form, "SHOW MUTATION RATES:", 5, 80, 148)
 local showBanner = Forms.createCheckbox(form, "SHOW BANNER", 5, 190, 148)
---local restartButton = forms.button(form, "Restart", initializePool, 5, 77)
---local saveButton = forms.button(form, "Save", savePool, 5, 102)
---local loadButton = forms.button(form, "Load", loadPool, 80, 102)
---local saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
---local playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 local Mode = {Manual = 1, Auto = 2}
 local mode = Mode.Auto
 local controller = {}
@@ -152,18 +147,6 @@ end
 local function isFitnessMeasured(pool)
 	local genome = pool:getCurrentGenome()
 	return genome.fitness ~= 0
-end
-
-local function savePool()
-	error('unimplemented')
-end
-
-local function loadPool()
-	error('unimplemented')
-end
-
-local function playTop(pool)
-	error('unimplemented')
 end
 
 ---@param neatObject Neat

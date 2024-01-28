@@ -106,20 +106,6 @@ local function isSameSpecies(genome1, genome2)
     return dd + dw < deltaThreshold
 end
 
----@param speciesList Species[]
----@return number
-local function calculateTotalFitness(speciesList)
-    local totalFitness = 0
-
-    for _, species in pairs(speciesList) do
-        for _, genome in pairs(species.genomes) do
-            totalFitness = totalFitness + genome.fitness
-        end
-    end
-
-    return totalFitness
-end
-
 ---@param pool Pool
 local function getTotalAverageFitnessRank(pool)
     local totalRank = 0
@@ -313,11 +299,17 @@ function Neat:breedTopSpecies(pool, numberOfInputs, numberOfOutputs)
 
     local totalAverageFitnessRank = getTotalAverageFitnessRank(pool)
     local population = pool:getNumberOfGenomes()
+    local topSpeciesPercentage = 0.2
+    table.sort(pool.species, function(a, b)
+        return a.averageFitnessRank > b.averageFitnessRank
+    end)
+    local topSpeciesCount = math.ceil(#pool.species * topSpeciesPercentage)
 
     ---@type Genome[]
     local children = {}
-    for _, species in pairs(pool.species) do
-        local breed = math.floor((species.averageFitnessRank / totalAverageFitnessRank) * population) - 1
+    for i = 1, topSpeciesCount do
+        local species = pool.species[i]
+        local breed = math.ceil((species.averageFitnessRank / totalAverageFitnessRank) * population)
         for _=1, breed do
             local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs)
             table.insert(children, childGenome)

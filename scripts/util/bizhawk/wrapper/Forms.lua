@@ -6,6 +6,7 @@
 --]]
 local Forms = {}
 
+-- luacheck: ignore Form
 ---@class Form
 local Form = {}
 

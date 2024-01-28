@@ -35,7 +35,7 @@ function Display.getCells(neurons, width, height, neuronType)
     for dx=xStart,xEnd do
         for dy=yStart,yEnd do
             ---@type Cell
-            local cell = Cell:new(cellWidth * dx, cellHeight * dy, neurons[i].value, neuronType)
+            local cell = Cell.new(cellWidth * dx, cellHeight * dy, neurons[i].value, neuronType)
             cells[#cells + 1] = cell
             i = i + 1
         end
@@ -88,7 +88,7 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
     local cells = Display.getCells(network.inputNeurons, programViewWidth, programViewHeight, NeuronType.INPUT)
     -- Bias cell/node is a special input neuron that is always active
     ---@type Cell
-    local biasCell = Cell:new(80, 110, network.biasNeuron.value, NeuronType.BIAS)
+    local biasCell = Cell.new(80, 110, network.biasNeuron.value, NeuronType.BIAS)
     cells[#cells + 1] = biasCell
 
     local numAdjustmentIterations = 4
@@ -100,7 +100,7 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
         -- Print outputs X, Y, up down.. in a row
         local y = 30 + (buttonHeight * o)
         ---@type Cell
-        local cell = Cell:new(220, y, outputNeuron.value, NeuronType.OUTPUT)
+        local cell = Cell.new(220, y, outputNeuron.value, NeuronType.OUTPUT)
         cells[#cells + 1] = cell
         local color = cell.value > 0 and blue or black
 
@@ -109,7 +109,7 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
     end
 
     for _,neuron in pairs(network.processingNeurons) do
-        local cell = Cell:new(140, 40, neuron.value, NeuronType.PROCESSING)
+        local cell = Cell.new(140, 40, neuron.value, NeuronType.PROCESSING)
         cells[#cells + 1] = cell
     end
 

@@ -3,7 +3,7 @@ local Cell = {}
 
 ---@param neuronType NeuronType
 ---@return Cell
-function Cell:new(x, y, value, neuronType)
+function Cell.new(x, y, value, neuronType)
     ---@type Cell
     local cell = {}
 
