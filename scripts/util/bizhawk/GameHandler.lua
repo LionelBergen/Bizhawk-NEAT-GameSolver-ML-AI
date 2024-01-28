@@ -4,9 +4,6 @@ local FileUtil = require('../util/FileUtil')
 local Logger = require('../util/Logger')
 local Validator = require('../util/Validator')
 local Pool = require('machinelearning.ai.model.Pool')
-local Species = require('machinelearning.ai.model.Species')
-local Genome = require('machinelearning.ai.model.Genome')
-local Gene = require('machinelearning.ai.model.Gene')
 local Json = require('../lib/json')
 
 -- luacheck: globals savestate joypad
@@ -18,10 +15,11 @@ function GameHandler.loadSavedGame(fileLocation)
 	FileUtil.validateFilePath(fullFilePath)
 
 	savestate.load(fullFilePath)
-	Logger.info('loaded save game from file: ' .. fullFilePath)
+	Logger.debug('loaded save game from file: ' .. fullFilePath)
 end
 
 -- Gets the latest pool file, based on the number. E.G 'back.40.restofname.pool'
+---@return string, number
 function GameHandler.getLatestBackupFile(poolSavesFolder)
 	local listOfAllPoolFiles = FileUtil.scandir(poolSavesFolder)
 	local latestBackupNumber = -1
@@ -36,11 +34,11 @@ function GameHandler.getLatestBackupFile(poolSavesFolder)
 		end
 	end
 
-	return latestBackupFile
+	return latestBackupFile, latestBackupNumber
 end
 
----@return Pool
-function GameHandler.loadFromFile(filename, innovation)
+---@return Pool, any
+function GameHandler.loadFromFile(filename)
 	Logger.info('loadfile: ' .. filename)
 
 	local file = io.open(filename, "r")
@@ -50,15 +48,14 @@ function GameHandler.loadFromFile(filename, innovation)
 
 	---@type Pool
 	local pool = Pool.copy(poolFromFile)
-	pool.innovation = innovation
 	Validator.validatePool(pool)
 
-	return pool
+	return pool, poolFromFile.additionalFields
 end
 
 -- Gets info about a pool and saves it to a file
 ---@param pool Pool
-function GameHandler.saveFileFromPool(filename, pool)
+function GameHandler.saveFileFromPool(filename, pool, additionalFields)
 	-- before writing to file, validate the pool
 	Validator.validatePool(pool)
 
@@ -67,6 +64,10 @@ function GameHandler.saveFileFromPool(filename, pool)
 	local rawPool = {}
 	rawPool.generation = pool.generation
 	rawPool.maxFitness = pool.maxFitness
+	rawPool.innovation = pool.innovation
+
+	-- extra fields that dont exist in the class
+	rawPool.additionalFields = additionalFields
 
 	rawPool.species = {}
 	for i, species in pairs(pool.species) do

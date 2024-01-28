@@ -1,10 +1,12 @@
 local Validator = {}
 local Logger = require('../util/Logger')
+local NeuronType = require('machinelearning.ai.model.NeuronType')
 
-local poolKeys = {'species', 'generation', 'innovation', 'currentSpecies', 'currentGenome', 'currentFrame', 'maxFitness'}
+local poolKeys = {'species', 'generation', 'innovation', 'currentSpecies',
+                  'currentGenome', 'currentFrame', 'maxFitness'}
 local geneKeys = {'into', 'out', 'weight', 'enabled', 'innovation'}
-local speciesKeys = {'topFitness', 'staleness', 'averageFitness', 'genomes' }
-local genomeKeys = {'genes', 'fitness', 'adjustedFitness', 'network', 'maxNeuron', 'globalRank', 'mutationRates'}
+local speciesKeys = {'topFitness', 'staleness', 'averageFitnessRank', 'genomes' }
+local genomeKeys = {'genes', 'fitness', 'network', 'maxNeuron', 'globalRank', 'mutationRates'}
 local mutationRateKeys = {'connections', 'link', 'bias', 'node', 'enable', 'disable', 'step', 'rates', 'values'}
 local mutationKeys = {'connections', 'mutateConnectionsChance', 'link', 'bias', 'node', 'enable', 'disable', 'step'}
 
@@ -22,7 +24,7 @@ end
 
 local function validateObjectKeys(objectToValidate, validKeys, objectName)
     -- Validate that no additional fields exist
-    for i, v in pairs(objectToValidate) do
+    for i, _ in pairs(objectToValidate) do
         if not hasValue(validKeys, i) and not hasValue(commonAllowedKeys, i) then
             Logger.error('Invalid object.key: ' .. objectName .. '.' .. i)
             error('Invalid object.key: ' .. objectName .. '.' .. i)
@@ -69,10 +71,23 @@ end
 function Validator.validateGene(gene)
     Validator.validateIsNotNull(gene, 'genome.genes was nil.')
 
-    Validator.validateNumber(gene.into, 'pool.species.genome.into was invalid.')
-    Validator.validateNumber(gene.out, 'pool.species.genome.out was invalid.')
+    Validator.validateIsNotNull(gene.into, 'genome.genes.info was nil.')
+    Validator.validateIsNotNull(gene.out, 'genome.genes.out was nil.')
+
+    Validator.validateNumber(gene.into.index, 'pool.species.genome.into.index was invalid.')
+    Validator.validateNumber(gene.out.index, 'pool.species.genome.out.index was invalid.')
     Validator.validateNumber(gene.weight, 'pool.species.genome.weight was invalid.')
     Validator.validateNumber(gene.innovation, 'pool.species.genome.innovation was invalid.')
+
+    if gene.out.type == NeuronType.INPUT and gene.out.index > 169 then
+        Logger.error('input of gene.out too large.')
+        error('input too large.')
+    end
+
+    if gene.into.type == NeuronType.INPUT and gene.into.index > 169 then
+        Logger.error('input of gene.into too large.')
+        error('input too large.')
+    end
 
     validateObjectKeys(gene, geneKeys, 'gene')
 end
@@ -115,8 +130,10 @@ function Validator.validateMutationRates(mutationRate)
         Validator.validateIsNotNull(mutation, 'pool.species.genome.mutationRates.mutation was invalid.')
         Validator.validateNumber(rate, 'pool.species.genome.mutationRates.rates.rate was invalid.')
 
-        Validator.validateIsNotNull(mutationRate.values[mutation], 'pool.species.genome.mutationRates.mutation was invalid.')
-        Validator.validateNumber(mutationRate.values[mutation], 'pool.species.genome.mutationRates.rates.rate was invalid.')
+        Validator.validateIsNotNull(mutationRate.values[mutation],
+                'pool.species.genome.mutationRates.mutation was invalid.')
+        Validator.validateNumber(mutationRate.values[mutation],
+                'pool.species.genome.mutationRates.rates.rate was invalid.')
     end
 
     validateObjectKeys(mutationRate, mutationRateKeys, 'mutationRate')

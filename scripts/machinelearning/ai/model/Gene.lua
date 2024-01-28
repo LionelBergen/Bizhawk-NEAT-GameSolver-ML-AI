@@ -1,12 +1,15 @@
 ---@class Gene
 local Gene = {}
+local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
 
 ---@return Gene
 function Gene.new()
     ---@type Gene
     local gene = {}
-    gene.into = 0
-    gene.out = 0
+    ---@type NeuronInfo
+    gene.into = NeuronInfo.new(0)
+    ---@type NeuronInfo
+    gene.out = NeuronInfo.new(0)
     gene.weight = 0.0
     gene.enabled = true
     gene.innovation = 0
@@ -19,8 +22,8 @@ end
 function Gene.copy(gene)
     ---@type Gene
     local geneCopy = Gene.new()
-    geneCopy.into = gene.into
-    geneCopy.out = gene.out
+    geneCopy.into = NeuronInfo.copy(gene.into)
+    geneCopy.out = NeuronInfo.copy(gene.out)
     geneCopy.weight = gene.weight
     geneCopy.enabled = gene.enabled
     geneCopy.innovation = gene.innovation

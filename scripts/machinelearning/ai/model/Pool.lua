@@ -58,4 +58,19 @@ function Pool:getCurrentGenome()
     return species.genomes[self.currentGenome]
 end
 
+function Pool:newInnovation()
+    self.innovation = self.innovation + 1
+    return self.innovation
+end
+
+function Pool:getNumberOfGenomes()
+    local totalGenomes = 0
+
+    for _, species in pairs(self.species) do
+        totalGenomes = totalGenomes + #species.genomes
+    end
+
+    return totalGenomes
+end
+
 return Pool

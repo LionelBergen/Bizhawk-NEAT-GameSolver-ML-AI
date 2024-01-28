@@ -1,14 +1,18 @@
 ---@class Neat
 local Neat = {}
 
+local ErrorHandler = require('util.ErrorHandler')
+local Logger = require('util.Logger')
 local Pool = require('machinelearning.ai.model.Pool')
 local Genome = require('machinelearning.ai.model.Genome')
 local Gene = require('machinelearning.ai.model.Gene')
 local Neuron = require('machinelearning.ai.model.Neuron')
 local Species = require('machinelearning.ai.model.Species')
 local Network = require('machinelearning.ai.model.Network')
-local Logger = require('util.Logger')
+local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
+local NeuronType = require('machinelearning.ai.model.NeuronType')
 local Validator = require('../util/Validator')
+local MathUtil = require('util.MathUtil')
 
 local defaultMutateConnectionsChance = 0.25
 local defaultLinkMutationChance = 2.0
@@ -27,8 +31,9 @@ local deltaThreshold = 1.0
 local crossoverChance = 0.75
 local staleSpecies = 15
 
-local function sigmoid(x)
-    return 2 / (1 + math.exp(-4.9 * x)) - 1
+-- Generates a random number between -2 and 2
+local function generateRandomWeight()
+    return MathUtil.random() * 4 - 2
 end
 
 -- Counts the number of non-matching innovation's in genes1 and genes2 then divides by
@@ -38,7 +43,7 @@ end
 local function disjoint(genes1, genes2)
     local i1 = {}
     local i2 = {}
-    local numberrOfDisjointGenes = 0
+    local numberOfDisjointGenes = 0
 
     for _, gene1 in pairs(genes1) do
         i1[gene1.innovation] = true
@@ -51,20 +56,20 @@ local function disjoint(genes1, genes2)
     -- for every gene2 that's not gene1, increment disjointGenes
     for _, gene1 in pairs(genes1) do
         if not i2[gene1.innovation] then
-            numberrOfDisjointGenes = numberrOfDisjointGenes + 1
+            numberOfDisjointGenes = numberOfDisjointGenes + 1
         end
     end
 
     -- for every gene2 that's not gene1, increment disjointGenes
     for _, gene2 in pairs(genes2) do
         if not i1[gene2.innovation] then
-            numberrOfDisjointGenes = numberrOfDisjointGenes + 1
+            numberOfDisjointGenes = numberOfDisjointGenes + 1
         end
     end
 
     local numberOfGenes = math.max(#genes1, #genes2)
 
-    return numberrOfDisjointGenes / numberOfGenes
+    return numberOfDisjointGenes / numberOfGenes
 end
 
 -- Returns the average difference between genes1 and genes2 weights
@@ -101,19 +106,125 @@ local function isSameSpecies(genome1, genome2)
     return dd + dw < deltaThreshold
 end
 
+---@param pool Pool
+local function getTotalAverageFitnessRank(pool)
+    local totalRank = 0
+
+    for _, species in pairs(pool.species) do
+        totalRank = totalRank + species.averageFitnessRank
+    end
+
+    return totalRank
+end
+
 ---@param genome Genome
 local function pointMutate(genome, perturbChance)
     local step = genome.mutationRates.values.step
 
     for _, gene in pairs(genome.genes) do
-        if math.random() < perturbChance then
-            gene.weight = gene.weight + ((math.random() * (step * 2)) - step)
+        if MathUtil.random() < perturbChance then
+            -- Generate a random number between -step and step
+            local randomPerturbation = (MathUtil.random() * 2 * step) - step
+            gene.weight = gene.weight + randomPerturbation
         else
-            gene.weight = (math.random() * 4) - 2
+            gene.weight = generateRandomWeight()
         end
     end
 
     return genome
+end
+
+---@param genes Gene[]
+---@param isInput boolean
+---@param inputSizeWithoutBiasNode number
+---@param outputSize number
+---@return NeuronInfo
+local function getRandomNeuronInfo(genes, isInput, inputSizeWithoutBiasNode, outputSize)
+    local neurons = {}
+
+    -- Add input Neurons if applicable
+    if isInput then
+        for i=1, inputSizeWithoutBiasNode do
+            neurons[i] = NeuronInfo.new(i, NeuronType.INPUT)
+        end
+
+        neurons[#neurons + 1] = NeuronInfo.new(1, NeuronInfo.BIAS)
+    end
+
+    -- Add output neurons
+    for i=1, outputSize do
+        neurons[#neurons + 1] = NeuronInfo.new(i, NeuronType.OUTPUT)
+    end
+
+    -- Add neurons from Genes
+    for i=1, #genes do
+        if isInput or genes[i].into.type ~= NeuronType.INPUT then
+            neurons[#neurons + 1] = NeuronInfo.new(genes[i].into.index, genes[i].into.type)
+        end
+        if isInput or genes[i].out.type ~= NeuronType.INPUT then
+            neurons[#neurons + 1] = NeuronInfo.new(genes[i].out.index, genes[i].out.type)
+        end
+    end
+
+    local randomIndex = MathUtil.random(1, #neurons)
+    return neurons[randomIndex]
+end
+
+---@param genes Gene[]
+---@param link Gene
+local function containsLink(genes, link)
+    for _, gene in pairs(genes) do
+        if (gene.into.index == link.into.index) and (gene.into.type == link.into.type)
+                and (gene.out.index == link.out.index) and (gene.out.type == link.out.type) then
+            return true
+        end
+    end
+
+    return false
+end
+
+-- Creates a link between two randomly selected neurons.
+---@param genome Genome
+---@param forceBias boolean
+---@param inputSizeWithoutBiasNode number
+---@param numberOfOutputs number
+---@param pool Pool
+---@return Gene
+local function linkMutate(genome, forceBias, inputSizeWithoutBiasNode, numberOfOutputs, pool)
+    ---@type NeuronInfo
+    local sourceNeuronInfo = getRandomNeuronInfo(genome.genes, true, inputSizeWithoutBiasNode, numberOfOutputs)
+    ---@type NeuronInfo
+    local targetNeuronInfo = getRandomNeuronInfo(genome.genes, false, inputSizeWithoutBiasNode, numberOfOutputs)
+    ---@type Gene
+    local newLink = Gene.new()
+
+    -- Ensure connections between input nodes are not mutated
+    if sourceNeuronInfo.type == NeuronType.INPUT and targetNeuronInfo.type == NeuronType.INPUT then
+        -- Both input nodes
+        return
+    end
+
+    if targetNeuronInfo.type == NeuronType.INPUT then
+        -- Swap output and input
+        local temp = sourceNeuronInfo
+        sourceNeuronInfo = targetNeuronInfo
+        targetNeuronInfo = temp
+    end
+
+    newLink.into = sourceNeuronInfo
+    newLink.out = targetNeuronInfo
+    if forceBias then
+        newLink.into = NeuronInfo.new(1, NeuronType.BIAS)
+    end
+
+    if containsLink(genome.genes, newLink) then
+        return
+    end
+
+    newLink.innovation = pool:newInnovation()
+    newLink.weight = generateRandomWeight()
+
+    return newLink
 end
 
 ---@return Neat
@@ -133,7 +244,7 @@ function Neat:new(mutateConnectionsChance, linkMutationChance, biasMutationChanc
     o.disableMutationChance = disableMutationChance or defaultDisableMutationChance
     o.perturbChance = perturbChance or defaultPerturbChance
     o.stepSize = stepSize or defaultStepSize
-    o.population = population or defaultPopulation
+    o.generationStartingPopulation = population or defaultPopulation
     ---@type Pool
     o.pool = nil
     return o
@@ -146,20 +257,10 @@ function Neat:createNewPool(innovation)
     return self.pool
 end
 
-function Neat:newInnovation()
-    self.pool.innovation = self.pool.innovation + 1
-    return self.pool.innovation
-end
-
 ---@return Genome
 function Neat:createNewGenome(maxNeuron)
     return Genome:new(maxNeuron, self.mutateConnectionsChance, self.linkMutationChance, self.biasMutationChance,
             self.nodeMutationChance, self.enableMutationChance, self.disableMutationChance, self.stepSize)
-end
-
----@return Gene
-function Neat.createNewGene()
-    return Gene.new()
 end
 
 ---@return Genome
@@ -168,44 +269,83 @@ function Neat:getCurrentGenome()
 end
 
 ---@return Genome
-function Neat:createBasicGenome(inputSize, outputSize, maxNodes)
+function Neat:createBasicGenome(inputSizeWithoutBiasNode, outputSize)
     ---@type Genome
-    local genome = self:createNewGenome(inputSize)
+    local genome = self:createNewGenome(nil)
 
-    self:mutate(genome, inputSize, outputSize, maxNodes)
+    self:mutate(genome, inputSizeWithoutBiasNode, outputSize)
 
     return genome
 end
 
----@param genome Genome
-function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs, maxNodes)
-    ---@type Network
-    local network = Network.new()
+---@param pool Pool
+function Neat.calculateAverageFitnessRank(pool)
+    for _, species in pairs(pool.species) do
+        local speciesTotalGenomeRankings = 0
 
-    for i=1,numberOfInputs do
-        network.neurons[i] = Neuron.new()
+        for _, genome in pairs(species.genomes) do
+            speciesTotalGenomeRankings = speciesTotalGenomeRankings + genome.globalRank
+        end
+
+        species.averageFitnessRank = speciesTotalGenomeRankings / #species.genomes
+    end
+end
+
+---@param pool Pool
+---@return Genome[]
+function Neat:breedTopSpecies(pool, numberOfInputs, numberOfOutputs)
+    self.rankGlobally(pool)
+    self.calculateAverageFitnessRank(pool)
+
+    local totalAverageFitnessRank = getTotalAverageFitnessRank(pool)
+    local population = pool:getNumberOfGenomes()
+    local topSpeciesPercentage = 0.2
+    table.sort(pool.species, function(a, b)
+        return a.averageFitnessRank > b.averageFitnessRank
+    end)
+    local topSpeciesCount = math.ceil(#pool.species * topSpeciesPercentage)
+
+    ---@type Genome[]
+    local children = {}
+    for i = 1, topSpeciesCount do
+        local species = pool.species[i]
+        local breed = math.ceil((species.averageFitnessRank / totalAverageFitnessRank) * population)
+        for _=1, breed do
+            local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs)
+            table.insert(children, childGenome)
+        end
     end
 
-    for o=1,numberOfOutputs do
-        network.neurons[maxNodes+o] = Neuron.new()
+    return children
+end
+
+---@param genome Genome
+function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs)
+    ---@type Network
+    local network = Network:new()
+
+    for _=1, numberOfInputs do
+        network:addInputNeuron(Neuron.new())
+    end
+
+    network:setBiasNeuron(Neuron.new())
+
+    for _=1, numberOfOutputs do
+        network:addOutputNeuron(Neuron.new())
     end
 
     table.sort(genome.genes, function (a,b)
-        return (a.out < b.out)
+        return (a.out.index < b.out.index)
     end)
 
-    for i=1,#genome.genes do
-        local gene = genome.genes[i]
+    for _, gene in pairs(genome.genes) do
         if gene.enabled then
-            if network.neurons[gene.out] == nil then
-                network.neurons[gene.out] = Neuron.new()
-            end
-
-            local neuron = network.neurons[gene.out]
+            ---@type Neuron
+            local neuron = network:getOrCreateNeuron(gene.out)
             table.insert(neuron.incoming, gene)
-            if network.neurons[gene.into] == nil then
-                network.neurons[gene.into] = Neuron.new()
-            end
+
+            -- create new neuron to the network if applicable
+            network:getOrCreateNeuron(gene.into)
         end
     end
 
@@ -213,45 +353,21 @@ function Neat.generateNetwork(genome, numberOfInputs, numberOfOutputs, maxNodes)
 end
 
 ---@param network Network
-function Neat.evaluateNetwork(network, inputSize, inputs, outputs, maxNodes)
-    -- TODO: this is probably for the 'bias' cell
-    table.insert(inputs, 1)
+---@param inputs MarioInputType[]
+---@param outputs string[]
+function Neat.evaluateNetwork(network, inputs, outputs)
+    network:setAllNeuronValues(inputs)
 
-    if #inputs ~= inputSize then
-        Logger.info("Incorrect number of neural network inputs.")
-        error("Incorrect number of neural network inputs.")
-    end
-
-    for i=1,#inputs do
-        network.neurons[i].value = inputs[i]
-    end
-
-    for _,neuron in pairs(network.neurons) do
-        local sum = 0
-        for j = 1,#neuron.incoming do
-            local incoming = neuron.incoming[j]
-            local other = network.neurons[incoming.into]
-            sum = sum + incoming.weight * other.value
-        end
-
-        if #neuron.incoming > 0 then
-            neuron.value = sigmoid(sum)
-        end
-    end
-
-    local newOutputs = {}
-    for o=1, #outputs do
-        local output = outputs[o]
-        -- TODO: "P1 " is related to controller in BizHawk. Maybe we should convert it outside this method
-        local newOutput = "P1 " .. output
-        if network.neurons[maxNodes+o].value > 0 then
-            newOutputs[newOutput] = true
+    local outputValues = {}
+    for o, output in pairs(outputs) do
+        if network.outputNeurons[o].value > 0 then
+            outputValues[output] = true
         else
-            newOutputs[newOutput] = false
+            outputValues[output] = false
         end
     end
 
-    return newOutputs
+    return outputValues
 end
 
 ---@param g1 Genome
@@ -278,7 +394,7 @@ function Neat:crossover(g1, g2)
     for i=1,#g1.genes do
         local gene1 = g1.genes[i]
         local gene2 = innovations2[gene1.innovation]
-        if gene2 ~= nil and math.random(2) == 1 and gene2.enabled then
+        if gene2 ~= nil and MathUtil.random(2) == 1 and gene2.enabled then
             table.insert(child.genes, Gene.copy(gene2))
         else
             table.insert(child.genes, Gene.copy(gene1))
@@ -294,116 +410,31 @@ function Neat:crossover(g1, g2)
     return child
 end
 
----@param genes Gene[]
----@return number
-function Neat.randomNeuron(genes, isInput, inputSize, outputSize, maxNodes)
-    local neurons = {}
-    if isInput then
-        for i=1,inputSize do
-            neurons[i] = true
-        end
-    end
-    for o=1,outputSize do
-        neurons[maxNodes+o] = true
-    end
-    for i=1,#genes do
-        if isInput or genes[i].into > inputSize then
-            neurons[genes[i].into] = true
-        end
-        if isInput or genes[i].out > inputSize then
-            neurons[genes[i].out] = true
-        end
-    end
-
-    local count = 0
-    for _,_ in pairs(neurons) do
-        count = count + 1
-    end
-    local n = math.random(1, count)
-
-    for k,_ in pairs(neurons) do
-        n = n-1
-        if n == 0 then
-            return k
-        end
-    end
-
-    return 0
-end
-
--- TODO: Should have a method equals() inside Gene
----@param genes Gene[]
----@param link Gene
-function Neat.containsLink(genes, link)
-    for i=1,#genes do
-        local gene = genes[i]
-        if gene.into == link.into and gene.out == link.out then
-            return true
-        end
-    end
-end
-
----@param genome Genome
-function Neat:linkMutate(genome, forceBias, numberOfInputs, numberOfOutputs, maxNodes)
-    Validator.validateGenome(genome)
-    ---@type number
-    local neuron1 = self.randomNeuron(genome.genes, true, numberOfInputs, numberOfOutputs, maxNodes)
-    ---@type number
-    local neuron2 = self.randomNeuron(genome.genes, false, numberOfInputs, numberOfOutputs, maxNodes)
-    ---@type Gene
-    local newLink = Gene.new()
-    if neuron1 <= numberOfInputs and neuron2 <= numberOfInputs then
-        -- Both input nodes
-        return
-    end
-    if neuron2 <= numberOfInputs then
-        -- Swap output and input
-        local temp = neuron1
-        neuron1 = neuron2
-        neuron2 = temp
-    end
-
-    newLink.into = neuron1
-    newLink.out = neuron2
-    if forceBias then
-        newLink.into = numberOfInputs
-    end
-
-    if self.containsLink(genome.genes, newLink) then
-        return
-    end
-
-    newLink.innovation = self:newInnovation()
-    newLink.weight = math.random() * 4 - 2
-
-    genome:addGene(newLink)
-    Validator.validateGenome(genome)
-end
-
 ---@param genome Genome
 function Neat:nodeMutate(genome)
     if #genome.genes == 0 then
         return
     end
 
-    genome.maxNeuron = genome.maxNeuron + 1
+    -- TODO: always 1
+    genome.maxNeuron = genome.network.processingNeurons ~= nil and (#genome.network.processingNeurons + 1) or 1
 
-    local gene = genome.genes[math.random(1,#genome.genes)]
+    local gene = genome.genes[MathUtil.random(1,#genome.genes)]
     if not gene.enabled then
         return
     end
     gene.enabled = false
 
     local gene1 = Gene.copy(gene)
-    gene1.out = genome.maxNeuron
+    gene1.out = NeuronInfo.new(genome.maxNeuron, NeuronType.PROCESSING)
     gene1.weight = 1.0
-    gene1.innovation = self:newInnovation()
+    gene1.innovation = self.pool:newInnovation()
     gene1.enabled = true
     genome:addGene(gene1)
 
     local gene2 = Gene.copy(gene)
-    gene2.into = genome.maxNeuron
-    gene2.innovation = self:newInnovation()
+    gene2.into = NeuronInfo.new(genome.maxNeuron, NeuronType.PROCESSING)
+    gene2.innovation = self.pool:newInnovation()
     gene2.enabled = true
     genome:addGene(gene2)
 end
@@ -421,39 +452,47 @@ function Neat.enableDisableMutate(genome, enable)
         return
     end
 
-    local gene = candidates[math.random(1,#candidates)]
+    local gene = candidates[MathUtil.random(1,#candidates)]
     gene.enabled = not gene.enabled
 end
 
 ---@param genome Genome
-function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
+function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
     genome.mutationRates:mutate()
     Validator.validateGenome(genome)
 
-    if math.random() < genome.mutationRates.values.connections then
+    if MathUtil.random() < genome.mutationRates.values.connections then
+        -- modifies gene's weight
         genome = pointMutate(genome, self.perturbChance)
         Validator.validateGenome(genome)
     end
 
     local p = genome.mutationRates.values.link
     while p > 0 do
-        if math.random() < p then
-            self:linkMutate(genome, false, numberOfInputs, numberOfOutputs, maxNodes)
+        if MathUtil.random() < p then
+            ---@type Gene
+            local newLink = linkMutate(genome, false, inputSizeWithoutBiasNode, numberOfOutputs, self.pool)
+            if newLink ~= nil then
+                genome:addGene(newLink)
+            end
         end
         p = p - 1
     end
 
     p = genome.mutationRates.values.bias
     while p > 0 do
-        if math.random() < p then
-            self:linkMutate(genome, true, numberOfInputs, numberOfOutputs, maxNodes)
+        if MathUtil.random() < p then
+            local newLink = linkMutate(genome, true, inputSizeWithoutBiasNode, numberOfOutputs, self.pool)
+            if newLink ~= nil then
+                genome:addGene(newLink)
+            end
         end
         p = p - 1
     end
 
     p = genome.mutationRates.values.node
     while p > 0 do
-        if math.random() < p then
+        if MathUtil.random() < p then
             self:nodeMutate(genome)
         end
         p = p - 1
@@ -461,7 +500,7 @@ function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
 
     p = genome.mutationRates.values.enable
     while p > 0 do
-        if math.random() < p then
+        if MathUtil.random() < p then
             self.enableDisableMutate(genome, true)
         end
         p = p - 1
@@ -469,7 +508,7 @@ function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
 
     p = genome.mutationRates.values.disable
     while p > 0 do
-        if math.random() < p then
+        if MathUtil.random() < p then
             self.enableDisableMutate(genome, false)
         end
         p = p - 1
@@ -477,67 +516,37 @@ function Neat:mutate(genome, numberOfInputs, numberOfOutputs, maxNodes)
     Validator.validateGenome(genome)
 end
 
--- TODO: This method doesn't do anything
 ---@param pool Pool
 function Neat.rankGlobally(pool)
-    local global = {}
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        for g = 1,#species.genomes do
-            table.insert(global, species.genomes[g])
+    local allGenomes = {}
+    for _, species in pairs(pool.species) do
+        for _, genome in pairs(species.genomes) do
+            table.insert(allGenomes, genome)
         end
     end
-    table.sort(global, function (a,b)
+
+    -- order from lowest to hightest
+    table.sort(allGenomes, function (a,b)
         return (a.fitness < b.fitness)
     end)
 
-    for g=1,#global do
-        global[g].globalRank = g
+    -- set globalRank from lowest fitness to highest
+    for g=1, #allGenomes do
+        allGenomes[g].globalRank = g
     end
 end
 
----@param species Species
-function Neat.calculateAverageFitness(species)
-    local total = 0
-
-    for g=1,#species.genomes do
-        local genome = species.genomes[g]
-        total = total + genome.globalRank
-    end
-
-    species.averageFitness = total / #species.genomes
-end
-
+-- Destroy's genomes in all species
 ---@param pool Pool
-function Neat.totalAverageFitness(pool)
-    local total = 0
-
-    if pool.species == nil then
-        error("pool.species was nil")
-    end
-
-
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        total = total + species.averageFitness
-    end
-
-    return total
-end
-
----@param pool Pool
+---@param cutToOne boolean
 function Neat.cullSpecies(pool, cutToOne)
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-
+    for _, species in pairs(pool.species) do
         table.sort(species.genomes, function (a,b)
             return (a.fitness > b.fitness)
         end)
 
-        local remaining = math.ceil(#species.genomes/2)
-        if cutToOne then
-            remaining = 1
-        end
+        local remaining = cutToOne and 1 or math.ceil(#species.genomes/2)
+
         while #species.genomes > remaining do
             table.remove(species.genomes)
         end
@@ -545,19 +554,20 @@ function Neat.cullSpecies(pool, cutToOne)
 end
 
 ---@param species Species
-function Neat:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes)
+---@return Genome
+function Neat:breedChild(species, numberOfInputs, numberOfOutputs)
     ---@type Genome
     local child
-    if math.random() < crossoverChance then
-        local g1 = species.genomes[math.random(1, #species.genomes)]
-        local g2 = species.genomes[math.random(1, #species.genomes)]
+    if MathUtil.random() < crossoverChance then
+        local g1 = species.genomes[MathUtil.random(1, #species.genomes)]
+        local g2 = species.genomes[MathUtil.random(1, #species.genomes)]
         child = self:crossover(g1, g2)
     else
-        local g = species.genomes[math.random(1, #species.genomes)]
+        local g = species.genomes[MathUtil.random(1, #species.genomes)]
         child = Genome.copy(g)
     end
 
-    self:mutate(child, numberOfInputs, numberOfOutputs, maxNodes)
+    self:mutate(child, numberOfInputs, numberOfOutputs)
 
     return child
 end
@@ -567,20 +577,25 @@ function Neat.removeStaleSpecies(pool)
     ---@type Species[]
     local survived = {}
 
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-
+    for _, species in pairs(pool.species) do
+        -- Sort the table from highest to lowest
         table.sort(species.genomes, function (a,b)
             return (a.fitness > b.fitness)
         end)
 
+         -- Use first element, as its now the one with the highest fitness
         if species.genomes[1].fitness > species.topFitness then
             species.topFitness = species.genomes[1].fitness
             species.staleness = 0
+
+            if species.genomes[1].fitness > pool.maxFitness then
+                pool.maxFitness = species.genomes[1].fitness
+            end
         else
             species.staleness = species.staleness + 1
         end
-        if species.staleness < staleSpecies or species.topFitness >= pool.maxFitness then
+
+        if species.staleness < staleSpecies or species.genomes[1].fitness >= pool.maxFitness then
             table.insert(survived, species)
         end
     end
@@ -588,20 +603,14 @@ function Neat.removeStaleSpecies(pool)
     pool.species = survived
 end
 
-function Neat:removeWeakSpecies()
+---@param pool Pool
+function Neat.removeWeakSpecies(pool)
     ---@type Species[]
     local survived = {}
-    ---@type Pool
-    local pool = self.pool
 
-    if pool.species == nil then
-        error("pool.species was nil")
-    end
-
-    local sum = self.totalAverageFitness(pool)
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        local breed = math.floor(species.averageFitness / sum * self.population)
+    local totalAverageFitnessRanks = getTotalAverageFitnessRank(pool)
+    for _, species in pairs(pool.species) do
+        local breed = math.floor((species.averageFitnessRank / totalAverageFitnessRanks) * pool:getNumberOfGenomes())
         if breed >= 1 then
             table.insert(survived, species)
         end
@@ -610,12 +619,12 @@ function Neat:removeWeakSpecies()
     pool.species = survived
 end
 
--- TODO: What is the '1' in species.genomes[1]?
 ---@param child Genome
 function Neat:addToSpecies(child)
     local speciesFound = false
 
     for _, species in pairs(self.pool.species) do
+        -- Because we are combining species that are the same, we just need to check the first one as they all match
         if isSameSpecies(child, species.genomes[1]) then
             table.insert(species.genomes, child)
             speciesFound = true
@@ -630,68 +639,74 @@ function Neat:addToSpecies(child)
     end
 end
 
-function Neat:newGeneration(numberOfInputs, numberOfOutputs, maxNodes)
-    if self.pool.species == nil then
-        error("pool.species was nil")
-    end
-
+function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     local pool = self.pool
+    local startingPopulation = pool:getNumberOfGenomes()
 
     if pool.species == nil then
-        error("pool.species was nil")
+        ErrorHandler.error("pool.species was nil")
     end
 
-    -- Cull the bottom half of each species
+    -- Destroy the bottom half Genomes of each species
     self.cullSpecies(pool, false)
+    Logger.info('Removed bottom half of species. Went from ' .. startingPopulation
+            .. ' genomes down to ' .. pool:getNumberOfGenomes())
 
-    self.rankGlobally(pool)
+    -- Destroy any stale Species
     self.removeStaleSpecies(pool)
+    Logger.info('Removed stale species. genomes left: ' .. pool:getNumberOfGenomes())
+
+    -- set each individual Genome.globalRank
     self.rankGlobally(pool)
 
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        self.calculateAverageFitness(species)
+    -- sets the species.averageFitnessRank for each species
+    -- Higher fitnessRank number = better fitness
+    self.calculateAverageFitnessRank(pool)
+
+    -- Remove species with a really low averageFitnessRank
+    self.removeWeakSpecies(pool)
+    Logger.info('Removed weak species. genomes left: ' .. pool:getNumberOfGenomes())
+
+    ---@type Genome[]
+    local children = self:breedTopSpecies(pool, numberOfInputs, numberOfOutputs)
+
+    Logger.info('Bred ' .. #children .. ' new genomes with top species')
+
+    -- Remove all but the top genome of each species
+    self.cullSpecies(pool, true)
+
+    local population = pool:getNumberOfGenomes()
+    Logger.info('Removed all but the top genomes. ' .. population
+            .. ' new genomes are left (not including the children just bred)')
+    local numberOfChildrenWithRandomSpecies = 0
+    while (#children + population) < self.generationStartingPopulation do
+        local species = pool.species[MathUtil.random(1, #pool.species)]
+        table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
+        numberOfChildrenWithRandomSpecies = numberOfChildrenWithRandomSpecies + 1
+    end
+    Logger.info('Bred ' .. numberOfChildrenWithRandomSpecies .. ' new genomes with random species')
+
+    for _, childGenome in pairs(children) do
+        self:addToSpecies(childGenome)
     end
 
-    if pool.species == nil then
-        error("pool.species was nil")
-    end
-
-    self:removeWeakSpecies()
-
-    if pool.species == nil then
-        error("pool.species was nil")
-    end
-
-    local sum = self.totalAverageFitness(pool)
-    local children = {}
-    for s = 1,#pool.species do
-        local species = pool.species[s]
-        local breed = math.floor(species.averageFitness / sum * self.population) - 1
-        for _=1,breed do
-            table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes))
+    -- Reset all the fitness. Don't reset topFitness as it' used to remove stale species if they don't get better
+    for _, species in pairs(pool.species) do
+        for _, genome in pairs(species.genomes) do
+            genome.fitness = 0
         end
-    end
-    self.cullSpecies(pool, true) -- Cull all but the top member of each species
-    while #children + #pool.species < self.population do
-        local species = pool.species[math.random(1, #pool.species)]
-        table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs, maxNodes))
-    end
-    for c=1,#children do
-        local child = children[c]
-        self:addToSpecies(child)
     end
 
     pool.generation = pool.generation + 1
 end
 
-function Neat:initializePool(numberOfInputs, numberOfOutputs, maxNodes)
-    local innovation = numberOfOutputs
-    self.pool = self:createNewPool(innovation)
+function Neat:initializePool(inputSizeWithoutBiasNode, numberOfOutputs)
+    self.pool = self:createNewPool(1)
     Validator.validatePool(self.pool)
 
-    for _=1,self.population do
-        local basic = self:createBasicGenome(numberOfInputs, numberOfOutputs, maxNodes)
+    for _=1, self.generationStartingPopulation do
+        ---@type Genome
+        local basic = self:createBasicGenome(inputSizeWithoutBiasNode, numberOfOutputs)
         self:addToSpecies(basic)
     end
 end

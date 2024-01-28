@@ -1,6 +1,13 @@
 -- Simple class to wrap 'print' or 'console.log', just to make porting easier
 local Logger = {}
-local debugFunction = nil
+local Levels = {
+    DEBUG = 1,
+    INFO = 2
+}
+Logger.level = Levels.INFO
+
+local log = require('lib.log')
+log.outfile = '../machine_learning_outputs/NEAT_PROGRAM.log'
 
 -- luacheck: globals console
 
@@ -21,6 +28,7 @@ end
 
 local function print(message)
     console.log(message)
+    log.info(message)
 end
 
 function Logger.info(message)
@@ -32,6 +40,12 @@ function Logger.info(message)
     end
 end
 
+function Logger.debug(message)
+    if Logger.level == Levels.DEBUG then
+        Logger.info(message)
+    end
+end
+
 function Logger.error(message)
     print(debug.traceback())
     if type(message) == 'table' then
@@ -40,20 +54,6 @@ function Logger.error(message)
     else
         print(message)
     end
-end
-
-function Logger.debug(message)
-    if type(message) == 'table' then
-        local string = dump(message)
-        debugFunction(string)
-    else
-        debugFunction(message)
-        print(message)
-    end
-end
-
-function Logger.setDebugFunction(newDebugFunction)
-    debugFunction = newDebugFunction
 end
 
 return Logger

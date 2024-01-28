@@ -24,4 +24,15 @@ function FileUtil.validateFilePath(fileLocation)
 	end
 end
 
+function FileUtil.fileExists(filePath)
+	local fileHandle = io.open(filePath, "r")
+
+	if fileHandle then
+		io.close(fileHandle)
+		return true
+	else
+		return false
+	end
+end
+
 return FileUtil
