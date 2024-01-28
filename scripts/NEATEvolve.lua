@@ -1,6 +1,7 @@
 -- NEAT ML/AI program designed to be used with Bizhawk emulator
 -- Created by Lionel Bergen
 local FileUtil = require('util/FileUtil')
+local ErrorHandler = require('util.ErrorHandler')
 local Logger = require('util.Logger')
 local GameHandler = require('util/bizhawk/GameHandler')
 local Neat = require('machinelearning/ai/Neat')
@@ -41,6 +42,7 @@ local outputSize = #rom.getButtonOutputs()
 local TimeoutConstant = 20
 local rightmost = 0
 local timeout = 0
+local currentBackup = 0
 
 -- Declare variables that are defined in Bizhawk already.
 -- This is just to satisfy LuaCheck, to make it easier to find actual issues
@@ -66,11 +68,15 @@ local function logCurrent()
 end
 
 ---@param pool Pool
-local function saveNewBackup(pool, poolGeneration, saveFolderName, filePostfix)
+local function saveNewBackup(pool, saveFolderName, filePostfix)
 	if mode ~= Mode.Manual then
-		local newFileName = saveFolderName .. "backup." .. poolGeneration .. "." .. filePostfix
+		local newFileName = saveFolderName .. "backup." .. currentBackup .. "." .. filePostfix
+		if FileUtil.fileExists(newFileName) then
+			ErrorHandler.error('Backup file already exists!: ' .. newFileName)
+		end
 		GameHandler.saveFileFromPool(newFileName, pool, { seed = seed, numbersGenerated = MathUtil.getIteration() })
 		Logger.info("Saved new backup file: " .. newFileName)
+		currentBackup = currentBackup + 1
 	end
 end
 
@@ -133,7 +139,7 @@ local function nextGenome(neatObject)
 		if pool.currentSpecies > #pool.species then
 			Logger.info('NEW GENERATION!')
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
-			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
+			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
 			pool.currentSpecies = 1
 			pool.currentGenome = 1
 			if pool:getNumberOfGenomes() ~= 300 then
@@ -245,7 +251,7 @@ while true do
 
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
-			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
+			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
 		end
 		pool.currentSpecies = 1
 		pool.currentGenome = 1
