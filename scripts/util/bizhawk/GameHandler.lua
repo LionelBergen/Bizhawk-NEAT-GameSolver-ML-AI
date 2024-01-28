@@ -38,7 +38,7 @@ function GameHandler.getLatestBackupFile(poolSavesFolder)
 end
 
 ---@return Pool, any
-function GameHandler.loadFromFile(filename, innovation)
+function GameHandler.loadFromFile(filename)
 	Logger.info('loadfile: ' .. filename)
 
 	local file = io.open(filename, "r")
@@ -48,7 +48,6 @@ function GameHandler.loadFromFile(filename, innovation)
 
 	---@type Pool
 	local pool = Pool.copy(poolFromFile)
-	pool.innovation = innovation
 	Validator.validatePool(pool)
 
 	return pool, poolFromFile.additionalFields

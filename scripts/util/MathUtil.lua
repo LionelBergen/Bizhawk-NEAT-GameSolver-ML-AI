@@ -1,4 +1,5 @@
 -- Used as a global for math and random functions.
+---@class MathUtil
 local MathUtil = {}
 
 local RandomNumber = require('util.RandomNumber')

@@ -157,7 +157,7 @@ end
 
 ---@param neatObject Neat
 local function loadFileAndInitialize(filename, neatObject)
-	local pool, additionalFields = GameHandler.loadFromFile(filename, outputSize)
+	local pool, additionalFields = GameHandler.loadFromFile(filename)
 	neatObject.pool = pool
 	MathUtil.reset(additionalFields.seed, additionalFields.numbersGenerated)
 	while isFitnessMeasured(neatObject.pool) do
@@ -249,13 +249,13 @@ while true do
 			fitness = -1
 		end
 		genome.fitness = fitness
+		pool.currentSpecies = 1
+		pool.currentGenome = 1
 
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
 			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
 		end
-		pool.currentSpecies = 1
-		pool.currentGenome = 1
 
 		-- set 'currentGenome' to one that isn't measured yet
 		while isFitnessMeasured(pool) do
