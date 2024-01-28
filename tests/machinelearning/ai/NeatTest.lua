@@ -3,6 +3,8 @@ local lu = require('luaunit')
 
 local Neat = require('machinelearning.ai.Neat')
 local Pool = require('machinelearning.ai.model.Pool')
+local Genome = require('machinelearning.ai.model.Genome')
+local Species = require('machinelearning.ai.model.Species')
 TestNeat = {}
 
 -- Create a mock pool with species and genomes
@@ -56,6 +58,7 @@ end
 function TestNeat:testCullSpecies()
     local pool = createMockPool()
     lu.assertEquals(#pool.species[1].genomes, 8)
+    lu.assertEquals(pool:getNumberOfGenomes(), 24)
 
     Neat.cullSpecies(pool, false)
 
@@ -64,6 +67,8 @@ function TestNeat:testCullSpecies()
     lu.assertEquals(pool.species[1].genomes[2].fitness, 8)
     lu.assertEquals(pool.species[1].genomes[3].fitness, 7)
     lu.assertEquals(pool.species[1].genomes[4].fitness, 5)
+
+    lu.assertEquals(pool:getNumberOfGenomes(), 12)
 end
 
 function TestNeat:testCullSpeciesToOne()
@@ -74,6 +79,21 @@ function TestNeat:testCullSpeciesToOne()
 
     lu.assertEquals(#pool.species[1].genomes, 1)
     lu.assertEquals(pool.species[1].genomes[1].fitness, 10)
+end
+
+function TestNeat:testCullSpeciesSingleGenomeSpecies()
+    local pool = Pool:new()
+
+    for i = 1, 300 do
+        pool.species[i] = Species:new()
+        pool.species[i].genomes[1] = Genome:new()
+    end
+
+    lu.assertEquals(pool:getNumberOfGenomes(), 300)
+
+    Neat.cullSpecies(pool, false)
+
+    lu.assertEquals(pool:getNumberOfGenomes(), 300)
 end
 
 function TestNeat:testRankGlobally()

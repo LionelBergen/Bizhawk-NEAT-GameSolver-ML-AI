@@ -632,7 +632,7 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
 
     -- Destroy the bottom half Genomes of each species
     self.cullSpecies(pool, false)
-    Logger.info('Removed bottom have of species. Went from ' .. startingPopulation
+    Logger.info('Removed bottom half of species. Went from ' .. startingPopulation
             .. ' genomes down to ' .. pool:getNumberOfGenomes())
 
     -- Destroy any stale Species
