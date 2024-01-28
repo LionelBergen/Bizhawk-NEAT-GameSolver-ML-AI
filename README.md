@@ -1,10 +1,11 @@
 Notice
 ------
-All credit goes to 'SethBling', video here: https://www.youtube.com/watch?v=qv6UVOQ0F44&ab_channel=SethBling  
+Based on Seth Bling's MAR I/O program. Video: https://www.youtube.com/watch?v=qv6UVOQ0F44&ab_channel=SethBling  
 
 Purpose
 -------  
-I've simply modified the original code in order to better understand it, and add readability, reusability and better error messages
+Readable program with useful documentation and error messages.   
+Program can be used to learn **any SNES/NES game**. The ROM.lua class just needs to be extended and functions written so program can calculate fitness and read values from whichever game.  
 
 Quick Start
 -----------  
@@ -19,9 +20,10 @@ Run Lua script: `source/NEATEvolve.lua` in Bizhawk
 **NOTE**: If you get an error similair to 'unprotected error in call to Lua API', make sure you've changed the state file to one to a recent one. An issue occurs if bizhawk updates, or the ROM was downloaded from a different place than the one used for the state file.   
 
 
-
-
+Log File
+--------  
+Log file written to machine_learning_outputs/NEAT_PROGRAM.log  
 
 Properties
 ----------
-Properties can be found at the beginning of the main file;
+Properties can be found at the beginning of the main file; Defaults used if not set
