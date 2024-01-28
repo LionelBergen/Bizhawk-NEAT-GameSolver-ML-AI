@@ -172,11 +172,12 @@ end
 
 ---@param neatObject Neat
 local function loadFile(saveFolderName, neatObject)
-	local latestBackupFile = GameHandler.getLatestBackupFile(saveFolderName)
+	local latestBackupFile, backupNumber = GameHandler.getLatestBackupFile(saveFolderName)
 	if latestBackupFile ~= nil then
 		Logger.debug('attempting to load file for pool: ' .. latestBackupFile)
 		loadFileAndInitialize(saveFolderName .. latestBackupFile, neatObject)
 		Logger.info('loaded backfile: ' .. latestBackupFile)
+		currentBackup = backupNumber + 1
 	else
 		Logger.info('No backup file to load from. looked in directory: ' .. saveFolderName .. ' will continue new program')
 	end

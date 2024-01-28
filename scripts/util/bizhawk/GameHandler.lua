@@ -19,6 +19,7 @@ function GameHandler.loadSavedGame(fileLocation)
 end
 
 -- Gets the latest pool file, based on the number. E.G 'back.40.restofname.pool'
+---@return string, number
 function GameHandler.getLatestBackupFile(poolSavesFolder)
 	local listOfAllPoolFiles = FileUtil.scandir(poolSavesFolder)
 	local latestBackupNumber = -1
@@ -33,7 +34,7 @@ function GameHandler.getLatestBackupFile(poolSavesFolder)
 		end
 	end
 
-	return latestBackupFile
+	return latestBackupFile, latestBackupNumber
 end
 
 ---@return Pool, any
