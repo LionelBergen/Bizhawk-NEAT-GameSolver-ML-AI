@@ -43,7 +43,7 @@ end
 local function disjoint(genes1, genes2)
     local i1 = {}
     local i2 = {}
-    local numberrOfDisjointGenes = 0
+    local numberOfDisjointGenes = 0
 
     for _, gene1 in pairs(genes1) do
         i1[gene1.innovation] = true
@@ -56,20 +56,20 @@ local function disjoint(genes1, genes2)
     -- for every gene2 that's not gene1, increment disjointGenes
     for _, gene1 in pairs(genes1) do
         if not i2[gene1.innovation] then
-            numberrOfDisjointGenes = numberrOfDisjointGenes + 1
+            numberOfDisjointGenes = numberOfDisjointGenes + 1
         end
     end
 
     -- for every gene2 that's not gene1, increment disjointGenes
     for _, gene2 in pairs(genes2) do
         if not i1[gene2.innovation] then
-            numberrOfDisjointGenes = numberrOfDisjointGenes + 1
+            numberOfDisjointGenes = numberOfDisjointGenes + 1
         end
     end
 
     local numberOfGenes = math.max(#genes1, #genes2)
 
-    return numberrOfDisjointGenes / numberOfGenes
+    return numberOfDisjointGenes / numberOfGenes
 end
 
 -- Returns the average difference between genes1 and genes2 weights
@@ -149,13 +149,16 @@ local function pointMutate(genome, perturbChance)
 end
 
 ---@param genes Gene[]
+---@param isInput boolean
+---@param inputSizeWithoutBiasNode number
+---@param outputSize number
 ---@return NeuronInfo
 local function getRandomNeuronInfo(genes, isInput, inputSizeWithoutBiasNode, outputSize)
     local neurons = {}
 
     -- Add input Neurons if applicable
     if isInput then
-        for i=1,inputSizeWithoutBiasNode do
+        for i=1, inputSizeWithoutBiasNode do
             neurons[i] = NeuronInfo.new(i, NeuronType.INPUT)
         end
 
@@ -300,6 +303,28 @@ function Neat.calculateAverageFitnessRank(pool)
 
         species.averageFitnessRank = speciesTotalGenomeRankings / #species.genomes
     end
+end
+
+---@param pool Pool
+---@return Genome[]
+function Neat:breedTopSpecies(pool, numberOfInputs, numberOfOutputs)
+    self.rankGlobally(pool)
+    self.calculateAverageFitnessRank(pool)
+
+    local totalAverageFitnessRank = getTotalAverageFitnessRank(pool)
+    local population = pool:getNumberOfGenomes()
+
+    ---@type Genome[]
+    local children = {}
+    for _, species in pairs(pool.species) do
+        local breed = math.floor((species.averageFitnessRank / totalAverageFitnessRank) * population) - 1
+        for _=1, breed do
+            local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs)
+            table.insert(children, childGenome)
+        end
+    end
+
+    return children
 end
 
 ---@param genome Genome
@@ -648,39 +673,30 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
 
     -- Remove species with a really low averageFitnessRank
     self.removeWeakSpecies(pool)
-    Logger.info('Removed stale species. genomes left: ' .. pool:getNumberOfGenomes())
-
-    local totalAverageFitnessRank = getTotalAverageFitnessRank(pool)
-
-    local population = pool:getNumberOfGenomes()
+    Logger.info('Removed weak species. genomes left: ' .. pool:getNumberOfGenomes())
 
     ---@type Genome[]
-    local children = {}
-    for _, species in pairs(pool.species) do
-        local breed = math.floor((species.averageFitnessRank / totalAverageFitnessRank) * population) - 1
-        for _=1, breed do
-            local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs)
-            childGenome.fitness = 0
-            table.insert(children, childGenome)
-        end
-    end
+    local children = self:breedTopSpecies(pool, numberOfInputs, numberOfOutputs)
 
-    Logger.info('Bred ' .. (population - pool:getNumberOfGenomes()) .. ' new genomes with top species')
+    Logger.info('Bred ' .. #children .. ' new genomes with top species')
 
     -- Remove all but the top genome of each species
     self.cullSpecies(pool, true)
 
-    population = pool:getNumberOfGenomes()
+    local population = pool:getNumberOfGenomes()
+    Logger.info('Removed all but the top genomes. ' .. population
+            .. ' new genomes are left (not including the children just bred)')
+    local numberOfChildrenWithRandomSpecies = 0
     while (#children + population) < self.generationStartingPopulation do
         local species = pool.species[MathUtil.random(1, #pool.species)]
         table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
+        numberOfChildrenWithRandomSpecies = numberOfChildrenWithRandomSpecies + 1
     end
+    Logger.info('Bred ' .. numberOfChildrenWithRandomSpecies .. ' new genomes with random species')
 
     for _, childGenome in pairs(children) do
         self:addToSpecies(childGenome)
     end
-
-    Logger.info('Bred ' .. (population - #children) .. ' new genomes with random species')
 
     -- Reset all the fitness
     for _, species in pairs(pool.species) do
