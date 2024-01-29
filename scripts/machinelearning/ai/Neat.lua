@@ -111,7 +111,7 @@ local function getTotalAverageFitnessRank(pool)
     local totalRank = 0
 
     for _, species in pairs(pool.species) do
-        totalRank = totalRank + (species.averageFitnessRank and species.averageFitnessRank or 0)
+        totalRank = totalRank + species.averageFitnessRank
     end
 
     return totalRank

@@ -52,7 +52,7 @@ local currentBackup = 0
 local form = Forms.createNewForm(500, 500, "NEAT Program")
 local showNetwork = Forms.createCheckbox(form, "SHOW NETWORK:", 5, 30, 148)
 local showMutationRates = Forms.createCheckbox(form, "SHOW MUTATION RATES:", 5, 80, 148)
-local showBanner = Forms.createCheckbox(form, "SHOW BANNER", 5, 190, 148)
+local showBanner = Forms.createCheckbox(form, "SHOW BANNER", 5, 130, 148)
 local Mode = {Manual = 1, Auto = 2}
 local mode = Mode.Auto
 local controller = {}
@@ -64,7 +64,7 @@ end
 local function logCurrent()
 	Logger.info("Gen " .. neatMLAI.pool.generation .. " species " ..
 			neatMLAI.pool.currentSpecies .. " genome " .. neatMLAI.pool.currentGenome
-			.. " fitness: " .. neatMLAI.pool:getCurrentGenome().fitness)
+			.. " fitness: " .. neatMLAI.pool:getCurrentSpecies().topFitness)
 end
 
 ---@param pool Pool
