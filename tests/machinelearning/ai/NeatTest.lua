@@ -210,5 +210,66 @@ function TestNeat:testInitializePool()
     end
 end
 
+function TestNeat:testOrderSpeciesFromBestToWorst()
+    local neat = Neat:new()
+    neat:initializePool(169, 7)
+
+    for i, species in pairs(neat.pool.species) do
+        for i, genomes in pairs(species.genomes) do
+            genomes.fitness = 1
+        end
+    end
+
+    local hightFitnessGenome = Genome.new()
+    hightFitnessGenome.fitness = 200
+    local lowFitnessGenome = Genome.new()
+    lowFitnessGenome.fitness = 100
+
+    neat.pool.species[1].genomes[2] = hightFitnessGenome
+    neat.pool.species[280].genomes[2] = lowFitnessGenome
+
+    neat.rankGlobally(neat.pool)
+    neat.calculateAverageFitnessRank(neat.pool)
+
+    neat.orderSpeciesFromBestToWorst(neat.pool)
+    lu.assertEquals(neat.pool.species[1].genomes[1].fitness, 1)
+    lu.assertEquals(neat.pool.species[1].genomes[2].fitness, 200)
+    lu.assertEquals(neat.pool.species[2].genomes[1].fitness, 1)
+    lu.assertEquals(neat.pool.species[2].genomes[2].fitness, 100)
+
+    lu.assertEquals(neat.pool.species[1].averageFitness, 100.5)
+    lu.assertEquals(neat.pool.species[2].averageFitness, 50.5)
+end
+
+function TestNeat:testBreedTopSpecies()
+    local neat = Neat:new()
+    neat:initializePool(169, 7)
+
+    for _, species in pairs(neat.pool.species) do
+        for _, genomes in pairs(species.genomes) do
+            genomes.fitness = 1
+        end
+    end
+
+    local hightFitnessGenome = Genome.new()
+    hightFitnessGenome.fitness = 200
+    local lowFitnessGenome = Genome.new()
+    lowFitnessGenome.fitness = 100
+
+    neat.pool.species[1].genomes[2] = hightFitnessGenome
+    neat.pool.species[280].genomes[2] = lowFitnessGenome
+
+    ---@type Genome[]
+    local resultChildren = neat:breedTopSpecies(neat.pool, 20, 169, 7, true)
+    lu.assertEquals(#resultChildren, 20)
+
+    resultChildren = neat:breedTopSpecies(neat.pool, 100, 169, 7, true)
+    lu.assertEquals(#resultChildren, 100)
+    lu.assertEquals(resultChildren[1].bredFrom, 1)
+    lu.assertEquals(resultChildren[2].bredFrom, 1)
+    lu.assertEquals(resultChildren[3].bredFrom, 1)
+    lu.assertEquals(resultChildren[4].bredFrom, 1)
+end
+
 -- Run the tests
 os.exit(lu.LuaUnit.run())

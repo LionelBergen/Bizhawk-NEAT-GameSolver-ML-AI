@@ -111,7 +111,7 @@ local function getTotalAverageFitnessRank(pool)
     local totalRank = 0
 
     for _, species in pairs(pool.species) do
-        totalRank = totalRank + species.averageFitnessRank
+        totalRank = totalRank + (species.averageFitnessRank and species.averageFitnessRank or 0)
     end
 
     return totalRank
@@ -292,27 +292,77 @@ function Neat.calculateAverageFitnessRank(pool)
 end
 
 ---@param pool Pool
----@return Genome[]
-function Neat:breedTopSpecies(pool, numberOfInputs, numberOfOutputs)
-    self.rankGlobally(pool)
-    self.calculateAverageFitnessRank(pool)
+function Neat.orderSpeciesFromBestToWorst(pool)
+    for _, species in pairs(pool.species) do
+        local totalFitness = 0
 
-    local totalAverageFitnessRank = getTotalAverageFitnessRank(pool)
-    local population = pool:getNumberOfGenomes()
-    local topSpeciesPercentage = 0.2
+        for _, genome in pairs(species.genomes) do
+            totalFitness = totalFitness + genome.fitness
+        end
+
+        species.averageFitness = totalFitness / #species.genomes
+    end
+
+    -- Sort species based on average fitness rank
     table.sort(pool.species, function(a, b)
-        return a.averageFitnessRank > b.averageFitnessRank
+        return a.averageFitness > b.averageFitness
     end)
+end
+
+---@param pool Pool
+function Neat.calculateTotalFitness(pool)
+    local totalFitness = 0
+
+    for _, species in pairs(pool.species) do
+        for _, genome in pairs(species.genomes) do
+            totalFitness = totalFitness + genome.fitness
+        end
+    end
+
+    return totalFitness
+end
+
+function Neat.distributeOffspring(numberOfOffSpring, numberOfGenomes)
+    local offspringDistribution = {}
+    local totalProportion = 0
+
+    for i = 1, numberOfGenomes do
+        local proportion = i / (numberOfGenomes * (numberOfGenomes + 1) / 2)
+        totalProportion = totalProportion + proportion
+    end
+
+    for i = 1, numberOfGenomes do
+        local proportion = i / (numberOfGenomes * (numberOfGenomes + 1) / 2)
+        local amountToDistribute = math.floor(numberOfOffSpring * proportion / totalProportion)
+        table.insert(offspringDistribution, amountToDistribute)
+    end
+
+    return offspringDistribution
+end
+
+-- TODO: remove isTesting and find another way to test bredFrom
+---@param pool Pool
+---@return Genome[]
+function Neat:breedTopSpecies(pool, numberOfOffSpring, numberOfInputs, numberOfOutputs, isTesting)
+    local topSpeciesPercentage = 0.2
+
+    self.orderSpeciesFromBestToWorst(pool)
+
     local topSpeciesCount = math.ceil(#pool.species * topSpeciesPercentage)
+    local distrution = MathUtil.distribute(numberOfOffSpring, topSpeciesCount)
 
     ---@type Genome[]
     local children = {}
     for i = 1, topSpeciesCount do
         local species = pool.species[i]
-        local breed = math.ceil((species.averageFitnessRank / totalAverageFitnessRank) * population)
-        for _=1, breed do
+        local amountToBreed = distrution[i]
+
+        for _=1, amountToBreed do
             local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs)
             table.insert(children, childGenome)
+            if isTesting then
+               childGenome.bredFrom = i
+            end
         end
     end
 
@@ -516,12 +566,18 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
     Validator.validateGenome(genome)
 end
 
+-- Returns rankings from lowest (1) to highest fitness levels and assigns the value to 'globalRank' for each genome
+-- Throws an error if the fitness is not set on a genome
 ---@param pool Pool
 function Neat.rankGlobally(pool)
     local allGenomes = {}
     for _, species in pairs(pool.species) do
         for _, genome in pairs(species.genomes) do
-            table.insert(allGenomes, genome)
+            if genome.fitness ~= 0 then
+                table.insert(allGenomes, genome)
+            else
+                ErrorHandler.error('genome does not have fitness set.')
+            end
         end
     end
 
@@ -667,8 +723,11 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     self.removeWeakSpecies(pool)
     Logger.info('Removed weak species. genomes left: ' .. pool:getNumberOfGenomes())
 
+    -- breed 30% with top species
+    local numberOfOffSpringWithTopSpecies = (self.generationStartingPopulation - pool:getNumberOfGenomes()) * 0.30
+
     ---@type Genome[]
-    local children = self:breedTopSpecies(pool, numberOfInputs, numberOfOutputs)
+    local children = self:breedTopSpecies(pool, numberOfOffSpringWithTopSpecies, numberOfInputs, numberOfOutputs)
 
     Logger.info('Bred ' .. #children .. ' new genomes with top species')
 
