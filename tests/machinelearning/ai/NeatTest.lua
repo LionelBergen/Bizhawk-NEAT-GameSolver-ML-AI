@@ -1,6 +1,7 @@
 -- Import LuaUnit module
 local lu = require('luaunit')
 
+require('util.MathUtil').init(12345)
 local Neat = require('machinelearning.ai.Neat')
 local Pool = require('machinelearning.ai.model.Pool')
 local Genome = require('machinelearning.ai.model.Genome')
@@ -182,6 +183,31 @@ function TestNeat:testRemoveWeakSpecies()
     lu.assertEquals(8, #pool.species[2].genomes)
     lu.assertEquals(8, #pool.species[3].genomes)
     lu.assertEquals(8, #pool.species[4].genomes)
+end
+
+function TestNeat:testInitializePool()
+    local neat = Neat:new()
+
+    neat:initializePool(169, 7)
+    lu.assertEquals(neat.pool.currentGenome, 1)
+    lu.assertEquals(neat.pool.currentSpecies, 1)
+    lu.assertEquals(neat.pool:getNumberOfGenomes(), 300)
+
+    -- Make sure all genomes are pointing to different references
+    for _, species in pairs(neat.pool.species) do
+        for _, genomes in pairs(species.genomes) do
+            local numberOfMatches = 0
+            for _, species2 in pairs(neat.pool.species) do
+                for _, genomes2 in pairs(species2.genomes) do
+                    if genomes2 == genomes then
+                        numberOfMatches = numberOfMatches + 1
+                    end
+                end
+            end
+
+            lu.assertEquals(numberOfMatches, 1)
+        end
+    end
 end
 
 -- Run the tests
