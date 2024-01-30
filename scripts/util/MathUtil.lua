@@ -6,6 +6,18 @@ local RandomNumber = require('util.RandomNumber')
 ---@type RandomNumber
 local rng = nil
 
+local function reverseList(list)
+    local reversedList = {}
+    local length = #list
+
+    for i = length, 1, -1 do
+        table.insert(reversedList, list[i])
+    end
+
+    return reversedList
+end
+
+
 function MathUtil.init(seed)
     rng = RandomNumber:new(seed)
 end
@@ -25,6 +37,32 @@ end
 
 function MathUtil.getIteration()
     return rng.count
+end
+
+---@param numberOfItemsToDistribute number
+---@param distributeToThisMany number
+function MathUtil.distribute(numberOfItemsToDistribute, distributeToThisMany)
+    local distribution = {}
+    local totalProportion = 0
+
+    for i = 1, distributeToThisMany do
+        local proportion = i / (distributeToThisMany * (distributeToThisMany + 1) / 2)
+        totalProportion = totalProportion + proportion
+    end
+
+    local remainingDistribution = numberOfItemsToDistribute
+
+    for i = 1, (distributeToThisMany - 1) do
+        local proportion = i / (distributeToThisMany * (distributeToThisMany + 1) / 2)
+        local amountToDistribute = math.floor(numberOfItemsToDistribute * proportion / totalProportion)
+        remainingDistribution = remainingDistribution - amountToDistribute
+        table.insert(distribution, amountToDistribute)
+    end
+
+    -- Distribute the remaining amount to the last item
+    table.insert(distribution, remainingDistribution)
+
+    return reverseList(distribution)
 end
 
 return MathUtil

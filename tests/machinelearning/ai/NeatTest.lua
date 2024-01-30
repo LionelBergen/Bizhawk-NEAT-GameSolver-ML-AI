@@ -1,6 +1,7 @@
 -- Import LuaUnit module
 local lu = require('luaunit')
 
+require('util.MathUtil').init(12345)
 local Neat = require('machinelearning.ai.Neat')
 local Pool = require('machinelearning.ai.model.Pool')
 local Genome = require('machinelearning.ai.model.Genome')
@@ -14,39 +15,39 @@ local function createMockPool()
         {
             genomes = {
                 { fitness = 1 }, -- 1
-                { fitness = 2 }, -- 4
-                { fitness = 10 }, -- 16
-                { fitness = 8 }, -- 15
-                { fitness = 7 }, -- 13
-                { fitness = 3 }, -- 6
-                { fitness = 4 }, -- 9
-                { fitness = 5 }, -- 11
+                { fitness = 2 }, -- 2
+                { fitness = 10 }, -- 8
+                { fitness = 8 }, -- 7
+                { fitness = 7 }, -- 6
+                { fitness = 3 }, -- 3
+                { fitness = 4 }, -- 4
+                { fitness = 5 }, -- 5
             },
             topFitness = 0,
         },
         {
             genomes = {
-                { fitness = 11 },
-                { fitness = 12 },
-                { fitness = 19 },
-                { fitness = 18 },
-                { fitness = 17 },
-                { fitness = 13 },
-                { fitness = 14 },
-                { fitness = 15 },
+                { fitness = 11 }, -- 9
+                { fitness = 12 }, -- 10
+                { fitness = 19 }, -- 16
+                { fitness = 18 }, -- 15
+                { fitness = 17 }, -- 14
+                { fitness = 13 }, -- 11
+                { fitness = 14 }, -- 12
+                { fitness = 15 }, -- 13
             },
             topFitness = 0,
         },
         {
             genomes = {
-                { fitness = 1 }, -- 2
-                { fitness = 2 }, -- 5
-                { fitness = 3 }, -- 7
-                { fitness = 1 }, -- 3
-                { fitness = 7 }, -- 14
-                { fitness = 3 }, -- 8
-                { fitness = 4 }, -- 10
-                { fitness = 5 }, -- 12
+                { fitness = 1 }, -- 1
+                { fitness = 2 }, -- 2
+                { fitness = 3 }, -- 3
+                { fitness = 1 }, -- 1
+                { fitness = 7 }, -- 6
+                { fitness = 3 }, -- 3
+                { fitness = 4 }, -- 4
+                { fitness = 5 }, -- 5
             },
             topFitness = 0,
         },
@@ -67,6 +68,18 @@ function TestNeat:testCullSpecies()
     lu.assertEquals(pool.species[1].genomes[2].fitness, 8)
     lu.assertEquals(pool.species[1].genomes[3].fitness, 7)
     lu.assertEquals(pool.species[1].genomes[4].fitness, 5)
+
+    lu.assertEquals(#pool.species[2].genomes, 4)
+    lu.assertEquals(pool.species[2].genomes[1].fitness, 19)
+    lu.assertEquals(pool.species[2].genomes[2].fitness, 18)
+    lu.assertEquals(pool.species[2].genomes[3].fitness, 17)
+    lu.assertEquals(pool.species[2].genomes[4].fitness, 15)
+
+    lu.assertEquals(#pool.species[3].genomes, 4)
+    lu.assertEquals(pool.species[3].genomes[1].fitness, 7)
+    lu.assertEquals(pool.species[3].genomes[2].fitness, 5)
+    lu.assertEquals(pool.species[3].genomes[3].fitness, 4)
+    lu.assertEquals(pool.species[3].genomes[4].fitness, 3)
 
     lu.assertEquals(pool:getNumberOfGenomes(), 12)
 end
@@ -99,15 +112,15 @@ end
 function TestNeat:testRankGlobally()
     local pool = createMockPool()
     local expectedFirstPlace = pool.species[1].genomes[1]
-    local expected16thPlace = pool.species[1].genomes[3]
-    local expected24thPlace = pool.species[2].genomes[3]
+    local expected8thPlace = pool.species[1].genomes[3]
+    local expected16thPlace = pool.species[2].genomes[3]
     lu.assertNil(expectedFirstPlace.globalRank)
+    lu.assertNil(expected8thPlace.globalRank)
     lu.assertNil(expected16thPlace.globalRank)
-    lu.assertNil(expected24thPlace.globalRank)
     Neat.rankGlobally(pool)
     lu.assertEquals(expectedFirstPlace.globalRank, 1)
+    lu.assertEquals(expected8thPlace.globalRank, 8)
     lu.assertEquals(expected16thPlace.globalRank, 16)
-    lu.assertEquals(expected24thPlace.globalRank, 24)
 end
 
 function TestNeat:testCalculateAverageFitnessRank()
@@ -119,9 +132,9 @@ function TestNeat:testCalculateAverageFitnessRank()
 
     Neat.calculateAverageFitnessRank(pool)
 
-    lu.assertEquals(pool.species[1].averageFitnessRank, 9.625)
-    lu.assertEquals(pool.species[2].averageFitnessRank, 20.5)
-    lu.assertEquals(pool.species[3].averageFitnessRank, 7.375)
+    lu.assertEquals(pool.species[1].averageFitnessRank, 4.5)
+    lu.assertEquals(pool.species[2].averageFitnessRank, 12.5)
+    lu.assertEquals(pool.species[3].averageFitnessRank, 3.125)
 end
 
 function TestNeat:testRemoveStaleSpecies()
@@ -132,17 +145,17 @@ function TestNeat:testRemoveStaleSpecies()
     lu.assertEquals(#pool.species, 3)
 
     for _=1, 15 do
+        pool.species[3].genomes[1].fitness = (pool.species[3].genomes[1].fitness + 1)
         Neat.removeStaleSpecies(pool)
     end
 
     lu.assertEquals(#pool.species, 1)
 
-    for _=1, 100 do
+    for _=1, 15 do
         Neat.removeStaleSpecies(pool)
     end
 
-    -- Ensure we always keep 1
-    lu.assertEquals(#pool.species, 1)
+    lu.assertEquals(#pool.species, 0)
 end
 
 function TestNeat:testRemoveWeakSpecies()
@@ -182,6 +195,92 @@ function TestNeat:testRemoveWeakSpecies()
     lu.assertEquals(8, #pool.species[2].genomes)
     lu.assertEquals(8, #pool.species[3].genomes)
     lu.assertEquals(8, #pool.species[4].genomes)
+end
+
+function TestNeat:testInitializePool()
+    local neat = Neat:new()
+
+    neat:initializePool(169, 7)
+    lu.assertEquals(neat.pool.currentGenome, 1)
+    lu.assertEquals(neat.pool.currentSpecies, 1)
+    lu.assertEquals(neat.pool:getNumberOfGenomes(), 300)
+
+    -- Make sure all genomes are pointing to different references
+    for _, species in pairs(neat.pool.species) do
+        for _, genomes in pairs(species.genomes) do
+            local numberOfMatches = 0
+            for _, species2 in pairs(neat.pool.species) do
+                for _, genomes2 in pairs(species2.genomes) do
+                    if genomes2 == genomes then
+                        numberOfMatches = numberOfMatches + 1
+                    end
+                end
+            end
+
+            lu.assertEquals(numberOfMatches, 1)
+        end
+    end
+end
+
+function TestNeat:testOrderSpeciesFromBestToWorst()
+    local neat = Neat:new()
+    neat:initializePool(169, 7)
+
+    for i, species in pairs(neat.pool.species) do
+        for i, genomes in pairs(species.genomes) do
+            genomes.fitness = 1
+        end
+    end
+
+    local hightFitnessGenome = Genome.new()
+    hightFitnessGenome.fitness = 200
+    local lowFitnessGenome = Genome.new()
+    lowFitnessGenome.fitness = 100
+
+    neat.pool.species[1].genomes[2] = hightFitnessGenome
+    neat.pool.species[280].genomes[2] = lowFitnessGenome
+
+    neat.rankGlobally(neat.pool)
+    neat.calculateAverageFitnessRank(neat.pool)
+
+    neat:orderSpeciesFromBestToWorst(neat.pool)
+    lu.assertEquals(neat.pool.species[1].genomes[1].fitness, 1)
+    lu.assertEquals(neat.pool.species[1].genomes[2].fitness, 200)
+    lu.assertEquals(neat.pool.species[2].genomes[1].fitness, 1)
+    lu.assertEquals(neat.pool.species[2].genomes[2].fitness, 100)
+
+    lu.assertEquals(neat.pool.species[1].averageFitnessRank, 2)
+    lu.assertEquals(neat.pool.species[2].averageFitnessRank, 1.5)
+end
+
+function TestNeat:testBreedTopSpecies()
+    local neat = Neat:new()
+    neat:initializePool(169, 7)
+
+    for _, species in pairs(neat.pool.species) do
+        for _, genomes in pairs(species.genomes) do
+            genomes.fitness = 1
+        end
+    end
+
+    local hightFitnessGenome = Genome.new()
+    hightFitnessGenome.fitness = 200
+    local lowFitnessGenome = Genome.new()
+    lowFitnessGenome.fitness = 100
+
+    neat.pool.species[1].genomes[2] = hightFitnessGenome
+    neat.pool.species[280].genomes[2] = lowFitnessGenome
+
+    ---@type Genome[]
+    local resultChildren = neat:breedTopSpecies(neat.pool, 20, 169, 7, true)
+    lu.assertEquals(#resultChildren, 20)
+
+    resultChildren = neat:breedTopSpecies(neat.pool, 100, 169, 7, true)
+    lu.assertEquals(#resultChildren, 100)
+    lu.assertEquals(resultChildren[1].bredFrom, 1)
+    lu.assertEquals(resultChildren[2].bredFrom, 1)
+    lu.assertEquals(resultChildren[3].bredFrom, 1)
+    lu.assertEquals(resultChildren[4].bredFrom, 1)
 end
 
 -- Run the tests
