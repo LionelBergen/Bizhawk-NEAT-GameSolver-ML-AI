@@ -77,4 +77,25 @@ function Forms.createCheckbox(form, caption, x, y, captionWidth)
     end
 end
 
+function Forms.createTextBox(form, caption, x, y, captionWidth)
+    if captionWidth then
+        local labelX = x
+        local labelY = y - 1
+        Forms.createLabel(form, caption, labelX, labelY, captionWidth, LABEL_HEIGHT)
+
+        x = x + captionWidth
+        y = y + 200
+    end
+    -- forms.textbox(int formhandle, [string caption = null], [int? width = null],
+    -- [int? height = null], [string boxtype = null], [int? x = null], [int? y = null], [bool multiline = False], [bool fixedwidth = False], [string scrollbars = null])
+
+    if x and y then
+        return forms.textbox(form, nil, 20, nil, x, y)
+    elseif x then
+        return forms.textbox(form, x)
+    else
+        return forms.textbox(form)
+    end
+end
+
 return Forms

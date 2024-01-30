@@ -292,20 +292,12 @@ function Neat.calculateAverageFitnessRank(pool)
 end
 
 ---@param pool Pool
-function Neat.orderSpeciesFromBestToWorst(pool)
-    for _, species in pairs(pool.species) do
-        local totalFitness = 0
-
-        for _, genome in pairs(species.genomes) do
-            totalFitness = totalFitness + genome.fitness
-        end
-
-        species.averageFitness = totalFitness / #species.genomes
-    end
+function Neat:orderSpeciesFromBestToWorst(pool)
+    self.calculateAverageFitnessRank(pool)
 
     -- Sort species based on average fitness rank
     table.sort(pool.species, function(a, b)
-        return a.averageFitness > b.averageFitness
+        return a.averageFitnessRank > b.averageFitnessRank
     end)
 end
 
@@ -346,7 +338,7 @@ end
 function Neat:breedTopSpecies(pool, numberOfOffSpring, numberOfInputs, numberOfOutputs, isTesting)
     local topSpeciesPercentage = 0.2
 
-    self.orderSpeciesFromBestToWorst(pool)
+    self:orderSpeciesFromBestToWorst(pool)
 
     local topSpeciesCount = math.ceil(#pool.species * topSpeciesPercentage)
     local distrution = MathUtil.distribute(numberOfOffSpring, topSpeciesCount)
@@ -586,9 +578,17 @@ function Neat.rankGlobally(pool)
         return (a.fitness < b.fitness)
     end)
 
+    local currentRank = 0
+    local lastFitnessMeasured
+
     -- set globalRank from lowest fitness to highest
     for g=1, #allGenomes do
-        allGenomes[g].globalRank = g
+        if (lastFitnessMeasured == nil or allGenomes[g].fitness > lastFitnessMeasured) then
+            currentRank = currentRank + 1
+            lastFitnessMeasured = allGenomes[g].fitness
+        end
+
+        allGenomes[g].globalRank = currentRank
     end
 end
 
@@ -643,15 +643,11 @@ function Neat.removeStaleSpecies(pool)
         if species.genomes[1].fitness > species.topFitness then
             species.topFitness = species.genomes[1].fitness
             species.staleness = 0
-
-            if species.genomes[1].fitness > pool.maxFitness then
-                pool.maxFitness = species.genomes[1].fitness
-            end
         else
             species.staleness = species.staleness + 1
         end
 
-        if species.staleness < staleSpecies or species.genomes[1].fitness >= pool.maxFitness then
+        if species.staleness < staleSpecies then
             table.insert(survived, species)
         end
     end

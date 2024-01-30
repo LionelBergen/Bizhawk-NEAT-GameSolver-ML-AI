@@ -53,6 +53,7 @@ local form = Forms.createNewForm(500, 500, "NEAT Program")
 local showNetwork = Forms.createCheckbox(form, "SHOW NETWORK:", 5, 30, 148)
 local showMutationRates = Forms.createCheckbox(form, "SHOW MUTATION RATES:", 5, 80, 148)
 local showBanner = Forms.createCheckbox(form, "SHOW BANNER", 5, 130, 148)
+local textBoxLoadBackup = Forms.createTextBox(form, "LOAD BACKUP: ", 0, 180, 148)
 local Mode = {Manual = 1, Auto = 2}
 local mode = Mode.Auto
 local controller = {}
@@ -142,7 +143,7 @@ local function nextGenome(neatObject)
 			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
 			pool.currentSpecies = 1
 			pool.currentGenome = 1
-			if pool:getNumberOfGenomes() ~= 300 then
+			if pool:getNumberOfGenomes() ~= neatObject.generationStartingPopulation then
 				error('new generation produced invalid number of genomes: ' .. pool:getNumberOfGenomes())
 			end
 		end
@@ -205,7 +206,7 @@ loadFile(poolSavesFolder, neatMLAI)
 if neatMLAI.pool == nil then
 	neatMLAI:initializePool(inputSizeWithoutBiasNode, outputSize)
 	Logger.info('Created new pool since no load file was found.')
-	if neatMLAI.pool:getNumberOfGenomes() ~= 300 then
+	if neatMLAI.pool:getNumberOfGenomes() ~= neatMLAI.generationStartingPopulation then
 		error('invalid number of genomes: ' .. neatMLAI.pool:getNumberOfGenomes())
 	end
 end

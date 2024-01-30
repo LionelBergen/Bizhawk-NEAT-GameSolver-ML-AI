@@ -3,7 +3,6 @@ local Species = {}
 
 local Genome = require('machinelearning.ai.model.Genome')
 
--- TODO: remove averageFitness, averageFitnessRank, or both
 ---@return Species
 function Species.new()
     ---@type Species
@@ -11,7 +10,6 @@ function Species.new()
 
     species.topFitness = 0
     species.staleness = 0
-    species.averageFitness = 0
     species.averageFitnessRank = 0
     ---@type Genome[]
     species.genomes = {}
@@ -30,7 +28,6 @@ function Species.copy(species)
 
         speciesCopy.topFitness = species.topFitness or speciesCopy.topFitness
         speciesCopy.staleness = species.topFitness or speciesCopy.staleness
-        speciesCopy.averageFitness = species.averageFitness or speciesCopy.averageFitness
         speciesCopy.averageFitnessRank = species.averageFitnessRank or speciesCopy.averageFitnessRank
 
         speciesCopy.genomes = {}

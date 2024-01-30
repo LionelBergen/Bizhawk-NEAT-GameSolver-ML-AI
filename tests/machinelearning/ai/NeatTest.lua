@@ -15,39 +15,39 @@ local function createMockPool()
         {
             genomes = {
                 { fitness = 1 }, -- 1
-                { fitness = 2 }, -- 4
-                { fitness = 10 }, -- 16
-                { fitness = 8 }, -- 15
-                { fitness = 7 }, -- 13
-                { fitness = 3 }, -- 6
-                { fitness = 4 }, -- 9
-                { fitness = 5 }, -- 11
+                { fitness = 2 }, -- 2
+                { fitness = 10 }, -- 8
+                { fitness = 8 }, -- 7
+                { fitness = 7 }, -- 6
+                { fitness = 3 }, -- 3
+                { fitness = 4 }, -- 4
+                { fitness = 5 }, -- 5
             },
             topFitness = 0,
         },
         {
             genomes = {
-                { fitness = 11 },
-                { fitness = 12 },
-                { fitness = 19 },
-                { fitness = 18 },
-                { fitness = 17 },
-                { fitness = 13 },
-                { fitness = 14 },
-                { fitness = 15 },
+                { fitness = 11 }, -- 9
+                { fitness = 12 }, -- 10
+                { fitness = 19 }, -- 16
+                { fitness = 18 }, -- 15
+                { fitness = 17 }, -- 14
+                { fitness = 13 }, -- 11
+                { fitness = 14 }, -- 12
+                { fitness = 15 }, -- 13
             },
             topFitness = 0,
         },
         {
             genomes = {
-                { fitness = 1 }, -- 2
-                { fitness = 2 }, -- 5
-                { fitness = 3 }, -- 7
-                { fitness = 1 }, -- 3
-                { fitness = 7 }, -- 14
-                { fitness = 3 }, -- 8
-                { fitness = 4 }, -- 10
-                { fitness = 5 }, -- 12
+                { fitness = 1 }, -- 1
+                { fitness = 2 }, -- 2
+                { fitness = 3 }, -- 3
+                { fitness = 1 }, -- 1
+                { fitness = 7 }, -- 6
+                { fitness = 3 }, -- 3
+                { fitness = 4 }, -- 4
+                { fitness = 5 }, -- 5
             },
             topFitness = 0,
         },
@@ -68,6 +68,18 @@ function TestNeat:testCullSpecies()
     lu.assertEquals(pool.species[1].genomes[2].fitness, 8)
     lu.assertEquals(pool.species[1].genomes[3].fitness, 7)
     lu.assertEquals(pool.species[1].genomes[4].fitness, 5)
+
+    lu.assertEquals(#pool.species[2].genomes, 4)
+    lu.assertEquals(pool.species[2].genomes[1].fitness, 19)
+    lu.assertEquals(pool.species[2].genomes[2].fitness, 18)
+    lu.assertEquals(pool.species[2].genomes[3].fitness, 17)
+    lu.assertEquals(pool.species[2].genomes[4].fitness, 15)
+
+    lu.assertEquals(#pool.species[3].genomes, 4)
+    lu.assertEquals(pool.species[3].genomes[1].fitness, 7)
+    lu.assertEquals(pool.species[3].genomes[2].fitness, 5)
+    lu.assertEquals(pool.species[3].genomes[3].fitness, 4)
+    lu.assertEquals(pool.species[3].genomes[4].fitness, 3)
 
     lu.assertEquals(pool:getNumberOfGenomes(), 12)
 end
@@ -100,15 +112,15 @@ end
 function TestNeat:testRankGlobally()
     local pool = createMockPool()
     local expectedFirstPlace = pool.species[1].genomes[1]
-    local expected16thPlace = pool.species[1].genomes[3]
-    local expected24thPlace = pool.species[2].genomes[3]
+    local expected8thPlace = pool.species[1].genomes[3]
+    local expected16thPlace = pool.species[2].genomes[3]
     lu.assertNil(expectedFirstPlace.globalRank)
+    lu.assertNil(expected8thPlace.globalRank)
     lu.assertNil(expected16thPlace.globalRank)
-    lu.assertNil(expected24thPlace.globalRank)
     Neat.rankGlobally(pool)
     lu.assertEquals(expectedFirstPlace.globalRank, 1)
+    lu.assertEquals(expected8thPlace.globalRank, 8)
     lu.assertEquals(expected16thPlace.globalRank, 16)
-    lu.assertEquals(expected24thPlace.globalRank, 24)
 end
 
 function TestNeat:testCalculateAverageFitnessRank()
@@ -120,9 +132,9 @@ function TestNeat:testCalculateAverageFitnessRank()
 
     Neat.calculateAverageFitnessRank(pool)
 
-    lu.assertEquals(pool.species[1].averageFitnessRank, 9.625)
-    lu.assertEquals(pool.species[2].averageFitnessRank, 20.5)
-    lu.assertEquals(pool.species[3].averageFitnessRank, 7.375)
+    lu.assertEquals(pool.species[1].averageFitnessRank, 4.5)
+    lu.assertEquals(pool.species[2].averageFitnessRank, 12.5)
+    lu.assertEquals(pool.species[3].averageFitnessRank, 3.125)
 end
 
 function TestNeat:testRemoveStaleSpecies()
@@ -133,17 +145,17 @@ function TestNeat:testRemoveStaleSpecies()
     lu.assertEquals(#pool.species, 3)
 
     for _=1, 15 do
+        pool.species[3].genomes[1].fitness = (pool.species[3].genomes[1].fitness + 1)
         Neat.removeStaleSpecies(pool)
     end
 
     lu.assertEquals(#pool.species, 1)
 
-    for _=1, 100 do
+    for _=1, 15 do
         Neat.removeStaleSpecies(pool)
     end
 
-    -- Ensure we always keep 1
-    lu.assertEquals(#pool.species, 1)
+    lu.assertEquals(#pool.species, 0)
 end
 
 function TestNeat:testRemoveWeakSpecies()
@@ -231,14 +243,14 @@ function TestNeat:testOrderSpeciesFromBestToWorst()
     neat.rankGlobally(neat.pool)
     neat.calculateAverageFitnessRank(neat.pool)
 
-    neat.orderSpeciesFromBestToWorst(neat.pool)
+    neat:orderSpeciesFromBestToWorst(neat.pool)
     lu.assertEquals(neat.pool.species[1].genomes[1].fitness, 1)
     lu.assertEquals(neat.pool.species[1].genomes[2].fitness, 200)
     lu.assertEquals(neat.pool.species[2].genomes[1].fitness, 1)
     lu.assertEquals(neat.pool.species[2].genomes[2].fitness, 100)
 
-    lu.assertEquals(neat.pool.species[1].averageFitness, 100.5)
-    lu.assertEquals(neat.pool.species[2].averageFitness, 50.5)
+    lu.assertEquals(neat.pool.species[1].averageFitnessRank, 2)
+    lu.assertEquals(neat.pool.species[2].averageFitnessRank, 1.5)
 end
 
 function TestNeat:testBreedTopSpecies()
