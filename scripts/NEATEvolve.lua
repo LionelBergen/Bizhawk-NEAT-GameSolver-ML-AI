@@ -113,7 +113,7 @@ end
 
 ---@param neatObject Neat
 local function initializeRun(neatObject)
-	-- Load the beginning of a level
+	-- Load the state file. State file is a bizhawk file. Example is the beginning of a game level
 	GameHandler.loadSavedGame('..\\assets\\savedstates\\' .. saveFileName)
 	rightmost = 0
 	timeout = TimeoutConstant

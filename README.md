@@ -25,5 +25,6 @@ Log File
 Log file written to machine_learning_outputs/NEAT_PROGRAM.log  
 
 Properties
-----------
-Properties can be found at the beginning of the main file; Defaults used if not set
+----------   
+NEAT/Machine Learning properties, such as Population, Mutation Chance ETC can be found inside machinelearning.ai.sstatic.Properties    
+Game and other Properties can be found at the beginning of the main file.   
