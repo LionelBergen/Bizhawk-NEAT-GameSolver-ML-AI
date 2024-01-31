@@ -3,6 +3,7 @@ local Neat = {}
 
 local ErrorHandler = require('util.ErrorHandler')
 local Logger = require('util.Logger')
+local Properties = require('machinelearning.ai.static.Properties')
 local Pool = require('machinelearning.ai.model.Pool')
 local Genome = require('machinelearning.ai.model.Genome')
 local Gene = require('machinelearning.ai.model.Gene')
@@ -13,27 +14,39 @@ local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 local Validator = require('../util/Validator')
 local MathUtil = require('util.MathUtil')
-
-local defaultMutateConnectionsChance = 0.25
-local defaultLinkMutationChance = 2.0
-local defaultBiasMutationChance = 0.40
-local defaultNodeMutationChance = 0.50
-local defaultEnableMutationChance = 0.2
-local defaultDisableMutationChance = 0.4
-local defaultStepSize = 0.1
-local defaultPopulation = 300
-local defaultPerturbChance = 0.90
-
-local deltaDisjoint = 2.0
-local deltaWeights = 0.4
-local deltaThreshold = 1.0
-
-local crossoverChance = 0.75
-local staleSpecies = 15
+local MutationRate = require('machinelearning.ai.model.MutationRate')
 
 -- Generates a random number between -2 and 2
 local function generateRandomWeight()
     return MathUtil.random() * 4 - 2
+end
+
+local function shuffle(t)
+    local s = {}
+    for i = 1, #t do s[i] = t[i] end
+    for i = #t, 2, -1 do
+        local j = MathUtil.random(i)
+        s[i], s[j] = s[j], s[i]
+    end
+    return s
+end
+
+---@param genomes Genome[]
+---@return Genome, Genome
+local function getTwoRandomGenomes(genomes)
+    local shuffledGenomeList = shuffle(genomes)
+
+    return shuffledGenomeList[1], shuffledGenomeList[2]
+end
+
+---@param genomes Genome[]
+---@return Genome
+local function getGenomeWithHighestFitness(genomes)
+    table.sort(genomes, function (a,b)
+        return (a.fitness > b.fitness)
+    end)
+
+    return genomes[1]
 end
 
 -- Counts the number of non-matching innovation's in genes1 and genes2 then divides by
@@ -99,11 +112,11 @@ end
 ---@param genome2 Genome
 local function isSameSpecies(genome1, genome2)
     -- Number of matching genes divided by number of genes
-    local dd = deltaDisjoint * disjoint(genome1.genes, genome2.genes)
+    local dd = Properties.deltaDisjoint * disjoint(genome1.genes, genome2.genes)
     -- average difference between genes
-    local dw = deltaWeights * weights(genome1.genes, genome2.genes)
+    local dw = Properties.deltaWeights * weights(genome1.genes, genome2.genes)
 
-    return dd + dw < deltaThreshold
+    return dd + dw < Properties.deltaThreshold
 end
 
 ---@param pool Pool
@@ -228,23 +241,29 @@ local function linkMutate(genome, forceBias, inputSizeWithoutBiasNode, numberOfO
 end
 
 ---@return Neat
-function Neat:new(mutateConnectionsChance, linkMutationChance, biasMutationChance, nodeMutationChance,
-                  enableMutationChance, disableMutationChance, perturbChance, stepSize, population)
+function Neat:new(percentageOfTopSpeciesToBreedFrom, percentageToBreedFromTopSpecies, mutateConnectionsChance,
+                  linkMutationChance, biasMutationChance, nodeMutationChance, enableMutationChance,
+                  disableMutationChance, perturbChance, crossoverChance, staleSpecies, stepSize, population)
     ---@type Neat
     local o = {}
     self = self or o
     self.__index = self
     setmetatable(o, self)
 
-    o.mutateConnectionsChance = mutateConnectionsChance or defaultMutateConnectionsChance
-    o.linkMutationChance = linkMutationChance or defaultLinkMutationChance
-    o.biasMutationChance = biasMutationChance or defaultBiasMutationChance
-    o.nodeMutationChance = nodeMutationChance or defaultNodeMutationChance
-    o.enableMutationChance = enableMutationChance or defaultEnableMutationChance
-    o.disableMutationChance = disableMutationChance or defaultDisableMutationChance
-    o.perturbChance = perturbChance or defaultPerturbChance
-    o.stepSize = stepSize or defaultStepSize
-    o.generationStartingPopulation = population or defaultPopulation
+    o.percentageOfTopSpeciesToBreedFrom = percentageOfTopSpeciesToBreedFrom
+            or Properties.percentageOfTopSpeciesToBreedFrom
+    o.percentageToBreedFromTopSpecies = percentageToBreedFromTopSpecies or Properties.percentageToBreedFromTopSpecies
+    o.mutateConnectionsChance = mutateConnectionsChance or Properties.mutateConnectionsChance
+    o.linkMutationChance = linkMutationChance or Properties.linkMutationChance
+    o.biasMutationChance = biasMutationChance or Properties.biasMutationChance
+    o.nodeMutationChance = nodeMutationChance or Properties.nodeMutationChance
+    o.enableMutationChance = enableMutationChance or Properties.enableMutationChance
+    o.disableMutationChance = disableMutationChance or Properties.disableMutationChance
+    o.perturbChance = perturbChance or Properties.perturbChance
+    o.crossoverChance = crossoverChance or Properties.crossoverChance
+    o.staleSpecies = staleSpecies or Properties.staleSpecies
+    o.stepSize = stepSize or Properties.stepSize
+    o.generationStartingPopulation = population or Properties.population
     ---@type Pool
     o.pool = nil
     return o
@@ -258,8 +277,8 @@ function Neat:createNewPool(innovation)
 end
 
 ---@return Genome
-function Neat:createNewGenome(maxNeuron)
-    return Genome:new(maxNeuron, self.mutateConnectionsChance, self.linkMutationChance, self.biasMutationChance,
+function Neat:createNewGenome()
+    return Genome:new(nil, self.mutateConnectionsChance, self.linkMutationChance, self.biasMutationChance,
             self.nodeMutationChance, self.enableMutationChance, self.disableMutationChance, self.stepSize)
 end
 
@@ -271,7 +290,7 @@ end
 ---@return Genome
 function Neat:createBasicGenome(inputSizeWithoutBiasNode, outputSize)
     ---@type Genome
-    local genome = self:createNewGenome(nil)
+    local genome = self:createNewGenome()
 
     self:mutate(genome, inputSizeWithoutBiasNode, outputSize)
 
@@ -301,53 +320,20 @@ function Neat:orderSpeciesFromBestToWorst(pool)
     end)
 end
 
----@param pool Pool
-function Neat.calculateTotalFitness(pool)
-    local totalFitness = 0
-
-    for _, species in pairs(pool.species) do
-        for _, genome in pairs(species.genomes) do
-            totalFitness = totalFitness + genome.fitness
-        end
-    end
-
-    return totalFitness
-end
-
-function Neat.distributeOffspring(numberOfOffSpring, numberOfGenomes)
-    local offspringDistribution = {}
-    local totalProportion = 0
-
-    for i = 1, numberOfGenomes do
-        local proportion = i / (numberOfGenomes * (numberOfGenomes + 1) / 2)
-        totalProportion = totalProportion + proportion
-    end
-
-    for i = 1, numberOfGenomes do
-        local proportion = i / (numberOfGenomes * (numberOfGenomes + 1) / 2)
-        local amountToDistribute = math.floor(numberOfOffSpring * proportion / totalProportion)
-        table.insert(offspringDistribution, amountToDistribute)
-    end
-
-    return offspringDistribution
-end
-
 -- TODO: remove isTesting and find another way to test bredFrom
 ---@param pool Pool
 ---@return Genome[]
 function Neat:breedTopSpecies(pool, numberOfOffSpring, numberOfInputs, numberOfOutputs, isTesting)
-    local topSpeciesPercentage = 0.2
-
     self:orderSpeciesFromBestToWorst(pool)
 
-    local topSpeciesCount = math.ceil(#pool.species * topSpeciesPercentage)
-    local distrution = MathUtil.distribute(numberOfOffSpring, topSpeciesCount)
+    local topSpeciesCount = math.ceil(#pool.species * self.percentageOfTopSpeciesToBreedFrom)
+    local distribution = MathUtil.distribute(numberOfOffSpring, topSpeciesCount)
 
     ---@type Genome[]
     local children = {}
     for i = 1, topSpeciesCount do
         local species = pool.species[i]
-        local amountToBreed = distrution[i]
+        local amountToBreed = distribution[i]
 
         for _=1, amountToBreed do
             local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs)
@@ -428,26 +414,23 @@ function Neat:crossover(g1, g2)
         g2 = tempg
     end
 
-    for i=1,#g2.genes do
+    for i=1, #g2.genes do
         local gene = g2.genes[i]
         innovations2[gene.innovation] = gene
     end
 
-    for i=1,#g1.genes do
+    for i=1, #g1.genes do
         local gene1 = g1.genes[i]
         local gene2 = innovations2[gene1.innovation]
-        if gene2 ~= nil and MathUtil.random(2) == 1 and gene2.enabled then
+        if gene2 ~= nil and gene2.enabled and MathUtil.random(2) == 1 then
             table.insert(child.genes, Gene.copy(gene2))
         else
             table.insert(child.genes, Gene.copy(gene1))
         end
     end
 
-    child.maxNeuron = math.max(g1.maxNeuron,g2.maxNeuron)
-
-    for mutation,rate in pairs(g1.mutationRates.values) do
-        child.mutationRates.values[mutation] = rate
-    end
+    child.maxNeuron = math.max(g1.maxNeuron, g2.maxNeuron)
+    child.mutationRates = MutationRate.copy(g1.mutationRates)
 
     return child
 end
@@ -592,16 +575,16 @@ function Neat.rankGlobally(pool)
     end
 end
 
--- Destroy's genomes in all species
+-- Destroy's worse genomes based on fitness in all species
 ---@param pool Pool
 ---@param cutToOne boolean
 function Neat.cullSpecies(pool, cutToOne)
     for _, species in pairs(pool.species) do
-        table.sort(species.genomes, function (a,b)
+        table.sort(species.genomes, function (a, b)
             return (a.fitness > b.fitness)
         end)
 
-        local remaining = cutToOne and 1 or math.ceil(#species.genomes/2)
+        local remaining = cutToOne and 1 or math.ceil(#species.genomes / 2)
 
         while #species.genomes > remaining do
             table.remove(species.genomes)
@@ -614,12 +597,12 @@ end
 function Neat:breedChild(species, numberOfInputs, numberOfOutputs)
     ---@type Genome
     local child
-    if MathUtil.random() < crossoverChance then
-        local g1 = species.genomes[MathUtil.random(1, #species.genomes)]
-        local g2 = species.genomes[MathUtil.random(1, #species.genomes)]
+    if #species.genomes > 1 and MathUtil.random() < self.crossoverChance then
+        local g1, g2 = getTwoRandomGenomes(species.genomes)
         child = self:crossover(g1, g2)
     else
-        local g = species.genomes[MathUtil.random(1, #species.genomes)]
+        -- species.genomes[MathUtil.random(1, #species.genomes)]
+        local g = getGenomeWithHighestFitness(species.genomes)
         child = Genome.copy(g)
     end
 
@@ -629,7 +612,7 @@ function Neat:breedChild(species, numberOfInputs, numberOfOutputs)
 end
 
 ---@param pool Pool
-function Neat.removeStaleSpecies(pool)
+function Neat.removeStaleSpecies(pool, staleSpecies)
     ---@type Species[]
     local survived = {}
 
@@ -705,7 +688,7 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
             .. ' genomes down to ' .. pool:getNumberOfGenomes())
 
     -- Destroy any stale Species
-    self.removeStaleSpecies(pool)
+    self.removeStaleSpecies(pool, self.staleSpecies)
     Logger.info('Removed stale species. genomes left: ' .. pool:getNumberOfGenomes())
 
     -- set each individual Genome.globalRank
@@ -720,7 +703,8 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     Logger.info('Removed weak species. genomes left: ' .. pool:getNumberOfGenomes())
 
     -- breed 30% with top species
-    local numberOfOffSpringWithTopSpecies = (self.generationStartingPopulation - pool:getNumberOfGenomes()) * 0.30
+    local numberOfOffSpringWithTopSpecies = (self.generationStartingPopulation - pool:getNumberOfGenomes())
+            * self.percentageToBreedFromTopSpecies
 
     ---@type Genome[]
     local children = self:breedTopSpecies(pool, numberOfOffSpringWithTopSpecies, numberOfInputs, numberOfOutputs)

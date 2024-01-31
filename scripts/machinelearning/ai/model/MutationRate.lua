@@ -1,19 +1,9 @@
 ---@class MutationRate
 local MutationRate = {}
 
+local Properties = require('machinelearning.ai.static.Properties')
 local Rate = require('machinelearning.ai.model.Rate')
 local MathUtil = require('util.MathUtil')
-
-local defaultMutateConnectionsChance = 0.25
-local defaultLinkMutationChance = 2.0
-local defaultBiasMutationChance = 0.40
-local defaultNodeMutationChance = 0.50
-local defaultEnableMutationChance = 0.2
-local defaultDisableMutationChance = 0.4
-local defaultStepSize = 0.1
-
-local defaultMutationAmount1 = 0.95
-local defaultMutationAmount2 = 1.05263
 
 ---@return MutationRate
 function MutationRate:new(mutateConnectionsChance, linkMutationChance, biasMutationChance, nodeMutationChance,
@@ -25,13 +15,13 @@ function MutationRate:new(mutateConnectionsChance, linkMutationChance, biasMutat
     setmetatable(mutationRate, self)
 
     ---@type Rate
-    local rates = Rate.new(mutateConnectionsChance or defaultMutateConnectionsChance,
-                          linkMutationChance or defaultLinkMutationChance,
-                          biasMutationChance or defaultBiasMutationChance,
-                          nodeMutationChance or defaultNodeMutationChance,
-                          enableMutationChance or defaultEnableMutationChance,
-                          disableMutationChance or defaultDisableMutationChance,
-                          stepSize or defaultStepSize)
+    local rates = Rate.new(mutateConnectionsChance or Properties.mutateConnectionsChance,
+                          linkMutationChance or Properties.linkMutationChance,
+                          biasMutationChance or Properties.biasMutationChance,
+                          nodeMutationChance or Properties.nodeMutationChance,
+                          enableMutationChance or Properties.enableMutationChance,
+                          disableMutationChance or Properties.disableMutationChance,
+                          stepSize or Properties.stepSize)
     local values = {}
 
     -- will be set after mutate
@@ -70,8 +60,8 @@ end
 
 -- Sets the values of self depending on values passed and self.rate
 function MutationRate:mutate(amountA, amountB)
-    amountA = amountA or defaultMutationAmount1
-    amountB = amountB or defaultMutationAmount2
+    amountA = amountA or Properties.randomMutationFactor1
+    amountB = amountB or Properties.randomMutationFactor2
 
     -- For better readability, we won't use a for-loop.
     self.values.connections = self.rates.connections * (MathUtil.random(1,2) == 1 and amountA or amountB)

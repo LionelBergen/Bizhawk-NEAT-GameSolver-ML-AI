@@ -141,18 +141,18 @@ function TestNeat:testRemoveStaleSpecies()
     local pool = createMockPool()
     lu.assertEquals(#pool.species, 3)
 
-    Neat.removeStaleSpecies(pool)
+    Neat.removeStaleSpecies(pool, 15)
     lu.assertEquals(#pool.species, 3)
 
     for _=1, 15 do
         pool.species[3].genomes[1].fitness = (pool.species[3].genomes[1].fitness + 1)
-        Neat.removeStaleSpecies(pool)
+        Neat.removeStaleSpecies(pool, 15)
     end
 
     lu.assertEquals(#pool.species, 1)
 
     for _=1, 15 do
-        Neat.removeStaleSpecies(pool)
+        Neat.removeStaleSpecies(pool, 15)
     end
 
     lu.assertEquals(#pool.species, 0)
