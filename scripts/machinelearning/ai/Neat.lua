@@ -320,6 +320,19 @@ function Neat:orderSpeciesFromBestToWorst(pool)
     end)
 end
 
+---@param species Species
+function Neat.getCalculatedTopFitness(species)
+    local topFitness = 0
+
+    for _, genome in pairs(species.genomes) do
+        if genome.fitness > topFitness then
+            topFitness = genome.fitness
+        end
+    end
+
+    return topFitness
+end
+
 -- TODO: remove isTesting and find another way to test bredFrom
 ---@param pool Pool
 ---@return Genome[]
@@ -716,7 +729,7 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
 
     local population = pool:getNumberOfGenomes()
     Logger.info('Removed all but the top genomes. ' .. population
-            .. ' new genomes are left (not including the children just bred)')
+            .. ' genomes are left (not including the children just bred)')
     local numberOfChildrenWithRandomSpecies = 0
     while (#children + population) < self.generationStartingPopulation do
         local species = pool.species[MathUtil.random(1, #pool.species)]
