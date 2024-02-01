@@ -76,8 +76,9 @@ local function createGenerationResults()
 	Logger.info('Generation ' .. generationResults.generation .. ' results: ')
 	Logger.info('Number of species: ' .. #generationResults.speciesResults)
 	for i, speciesResult in pairs(generationResults.speciesResults) do
-		Logger.info('species ' .. i .. ' top fitness: ' ..
-				speciesResult.topFitness .. ' Total Fitness: ' .. speciesResult.totalFitness)
+		Logger.info('Species ' .. i .. ' Top Fitness: ' ..
+				speciesResult.topFitness .. ' Average Fitness: ' .. speciesResult.averageFitness
+				.. ' Number Of Genomes: ' .. speciesResult.numberOfGenomes)
 	end
 
 	return generationResults

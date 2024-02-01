@@ -31,7 +31,8 @@ function GenerationResults.create(pool)
             totalFitness = totalFitness + genome.fitness
         end
 
-        speciesResults[i] = SpeciesResults.new(topFitness, totalFitness)
+        local averageFitness = totalFitness / (#species.genomes)
+        speciesResults[i] = SpeciesResults.new(#species.genomes, topFitness, totalFitness, averageFitness)
     end
 
     return GenerationResults.new(pool.generation, speciesResults)

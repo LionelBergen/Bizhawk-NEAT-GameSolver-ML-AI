@@ -1,13 +1,17 @@
 ---@class SpeciesResults
 local SpeciesResults = {}
 
+---@param numberOfGenomes number
 ---@param topFitness number
 ---@param totalFitness number
-function SpeciesResults.new(topFitness, totalFitness)
+---@param averageFitness number
+function SpeciesResults.new(numberOfGenomes, topFitness, totalFitness, averageFitness)
     local speciesResults = {}
 
+    speciesResults.numberOfGenomes = numberOfGenomes
     speciesResults.topFitness = topFitness
     speciesResults.totalFitness = totalFitness
+    speciesResults.averageFitness = averageFitness
 
     return speciesResults
 end
