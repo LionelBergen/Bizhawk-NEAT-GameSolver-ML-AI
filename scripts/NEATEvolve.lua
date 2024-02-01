@@ -4,6 +4,7 @@ local FileUtil = require('util/FileUtil')
 local ErrorHandler = require('util.ErrorHandler')
 local Logger = require('util.Logger')
 local GameHandler = require('util/bizhawk/GameHandler')
+local Properties = require('machinelearning.ai.static.Properties')
 local Neat = require('machinelearning/ai/Neat')
 local Mario = require('util.bizhawk.rom.super_mario_usa.Mario')
 local Validator = require('../util/Validator')
@@ -84,6 +85,32 @@ local function createGenerationResults()
 	return generationResults
 end
 
+local function createPropertiesSnapshot()
+	local properties = {}
+
+	properties.percentageOfTopSpeciesToBreedFrom = neatMLAI.percentageOfTopSpeciesToBreedFrom
+	properties.percentageToBreedFromTopSpecies = neatMLAI.percentageToBreedFromTopSpecies
+	properties.mutateConnectionsChance = neatMLAI.mutateConnectionsChance
+	properties.linkMutationChance = neatMLAI.linkMutationChance
+	properties.biasMutationChance = neatMLAI.biasMutationChance
+	properties.nodeMutationChance = neatMLAI.nodeMutationChance
+	properties.enableMutationChance = neatMLAI.enableMutationChance
+	properties.disableMutationChance = neatMLAI.disableMutationChance
+	properties.perturbChance = neatMLAI.perturbChance
+	properties.crossoverChance = neatMLAI.crossoverChance
+	properties.staleSpecies = neatMLAI.staleSpecies
+	properties.stepSize = neatMLAI.stepSize
+	properties.generationStartingPopulation = neatMLAI.population
+
+	properties.deltaDisjoint = Properties.deltaDisjoint
+	properties.deltaWeights = Properties.deltaWeights
+	properties.deltaThreshold = Properties.deltaThreshold
+
+	properties.staleSpecies = Properties.staleSpecies
+	properties.randomMutationFactor1 = Properties.randomMutationFactor1
+	properties.randomMutationFactor2 = Properties.randomMutationFactor2
+end
+
 ---@param pool Pool
 local function saveNewBackup(pool, saveFolderName, filePostfix)
 	if mode ~= Mode.Manual then
@@ -152,7 +179,9 @@ local function nextGenome(neatObject)
 		pool.currentGenome = 1
 		-- if we've reached the end of all species
 		if pool.currentSpecies > #pool.species then
-			createGenerationResults()
+			---@type GenerationResults
+			local generationResults = createGenerationResults()
+			local propertiesSnapshot = createPropertiesSnapshot()
 			Logger.info('---------------- NEW GENERATION! ------------------------')
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
 			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
