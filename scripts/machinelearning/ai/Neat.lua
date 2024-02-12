@@ -34,11 +34,9 @@ end
 ---@param genomes Genome[]
 ---@return Genome, Genome
 local function getTwoRandomGenomes(genomes)
-    -- local shuffledGenomeList = shuffle(genomes)
+    local shuffledGenomeList = shuffle(genomes)
 
-    -- return shuffledGenomeList[1], shuffledGenomeList[2]
-
-    return genomes[MathUtil.random(#genomes)], genomes[MathUtil.random(#genomes)]
+    return shuffledGenomeList[1], shuffledGenomeList[2]
 end
 
 ---@param genomes Genome[]
