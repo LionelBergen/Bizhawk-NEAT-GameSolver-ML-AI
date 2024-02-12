@@ -312,11 +312,9 @@ end
 
 ---@param pool Pool
 function Neat:orderSpeciesFromBestToWorst(pool)
-    self.calculateAverageFitnessRank(pool)
-
     -- Sort species based on average fitness rank
     table.sort(pool.species, function(a, b)
-        return a.averageFitnessRank > b.averageFitnessRank
+        return self.getCalculatedTopFitness(a) > self.getCalculatedTopFitness(b)
     end)
 end
 
@@ -351,6 +349,7 @@ function Neat:breedTopSpecies(pool, numberOfOffSpring, numberOfInputs, numberOfO
         for _=1, amountToBreed do
             local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs)
             table.insert(children, childGenome)
+            Logger.info('bred from species with topfitness: ' .. species.topFitness)
             if isTesting then
                childGenome.bredFrom = i
             end
