@@ -34,5 +34,7 @@ function TestMathUtil:testDistribute()
     lu.assertEquals(result[20], 0)
 end
 
--- Run the tests
-os.exit(lu.LuaUnit.run())
+if not fullTestSuite then
+    -- Run the tests
+    os.exit(lu.LuaUnit.run())
+end
