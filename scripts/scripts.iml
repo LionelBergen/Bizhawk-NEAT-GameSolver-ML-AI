@@ -5,7 +5,7 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$" isTestSource="false" />
     </content>
-    <content url="file://$MODULE_DIR$/../tests" />
+    <content url="file://$MODULE_DIR$/tests" />
     <orderEntry type="jdk" jdkName="Lua" jdkType="Lua SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

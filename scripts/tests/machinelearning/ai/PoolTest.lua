@@ -68,5 +68,7 @@ function TestPool:testGetNumberOfGenomesNone()
 end
 
 
--- Run the tests
-os.exit(lu.LuaUnit.run())
+if not fullTestSuite then
+    -- Run the tests
+    os.exit(lu.LuaUnit.run())
+end

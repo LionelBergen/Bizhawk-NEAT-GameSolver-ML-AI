@@ -112,5 +112,7 @@ function TestNetwork:testGetOrCreateNeuronUnknownType()
     lu.assertStrContains(errorMessage, 'unknown neuronType: 5')
 end
 
--- Run the tests
-os.exit(lu.LuaUnit.run())
+if not fullTestSuite then
+    -- Run the tests
+    os.exit(lu.LuaUnit.run())
+end
