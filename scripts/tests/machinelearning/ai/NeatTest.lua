@@ -6,6 +6,10 @@ local Neat = require('machinelearning.ai.Neat')
 local Pool = require('machinelearning.ai.model.Pool')
 local Genome = require('machinelearning.ai.model.Genome')
 local Species = require('machinelearning.ai.model.Species')
+-- To allow ErrorHandler to work
+console = {}
+function console.log()  end
+
 TestNeat = {}
 
 -- Create a mock pool with species and genomes
@@ -283,5 +287,7 @@ function TestNeat:testBreedTopSpecies()
     lu.assertEquals(resultChildren[4].bredFrom, 1)
 end
 
--- Run the tests
-os.exit(lu.LuaUnit.run())
+if not fullTestSuite then
+    -- Run the tests
+    os.exit(lu.LuaUnit.run())
+end
