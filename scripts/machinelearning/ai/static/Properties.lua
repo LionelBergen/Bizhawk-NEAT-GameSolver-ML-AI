@@ -17,7 +17,7 @@ Properties.crossoverChance = 0.75
 
 Properties.deltaDisjoint = 2.0
 Properties.deltaWeights = 0.4
-Properties.deltaThreshold = 1.0
+Properties.deltaThreshold = 3.0
 
 -- After this many times without a higher 'topFitness' genome in the species, remove the species
 Properties.staleSpecies = 15

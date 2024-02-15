@@ -5,6 +5,7 @@ local SpeciesResults = require('machinelearning.ai.model.record.SpeciesResults')
 
 ---@param generation number
 ---@param speciesResults SpeciesResults[]
+---@return GenerationResults
 function GenerationResults.new(generation, speciesResults)
     local generationResults = {}
 
@@ -16,6 +17,7 @@ function GenerationResults.new(generation, speciesResults)
 end
 
 ---@param pool Pool
+---@return GenerationResults
 function GenerationResults.create(pool)
     ---@type SpeciesResults[]
     local speciesResults = {}
@@ -34,6 +36,10 @@ function GenerationResults.create(pool)
         local averageFitness = totalFitness / (#species.genomes)
         speciesResults[i] = SpeciesResults.new(#species.genomes, topFitness, totalFitness, averageFitness)
     end
+
+    table.sort(speciesResults, function(a, b)
+        return a.topFitness > b.topFitness
+    end)
 
     return GenerationResults.new(pool.generation, speciesResults)
 end

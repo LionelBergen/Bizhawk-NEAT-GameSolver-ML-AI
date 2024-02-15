@@ -11,6 +11,7 @@ local MathUtil = require('util.MathUtil')
 local Display = require('display.Display')
 local Forms = require('util.bizhawk.wrapper.Forms')
 local GenerationResults = require('machinelearning.ai.model.record.GenerationResults')
+local PropertiesSnapshot = require('machinelearning.ai.model.record.PropertiesSnapshot')
 
 ---@type Mario
 local rom = Mario
@@ -18,12 +19,16 @@ local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
 local poolFileNamePostfix = poolFileNamePrefix .. ".json"
 local machineLearningProjectName = 'Mario_testing'
+local machineLearningProgramRunName = '3.0_detla'
 local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
+local results_save_file_name = machineLearningProgramRunName .. '_results_'
+local properties_save_file_name = machineLearningProgramRunName .. '_properties_'
 local seed = 12345
 local LEVEL_COMPLETE_FITNESS_BONUS = 1000
 local DEATH_FITNESS_BONUS = 0
 local evaluateEveryNthFrame = 1
+local saveSnapshotEveryNthGeneration = 6
 
 MathUtil.init(seed)
 
@@ -71,6 +76,7 @@ end
 
 ---@return GenerationResults
 local function createGenerationResults()
+	---@type GenerationResults
 	local generationResults = GenerationResults.create(neatMLAI.pool)
 
 	Logger.info('Generation ' .. generationResults.generation .. ' results: ')
@@ -82,6 +88,13 @@ local function createGenerationResults()
 	end
 
 	return generationResults
+end
+
+---@return PropertiesSnapshot
+local function createPropertiesSnapshot()
+	local propertiesSnapshot = PropertiesSnapshot.create(neatMLAI)
+
+	return propertiesSnapshot
 end
 
 ---@param pool Pool
@@ -152,7 +165,8 @@ local function nextGenome(neatObject)
 		pool.currentGenome = 1
 		-- if we've reached the end of all species
 		if pool.currentSpecies > #pool.species then
-			createGenerationResults()
+			---@type GenerationResults
+			local generationResults = createGenerationResults()
 			Logger.info('---------------- NEW GENERATION! ------------------------')
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
 			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
@@ -163,6 +177,14 @@ local function nextGenome(neatObject)
 
 			if pool:getNumberOfGenomes() ~= neatObject.generationStartingPopulation then
 				error('new generation produced invalid number of genomes: ' .. pool:getNumberOfGenomes())
+			end
+
+			if (pool.generation % saveSnapshotEveryNthGeneration == 0) then
+				local propertiesSnapshot = createPropertiesSnapshot()
+				GameHandler.saveFileFromPropertiesSnapshot(poolSavesFolder ..
+						(properties_save_file_name .. pool.generation .. '.snapshot'), propertiesSnapshot)
+				GameHandler.saveFileFromGenerationResults(poolSavesFolder ..
+						(results_save_file_name .. pool.generation .. '.snapshot'), generationResults)
 			end
 		end
 	end
