@@ -19,10 +19,11 @@ local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
 local poolFileNamePostfix = poolFileNamePrefix .. ".json"
 local machineLearningProjectName = 'Mario_testing'
+local machineLearningProgramRunName = '3.0_detla'
 local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
-local results_save_file_name = 'results_'
-local properties_save_file_name = 'properties_'
+local results_save_file_name = machineLearningProgramRunName .. '_results_'
+local properties_save_file_name = machineLearningProgramRunName .. '_properties_'
 local seed = 12345
 local LEVEL_COMPLETE_FITNESS_BONUS = 1000
 local DEATH_FITNESS_BONUS = 0
@@ -181,9 +182,9 @@ local function nextGenome(neatObject)
 			if (pool.generation % saveSnapshotEveryNthGeneration == 0) then
 				local propertiesSnapshot = createPropertiesSnapshot()
 				GameHandler.saveFileFromPropertiesSnapshot(poolSavesFolder ..
-						(properties_save_file_name .. pool.generation), propertiesSnapshot)
+						(properties_save_file_name .. pool.generation .. '.snapshot'), propertiesSnapshot)
 				GameHandler.saveFileFromGenerationResults(poolSavesFolder ..
-						(results_save_file_name .. pool.generation), generationResults)
+						(results_save_file_name .. pool.generation .. '.snapshot'), generationResults)
 			end
 		end
 	end
