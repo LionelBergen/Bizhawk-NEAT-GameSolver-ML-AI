@@ -55,6 +55,97 @@ function TestGenomeUtil:testGetGenomeWithHighestFitness()
     lu.assertEquals(result.fitness, 0.8)
 end
 
+function TestGenomeUtil:testIsSameSpecies()
+    -- Mock genome objects
+    local genome1 = {
+        genes = {
+            { innovation = 1, weight = 0.5 },
+            { innovation = 2, weight = -0.3 },
+            { innovation = 3, weight = 0.8 }
+        }
+    }
+    local genome2 = {
+        genes = {
+            { innovation = 2, weight = -0.2 },
+            { innovation = 3, weight = 0.9 },
+            { innovation = 4, weight = 0.4 }
+        }
+    }
+
+    -- Mock properties
+    Properties = {
+        deltaDisjoint = 0.1,
+        deltaWeights = 0.2,
+        deltaThreshold = 0.5
+    }
+
+    -- Call the function to check if the genomes are in the same species
+    local sameSpecies = GenomeUtil.isSameSpecies(genome1, genome2)
+
+    -- Assert that the genomes are not in the same species based on the mock properties
+    lu.assertTrue(sameSpecies)
+end
+
+function TestGenomeUtil:testIsSameSpeciesFalse()
+    -- Mock genome objects
+    local genome1 = {
+        genes = {
+            { innovation = 1, weight = 0.5 },
+            { innovation = 2, weight = -0.3 },
+            { innovation = 3, weight = 0.8 }
+        }
+    }
+    local genome2 = {
+        genes = {
+            { innovation = 1, weight = 4.5 },
+            { innovation = 5, weight = 0.9 },
+            { innovation = 6, weight = 0.4 }
+        }
+    }
+
+    -- Mock properties
+    Properties = {
+        deltaDisjoint = 2.0,
+        deltaWeights = 0.4,
+        deltaThreshold = 3.0
+    }
+
+    -- Call the function to check if the genomes are in the same species
+    local sameSpecies = GenomeUtil.isSameSpecies(genome1, genome2)
+
+    lu.assertFalse(sameSpecies)
+end
+
+function TestGenomeUtil:testIsSameSpeciesFalseNoneSame()
+    -- Mock genome objects
+    local genome1 = {
+        genes = {
+            { innovation = 1, weight = 0.5 },
+            { innovation = 2, weight = -0.3 },
+            { innovation = 3, weight = 0.8 }
+        }
+    }
+    local genome2 = {
+        genes = {
+            { innovation = 4, weight = -0.2 },
+            { innovation = 5, weight = 0.9 },
+            { innovation = 6, weight = 0.4 }
+        }
+    }
+
+    -- Mock properties
+    Properties = {
+        deltaDisjoint = 0.1,
+        deltaWeights = 0.2,
+        deltaThreshold = 0.5
+    }
+
+    -- Call the function to check if the genomes are in the same species
+    local sameSpecies = GenomeUtil.isSameSpecies(genome1, genome2)
+
+    lu.assertFalse(sameSpecies)
+end
+
 if not fullTestSuite then
     -- Run the tests
     os.exit(lu.LuaUnit.run())
