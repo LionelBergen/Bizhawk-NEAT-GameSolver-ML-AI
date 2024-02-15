@@ -4,7 +4,6 @@ local FileUtil = require('util/FileUtil')
 local ErrorHandler = require('util.ErrorHandler')
 local Logger = require('util.Logger')
 local GameHandler = require('util/bizhawk/GameHandler')
-local Properties = require('machinelearning.ai.static.Properties')
 local Neat = require('machinelearning/ai/Neat')
 local Mario = require('util.bizhawk.rom.super_mario_usa.Mario')
 local Validator = require('../util/Validator')
@@ -12,6 +11,7 @@ local MathUtil = require('util.MathUtil')
 local Display = require('display.Display')
 local Forms = require('util.bizhawk.wrapper.Forms')
 local GenerationResults = require('machinelearning.ai.model.record.GenerationResults')
+local PropertiesSnapshot = require('machinelearning.ai.model.record.PropertiesSnapshot')
 
 ---@type Mario
 local rom = Mario
@@ -21,10 +21,13 @@ local poolFileNamePostfix = poolFileNamePrefix .. ".json"
 local machineLearningProjectName = 'Mario_testing'
 local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
+local results_save_file_name = 'results_'
+local properties_save_file_name = 'properties_'
 local seed = 12345
 local LEVEL_COMPLETE_FITNESS_BONUS = 1000
 local DEATH_FITNESS_BONUS = 0
 local evaluateEveryNthFrame = 1
+local saveSnapshotEveryNthGeneration = 6
 
 MathUtil.init(seed)
 
@@ -72,6 +75,7 @@ end
 
 ---@return GenerationResults
 local function createGenerationResults()
+	---@type GenerationResults
 	local generationResults = GenerationResults.create(neatMLAI.pool)
 
 	Logger.info('Generation ' .. generationResults.generation .. ' results: ')
@@ -85,30 +89,11 @@ local function createGenerationResults()
 	return generationResults
 end
 
+---@return PropertiesSnapshot
 local function createPropertiesSnapshot()
-	local properties = {}
+	local propertiesSnapshot = PropertiesSnapshot.create(neatMLAI)
 
-	properties.percentageOfTopSpeciesToBreedFrom = neatMLAI.percentageOfTopSpeciesToBreedFrom
-	properties.percentageToBreedFromTopSpecies = neatMLAI.percentageToBreedFromTopSpecies
-	properties.mutateConnectionsChance = neatMLAI.mutateConnectionsChance
-	properties.linkMutationChance = neatMLAI.linkMutationChance
-	properties.biasMutationChance = neatMLAI.biasMutationChance
-	properties.nodeMutationChance = neatMLAI.nodeMutationChance
-	properties.enableMutationChance = neatMLAI.enableMutationChance
-	properties.disableMutationChance = neatMLAI.disableMutationChance
-	properties.perturbChance = neatMLAI.perturbChance
-	properties.crossoverChance = neatMLAI.crossoverChance
-	properties.staleSpecies = neatMLAI.staleSpecies
-	properties.stepSize = neatMLAI.stepSize
-	properties.generationStartingPopulation = neatMLAI.population
-
-	properties.deltaDisjoint = Properties.deltaDisjoint
-	properties.deltaWeights = Properties.deltaWeights
-	properties.deltaThreshold = Properties.deltaThreshold
-
-	properties.staleSpecies = Properties.staleSpecies
-	properties.randomMutationFactor1 = Properties.randomMutationFactor1
-	properties.randomMutationFactor2 = Properties.randomMutationFactor2
+	return propertiesSnapshot
 end
 
 ---@param pool Pool
@@ -181,7 +166,6 @@ local function nextGenome(neatObject)
 		if pool.currentSpecies > #pool.species then
 			---@type GenerationResults
 			local generationResults = createGenerationResults()
-			local propertiesSnapshot = createPropertiesSnapshot()
 			Logger.info('---------------- NEW GENERATION! ------------------------')
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
 			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
@@ -192,6 +176,14 @@ local function nextGenome(neatObject)
 
 			if pool:getNumberOfGenomes() ~= neatObject.generationStartingPopulation then
 				error('new generation produced invalid number of genomes: ' .. pool:getNumberOfGenomes())
+			end
+
+			if (pool.generation % saveSnapshotEveryNthGeneration == 0) then
+				local propertiesSnapshot = createPropertiesSnapshot()
+				GameHandler.saveFileFromPropertiesSnapshot(poolSavesFolder ..
+						(properties_save_file_name .. pool.generation), propertiesSnapshot)
+				GameHandler.saveFileFromGenerationResults(poolSavesFolder ..
+						(results_save_file_name .. pool.generation), generationResults)
 			end
 		end
 	end

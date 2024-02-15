@@ -97,6 +97,20 @@ function GameHandler.saveFileFromPool(filename, pool, additionalFields)
 	fileJson:close()
 end
 
+---@param propertiesSnapshot PropertiesSnapshot
+function GameHandler.saveFileFromPropertiesSnapshot(filename, propertiesSnapshot)
+	local fileJson = io.open(filename, "w")
+	fileJson:write(Json.encode(propertiesSnapshot))
+	fileJson:close()
+end
+
+---@param generationResults GenerationResults
+function GameHandler.saveFileFromGenerationResults(filename, generationResults)
+	local fileJson = io.open(filename, "w")
+	fileJson:write(Json.encode(generationResults))
+	fileJson:close()
+end
+
 function GameHandler.clearJoypad(rom)
 	local controller = {}
 	for b = 1,#rom.getButtonOutputs() do
