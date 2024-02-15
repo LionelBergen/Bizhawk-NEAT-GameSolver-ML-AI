@@ -40,6 +40,19 @@ local function getTwoRandomGenomes(genomes)
 end
 
 ---@param genomes Genome[]
+---@return Genome, Genome
+local function getTwoTopGenomes(genomes)
+    -- Copy the list so we don't modify the order of the genomes passed
+    local shuffledGenomeList = shuffle(genomes)
+
+    table.sort(shuffledGenomeList, function(a, b)
+        return a.fitness > b.fitness
+    end)
+
+    return shuffledGenomeList[1], shuffledGenomeList[2]
+end
+
+---@param genomes Genome[]
 ---@return Genome
 local function getGenomeWithHighestFitness(genomes)
     table.sort(genomes, function (a,b)
@@ -347,7 +360,7 @@ function Neat:breedTopSpecies(pool, numberOfOffSpring, numberOfInputs, numberOfO
         local amountToBreed = distribution[i]
 
         for _=1, amountToBreed do
-            local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs)
+            local childGenome = self:breedChild(species, numberOfInputs, numberOfOutputs, false)
             table.insert(children, childGenome)
             Logger.info('bred from species with topfitness: ' .. species.topFitness)
             if isTesting then
@@ -606,14 +619,18 @@ end
 
 ---@param species Species
 ---@return Genome
-function Neat:breedChild(species, numberOfInputs, numberOfOutputs)
+function Neat:breedChild(species, numberOfInputs, numberOfOutputs, breedWithTopGenomes)
     ---@type Genome
     local child
     if #species.genomes > 1 and MathUtil.random() < self.crossoverChance then
-        local g1, g2 = getTwoRandomGenomes(species.genomes)
+        local g1, g2
+        if breedWithTopGenomes then
+            g1, g2 = getTwoTopGenomes(species.genomes)
+        else
+            g1, g2 = getTwoRandomGenomes(species.genomes)
+        end
         child = self:crossover(g1, g2)
     else
-        -- species.genomes[MathUtil.random(1, #species.genomes)]
         local g = getGenomeWithHighestFitness(species.genomes)
         child = Genome.copy(g)
     end
@@ -732,7 +749,7 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
     local numberOfChildrenWithRandomSpecies = 0
     while (#children + population) < self.generationStartingPopulation do
         local species = pool.species[MathUtil.random(1, #pool.species)]
-        table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs))
+        table.insert(children, self:breedChild(species, numberOfInputs, numberOfOutputs, false))
         numberOfChildrenWithRandomSpecies = numberOfChildrenWithRandomSpecies + 1
     end
     Logger.info('Bred ' .. numberOfChildrenWithRandomSpecies .. ' new genomes with random species')
