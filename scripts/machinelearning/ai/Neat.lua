@@ -631,7 +631,6 @@ function Neat:breedChild(species, numberOfInputs, numberOfOutputs, breedWithTopG
         end
         child = self:crossover(g1, g2)
     else
-        -- species.genomes[MathUtil.random(1, #species.genomes)]
         local g = getGenomeWithHighestFitness(species.genomes)
         child = Genome.copy(g)
     end
