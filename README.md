@@ -29,6 +29,12 @@ Properties
 NEAT/Machine Learning properties, such as Population, Mutation Chance ETC can be found inside machinelearning.ai.sstatic.Properties    
 Game and other Properties can be found at the beginning of the main file.   
 
+
+IDE Setup
+---------   
+In InteliJ, simply right click the 'scripts' folder, 'mark directory as', 'sources root'.   
+
+
 Running Tests
 -------------  
 Tests should be run using `lua tests.lua`. Currently the tests.lua file contains all tests. when a new test class is added it should be added to this class.   
