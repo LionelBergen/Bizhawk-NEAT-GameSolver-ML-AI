@@ -162,6 +162,26 @@ function TestNeat:testRemoveStaleSpecies()
     lu.assertEquals(#pool.species, 0)
 end
 
+function TestNeat:testRemoveStaleSpeciesNonStale()
+    local pool = createMockPool()
+    lu.assertEquals(#pool.species, 3)
+
+    for _=1, 15 do
+        Neat.removeStaleSpecies(pool, 15)
+    end
+    lu.assertEquals(#pool.species, 3)
+
+    pool.species[1].genomes[1].fitness = pool.species[1].genomes[1].fitness + 1
+    Neat.removeStaleSpecies(pool, 15)
+    lu.assertEquals(#pool.species, 1)
+
+    for _=1, 12 do
+        Neat.removeStaleSpecies(pool, 15)
+    end
+
+    lu.assertEquals(#pool.species, 1)
+end
+
 function TestNeat:testRemoveWeakSpecies()
     local pool = createMockPool()
     -- add a weak species

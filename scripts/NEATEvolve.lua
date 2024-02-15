@@ -19,7 +19,7 @@ local saveFileName = 'SMW.state'
 local poolFileNamePrefix = 'SuperMario_ML_pools'
 local poolFileNamePostfix = poolFileNamePrefix .. ".json"
 local machineLearningProjectName = 'Mario_testing'
-local machineLearningProgramRunName = '3.0_detla'
+local machineLearningProgramRunName = 'DONTbreedWithTopSpecies'
 local poolSavesFolder = FileUtil.getCurrentDirectory() ..
 		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
 local results_save_file_name = machineLearningProgramRunName .. '_results_'
