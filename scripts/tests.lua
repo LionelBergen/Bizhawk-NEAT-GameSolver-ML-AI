@@ -4,6 +4,7 @@ local lu = require('luaunit')
 fullTestSuite = true
 
 require('tests.util.MathUtilTest')
+require('tests.util.GenomeUtilTest')
 require('tests.util.RandomNumberTest')
 require('tests.machinelearning.ai.NeatTest')
 require('tests.machinelearning.ai.NetworkTest')

@@ -14,40 +14,8 @@ local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 local Validator = require('../util/Validator')
 local MathUtil = require('util.MathUtil')
+local GenomeUtil = require('util.GenomeUtil')
 local MutationRate = require('machinelearning.ai.model.MutationRate')
-
--- Generates a random number between -2 and 2
-local function generateRandomWeight()
-    return MathUtil.random() * 4 - 2
-end
-
-local function shuffle(t)
-    local s = {}
-    for i = 1, #t do s[i] = t[i] end
-    for i = #t, 2, -1 do
-        local j = MathUtil.random(i)
-        s[i], s[j] = s[j], s[i]
-    end
-    return s
-end
-
----@param genomes Genome[]
----@return Genome, Genome
-local function getTwoRandomGenomes(genomes)
-    local shuffledGenomeList = shuffle(genomes)
-
-    return shuffledGenomeList[1], shuffledGenomeList[2]
-end
-
----@param genomes Genome[]
----@return Genome
-local function getGenomeWithHighestFitness(genomes)
-    table.sort(genomes, function (a,b)
-        return (a.fitness > b.fitness)
-    end)
-
-    return genomes[1]
-end
 
 -- Counts the number of non-matching innovation's in genes1 and genes2 then divides by
 -- the number of genes of genes1 or genes2, whichever is greater
@@ -140,7 +108,7 @@ local function pointMutate(genome, perturbChance)
             local randomPerturbation = (MathUtil.random() * 2 * step) - step
             gene.weight = gene.weight + randomPerturbation
         else
-            gene.weight = generateRandomWeight()
+            gene.weight = GenomeUtil.generateRandomWeight()
         end
     end
 
@@ -235,7 +203,7 @@ local function linkMutate(genome, forceBias, inputSizeWithoutBiasNode, numberOfO
     end
 
     newLink.innovation = pool:newInnovation()
-    newLink.weight = generateRandomWeight()
+    newLink.weight = GenomeUtil.generateRandomWeight()
 
     return newLink
 end
@@ -610,11 +578,11 @@ function Neat:breedChild(species, numberOfInputs, numberOfOutputs)
     ---@type Genome
     local child
     if #species.genomes > 1 and MathUtil.random() < self.crossoverChance then
-        local g1, g2 = getTwoRandomGenomes(species.genomes)
+        local g1, g2 = GenomeUtil.getTwoRandomGenomes(species.genomes)
         child = self:crossover(g1, g2)
     else
         -- species.genomes[MathUtil.random(1, #species.genomes)]
-        local g = getGenomeWithHighestFitness(species.genomes)
+        local g = GenomeUtil.getGenomeWithHighestFitness(species.genomes)
         child = Genome.copy(g)
     end
 
