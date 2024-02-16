@@ -17,23 +17,6 @@ local MathUtil = require('util.MathUtil')
 local GenomeUtil = require('util.GenomeUtil')
 local MutationRate = require('machinelearning.ai.model.MutationRate')
 
----@param genome Genome
-local function pointMutate(genome, perturbChance)
-    local step = genome.mutationRates.values.step
-
-    for _, gene in pairs(genome.genes) do
-        if MathUtil.random() < perturbChance then
-            -- Generate a random number between -step and step
-            local randomPerturbation = (MathUtil.random() * 2 * step) - step
-            gene.weight = gene.weight + randomPerturbation
-        else
-            gene.weight = GenomeUtil.generateRandomWeight()
-        end
-    end
-
-    return genome
-end
-
 ---@param genes Gene[]
 ---@param isInput boolean
 ---@param inputSizeWithoutBiasNode number
@@ -387,7 +370,7 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
 
     if MathUtil.random() < genome.mutationRates.values.connections then
         -- modifies gene's weight
-        genome = pointMutate(genome, self.perturbChance)
+        genome = GenomeUtil.pointMutate(genome, self.perturbChance)
         Validator.validateGenome(genome)
     end
 
