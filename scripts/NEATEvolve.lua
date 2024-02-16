@@ -152,7 +152,6 @@ local function initializeRun(neatObject)
 
 	neatObject.generateNetwork(genome, inputSizeWithoutBiasNode, outputSize)
 	Validator.validatePool(neatObject.pool)
-	-- evaluateCurrent(neatObject, genome)
 end
 
 ---@param neatObject Neat
