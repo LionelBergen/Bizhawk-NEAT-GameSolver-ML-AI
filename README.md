@@ -32,8 +32,8 @@ Game and other Properties can be found at the beginning of the main file.
 
 IDE Setup
 ---------   
-In InteliJ, simply right click the 'scripts' folder, 'mark directory as', 'sources root'.   
-
+In InteliJ, simply right click the 'scripts' folder, 'mark directory as', 'sources root'.  
+Install Lua plugin if not installed. `EmmyLua`    
 
 Running Tests
 -------------  
