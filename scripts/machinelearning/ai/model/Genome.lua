@@ -2,6 +2,7 @@
 local Genome = {}
 
 local MutationRate = require('machinelearning.ai.model.MutationRate')
+local Gene = require('machinelearning.ai.model.Gene')
 local Validator = require('../util/Validator')
 
 ---@return Genome
@@ -34,7 +35,8 @@ function Genome.copy(genome)
     ---@type Genome
     local genomeCopy = Genome:new()
     for _, gene in pairs(genome.genes) do
-        genomeCopy:addGene(gene)
+        local geneCopy = Gene.copy(gene)
+        genomeCopy:addGene(geneCopy)
     end
 
     ---@type Network
