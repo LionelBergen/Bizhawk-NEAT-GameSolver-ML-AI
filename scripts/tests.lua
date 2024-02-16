@@ -6,6 +6,8 @@ fullTestSuite = true
 require('tests.util.MathUtilTest')
 require('tests.util.GenomeUtilTest')
 require('tests.util.RandomNumberTest')
+require('tests.machinelearning.ai.model.GeneTest')
+require('tests.machinelearning.ai.model.GenomeTest')
 require('tests.machinelearning.ai.NeatTest')
 require('tests.machinelearning.ai.NetworkTest')
 require('tests.machinelearning.ai.PoolTest')
