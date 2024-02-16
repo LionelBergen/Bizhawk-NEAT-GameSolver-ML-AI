@@ -4,7 +4,6 @@ local lu = require('luaunit')
 local GenomeUtil = require('util.GenomeUtil')
 local MathUtil = require('util.MathUtil')
 
--- Test the RandomNumber class
 TestGenomeUtil = {}
 
 function TestGenomeUtil:setUp()

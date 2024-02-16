@@ -113,11 +113,10 @@ end
 
 function GameHandler.clearJoypad(rom)
 	local controller = {}
-	for b = 1,#rom.getButtonOutputs() do
+	for b = 1, #rom.getButtonOutputs() do
 		controller["P1 " .. rom.getButtonOutputs()[b]] = false
 	end
 	joypad.set(controller)
 end
-
 
 return GameHandler
