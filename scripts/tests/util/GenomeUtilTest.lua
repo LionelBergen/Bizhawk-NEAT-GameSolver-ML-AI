@@ -213,7 +213,7 @@ function TestGenomeUtil:testGetRandomNeuronInfoInput()
     lu.assertEquals(randomNeuronInfo.index, 1)
 end
 
-function TestGenomeUtil:testGetRandomNeuronInfoOutput()
+function TestGenomeUtil:testGetRandomNeuronInfoProcessing()
     -- Test case for getting a random output neuron
     local genes = {
         { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) },
@@ -226,6 +226,21 @@ function TestGenomeUtil:testGetRandomNeuronInfoOutput()
 
     lu.assertEquals(randomNeuronInfo.type, NeuronType.PROCESSING)
     lu.assertEquals(randomNeuronInfo.index, 33)
+end
+
+function TestGenomeUtil:testGetRandomNeuronInfoOutput()
+    -- Test case for getting a random output neuron
+    local genes = {
+        { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) },
+        { into = NeuronInfo.new(20, NeuronType.PROCESSING), out = NeuronInfo.new(400, NeuronType.PROCESSING) }
+    }
+    local inputSizeWithoutBiasNode = 1000
+    local outputSize = 100
+
+    local randomNeuronInfo = GenomeUtil.getRandomNeuronInfo(genes, false, inputSizeWithoutBiasNode, outputSize)
+
+    lu.assertEquals(randomNeuronInfo.type, NeuronType.OUTPUT)
+    lu.assertEquals(randomNeuronInfo.index, 24)
 end
 
 if not fullTestSuite then
