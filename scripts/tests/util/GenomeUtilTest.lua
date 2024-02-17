@@ -226,6 +226,14 @@ function TestGenomeUtil:testGetRandomNeuronInfoProcessing()
 
     lu.assertEquals(randomNeuronInfo.type, NeuronType.PROCESSING)
     lu.assertEquals(randomNeuronInfo.index, 33)
+
+    -- Ensure we can never get an input because input is false
+    for _=1, 100 do
+        randomNeuronInfo = GenomeUtil.getRandomNeuronInfo(genes, false, inputSizeWithoutBiasNode, outputSize)
+
+        lu.assertNotEquals(randomNeuronInfo.type, NeuronType.INPUT)
+        lu.assertNotEquals(randomNeuronInfo.type, NeuronType.BIAS)
+    end
 end
 
 function TestGenomeUtil:testGetRandomNeuronInfoOutput()
