@@ -17,59 +17,6 @@ local MathUtil = require('util.MathUtil')
 local GenomeUtil = require('util.GenomeUtil')
 local MutationRate = require('machinelearning.ai.model.MutationRate')
 
----@param genome Genome
-local function pointMutate(genome, perturbChance)
-    local step = genome.mutationRates.values.step
-
-    for _, gene in pairs(genome.genes) do
-        if MathUtil.random() < perturbChance then
-            -- Generate a random number between -step and step
-            local randomPerturbation = (MathUtil.random() * 2 * step) - step
-            gene.weight = gene.weight + randomPerturbation
-        else
-            gene.weight = GenomeUtil.generateRandomWeight()
-        end
-    end
-
-    return genome
-end
-
----@param genes Gene[]
----@param isInput boolean
----@param inputSizeWithoutBiasNode number
----@param outputSize number
----@return NeuronInfo
-local function getRandomNeuronInfo(genes, isInput, inputSizeWithoutBiasNode, outputSize)
-    local neurons = {}
-
-    -- Add input Neurons if applicable
-    if isInput then
-        for i=1, inputSizeWithoutBiasNode do
-            neurons[i] = NeuronInfo.new(i, NeuronType.INPUT)
-        end
-
-        neurons[#neurons + 1] = NeuronInfo.new(1, NeuronInfo.BIAS)
-    end
-
-    -- Add output neurons
-    for i=1, outputSize do
-        neurons[#neurons + 1] = NeuronInfo.new(i, NeuronType.OUTPUT)
-    end
-
-    -- Add neurons from Genes
-    for i=1, #genes do
-        if isInput or genes[i].into.type ~= NeuronType.INPUT then
-            neurons[#neurons + 1] = NeuronInfo.new(genes[i].into.index, genes[i].into.type)
-        end
-        if isInput or genes[i].out.type ~= NeuronType.INPUT then
-            neurons[#neurons + 1] = NeuronInfo.new(genes[i].out.index, genes[i].out.type)
-        end
-    end
-
-    local randomIndex = MathUtil.random(1, #neurons)
-    return neurons[randomIndex]
-end
-
 ---@param genes Gene[]
 ---@param link Gene
 local function containsLink(genes, link)
@@ -92,9 +39,9 @@ end
 ---@return Gene
 local function linkMutate(genome, forceBias, inputSizeWithoutBiasNode, numberOfOutputs, pool)
     ---@type NeuronInfo
-    local sourceNeuronInfo = getRandomNeuronInfo(genome.genes, true, inputSizeWithoutBiasNode, numberOfOutputs)
+    local sourceNeuronInfo = GenomeUtil.getRandomNeuronInfo(genome.genes, true, inputSizeWithoutBiasNode, numberOfOutputs)
     ---@type NeuronInfo
-    local targetNeuronInfo = getRandomNeuronInfo(genome.genes, false, inputSizeWithoutBiasNode, numberOfOutputs)
+    local targetNeuronInfo = GenomeUtil.getRandomNeuronInfo(genome.genes, false, inputSizeWithoutBiasNode, numberOfOutputs)
     ---@type Gene
     local newLink = Gene.new()
 
@@ -387,7 +334,7 @@ function Neat:mutate(genome, inputSizeWithoutBiasNode, numberOfOutputs)
 
     if MathUtil.random() < genome.mutationRates.values.connections then
         -- modifies gene's weight
-        genome = pointMutate(genome, self.perturbChance)
+        genome = GenomeUtil.pointMutate(genome, self.perturbChance)
         Validator.validateGenome(genome)
     end
 

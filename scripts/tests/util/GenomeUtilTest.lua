@@ -3,6 +3,8 @@ local lu = require('luaunit')
 
 local GenomeUtil = require('util.GenomeUtil')
 local MathUtil = require('util.MathUtil')
+local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
+local NeuronType = require('machinelearning.ai.model.NeuronType')
 
 TestGenomeUtil = {}
 
@@ -143,6 +145,110 @@ function TestGenomeUtil:testIsSameSpeciesFalseNoneSame()
     local sameSpecies = GenomeUtil.isSameSpecies(genome1, genome2)
 
     lu.assertFalse(sameSpecies)
+end
+
+function TestGenomeUtil:testPointMutatePerturb()
+    -- Mock genome objects
+    local genome1 = {
+        genes = {
+            { innovation = 1, weight = 0.5 },
+            { innovation = 2, weight = -0.3 },
+            { innovation = 3, weight = 0.8 }
+        },
+        mutationRates = {
+            values = {
+                step = 1
+            }
+        }
+    }
+
+    -- Test when perturbChance is greater than random
+    local perturbChance = 0.8
+    local mutatedGenome = GenomeUtil.pointMutate(genome1, perturbChance)
+
+    -- Assert that the weights of the genes in the mutated genome are perturbed
+    for _, gene in ipairs(mutatedGenome.genes) do
+        lu.assertNotEquals(gene.weight, 0.5)  -- Ensure weight is perturbed for all genes
+    end
+end
+
+function TestGenomeUtil:testPointMutateNoPerturb()
+    -- Mock genome objects
+    local genome1 = {
+        genes = {
+            { innovation = 1, weight = 0.5 },
+            { innovation = 2, weight = -0.3 },
+            { innovation = 3, weight = 0.8 }
+        },
+        mutationRates = {
+            values = {
+                step = 1
+            }
+        }
+    }
+
+    -- Test when perturbChance is less than random
+    local perturbChance = 0.2
+    local mutatedGenome = GenomeUtil.pointMutate(genome1, perturbChance)
+
+    -- Assert that the weights of the genes in the mutated genome are reset to random values
+    for _, gene in ipairs(mutatedGenome.genes) do
+        lu.assertNotEquals(gene.weight, 0.5)  -- Ensure weight is changed for all genes
+    end
+end
+
+function TestGenomeUtil:testGetRandomNeuronInfoInput()
+    -- Test case for getting a random input neuron
+    local genes = {
+        { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(30, NeuronType.PROCESSING) },
+        { into = NeuronInfo.new(22, NeuronType.INPUT), out = NeuronInfo.new(300, NeuronType.PROCESSING) },
+        { into = NeuronInfo.new(20, NeuronType.PROCESSING), out = NeuronInfo.new(400, NeuronType.OUTPUT) }
+    }
+    local inputSizeWithoutBiasNode = 2
+    local outputSize = 1
+
+    local randomNeuronInfo = GenomeUtil.getRandomNeuronInfo(genes, true, inputSizeWithoutBiasNode, outputSize)
+
+    lu.assertEquals(randomNeuronInfo.type, NeuronType.BIAS)
+    lu.assertEquals(randomNeuronInfo.index, 1)
+end
+
+function TestGenomeUtil:testGetRandomNeuronInfoProcessing()
+    -- Test case for getting a random output neuron
+    local genes = {
+        { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) },
+        { into = NeuronInfo.new(20, NeuronType.PROCESSING), out = NeuronInfo.new(400, NeuronType.OUTPUT) }
+    }
+    local inputSizeWithoutBiasNode = 1000
+    local outputSize = 0
+
+    local randomNeuronInfo = GenomeUtil.getRandomNeuronInfo(genes, false, inputSizeWithoutBiasNode, outputSize)
+
+    lu.assertEquals(randomNeuronInfo.type, NeuronType.PROCESSING)
+    lu.assertEquals(randomNeuronInfo.index, 33)
+
+    -- Ensure we can never get an input because input is false
+    for _=1, 100 do
+        randomNeuronInfo = GenomeUtil.getRandomNeuronInfo(genes, false, inputSizeWithoutBiasNode, outputSize)
+
+        lu.assertNotEquals(randomNeuronInfo.type, NeuronType.INPUT)
+        lu.assertNotEquals(randomNeuronInfo.type, NeuronType.BIAS)
+    end
+end
+
+function TestGenomeUtil:testGetRandomNeuronInfoOutput()
+    -- Test case for getting a random output neuron
+    local genes = {
+        { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) },
+        { into = NeuronInfo.new(20, NeuronType.PROCESSING), out = NeuronInfo.new(400, NeuronType.PROCESSING) }
+    }
+    local inputSizeWithoutBiasNode = 1000
+    local outputSize = 100
+
+    local randomNeuronInfo = GenomeUtil.getRandomNeuronInfo(genes, false, inputSizeWithoutBiasNode, outputSize)
+
+    lu.assertEquals(randomNeuronInfo.type, NeuronType.OUTPUT)
+    lu.assertEquals(randomNeuronInfo.index, 24)
 end
 
 if not fullTestSuite then

@@ -3,6 +3,8 @@ local GenomeUtil = {}
 
 local MathUtil = require('util.MathUtil')
 local Properties = require('machinelearning.ai.static.Properties')
+local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
+local NeuronType = require('machinelearning.ai.model.NeuronType')
 
 local function shuffle(t)
     local s = {}
@@ -132,6 +134,60 @@ function GenomeUtil.removeWeakSpecies(pool)
     end
 
     return survived
+end
+
+---@param genome Genome
+---@return Genome
+function GenomeUtil.pointMutate(genome, perturbChance)
+    local step = genome.mutationRates.values.step
+
+    for _, gene in pairs(genome.genes) do
+        if MathUtil.random() < perturbChance then
+            -- Generate a random number between -step and step
+            local randomPerturbation = (MathUtil.random() * 2 * step) - step
+            gene.weight = gene.weight + randomPerturbation
+        else
+            gene.weight = GenomeUtil.generateRandomWeight()
+        end
+    end
+
+    return genome
+end
+
+---@param genes Gene[]
+---@param isInput boolean
+---@param inputSizeWithoutBiasNode number
+---@param outputSize number
+---@return NeuronInfo
+function GenomeUtil.getRandomNeuronInfo(genes, isInput, inputSizeWithoutBiasNode, outputSize)
+    local neurons = {}
+
+    -- Add input Neurons if applicable
+    if isInput then
+        for i=1, inputSizeWithoutBiasNode do
+            neurons[i] = NeuronInfo.new(i, NeuronType.INPUT)
+        end
+
+        neurons[#neurons + 1] = NeuronInfo.new(1, NeuronType.BIAS)
+    end
+
+    -- Add output neurons
+    for i=1, outputSize do
+        neurons[#neurons + 1] = NeuronInfo.new(i, NeuronType.OUTPUT)
+    end
+
+    -- Add neurons from Genes
+    for i=1, #genes do
+        if isInput or genes[i].into.type ~= NeuronType.INPUT then
+            neurons[#neurons + 1] = NeuronInfo.new(genes[i].into.index, genes[i].into.type)
+        end
+        if isInput or genes[i].out.type ~= NeuronType.INPUT then
+            neurons[#neurons + 1] = NeuronInfo.new(genes[i].out.index, genes[i].out.type)
+        end
+    end
+
+    local randomIndex = MathUtil.random(1, #neurons)
+    return neurons[randomIndex]
 end
 
 
