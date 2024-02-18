@@ -2,8 +2,8 @@
 ---@class MathUtil
 local MathUtil = {}
 
-local RandomNumber = require('util.RandomNumber')
----@type RandomNumber
+local RandomNumber = require('lib.RepeatableRandomNumber')
+---@type RepeatableRandomNumber
 local rng = nil
 
 local function reverseList(list)
