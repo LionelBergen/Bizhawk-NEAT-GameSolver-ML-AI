@@ -6,6 +6,7 @@ local Display = require('display.Display')
 local Neuron = require('machinelearning.ai.model.Neuron')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 
+-- luacheck: globals TestDisplay fullTestSuite
 -- Test the Display class
 TestDisplay = {}
 
@@ -21,7 +22,7 @@ local function getTestInputs()
     return neuronInputs
 end
 
-function TestDisplay:testGetCellsEmpty()
+function TestDisplay.testGetCellsEmpty()
     local testInputs = getTestInputs()
     lu.assertEquals(#testInputs, 169)
 
@@ -35,7 +36,7 @@ function TestDisplay:testGetCellsEmpty()
     end
 end
 
-function TestDisplay:testGetCells()
+function TestDisplay.testGetCells()
     local testInputs = getTestInputs()
     testInputs[104].value = 2
     testInputs[105].value = 2

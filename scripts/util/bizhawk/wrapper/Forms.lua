@@ -87,7 +87,8 @@ function Forms.createTextBox(form, caption, x, y, captionWidth)
         y = y + 200
     end
     -- forms.textbox(int formhandle, [string caption = null], [int? width = null],
-    -- [int? height = null], [string boxtype = null], [int? x = null], [int? y = null], [bool multiline = False], [bool fixedwidth = False], [string scrollbars = null])
+    -- [int? height = null], [string boxtype = null], [int? x = null], [int? y = null], [bool multiline = False],
+    -- [bool fixedwidth = False], [string scrollbars = null])
 
     if x and y then
         return forms.textbox(form, nil, 20, nil, x, y)

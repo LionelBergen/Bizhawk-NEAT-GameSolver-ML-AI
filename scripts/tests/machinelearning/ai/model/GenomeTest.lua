@@ -4,9 +4,10 @@ local lu = require('luaunit')
 local Genome = require('machinelearning.ai.model.Genome')
 local Gene = require('machinelearning.ai.model.Gene')
 
+-- luacheck: globals TestGenome fullTestSuite
 TestGenome = {}
 
-function TestGenome:testConstructor()
+function TestGenome.testConstructor()
     local subject1 = Genome:new()
     local subject2 = Genome:new()
 
@@ -21,7 +22,7 @@ function TestGenome:testConstructor()
     lu.assertFalse(subject1.genes[1] == subject2.genes[1])
 end
 
-function TestGenome:testCopy()
+function TestGenome.testCopy()
     local subjectGenome = Genome:new()
     local gene1 = Gene.new()
     subjectGenome.genes[1] = gene1

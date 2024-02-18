@@ -20,7 +20,7 @@ Properties.deltaWeights = 0.4
 Properties.deltaThreshold = 3.0
 
 -- After this many times without a higher 'topFitness' genome in the species, remove the species
-Properties.staleSpecies = 15
+Properties.staleSpecies = 1500
 
 -- These are used when generating the rates used in calculations. Just to give a bit more variability
 Properties.randomMutationFactor1 = 0.95

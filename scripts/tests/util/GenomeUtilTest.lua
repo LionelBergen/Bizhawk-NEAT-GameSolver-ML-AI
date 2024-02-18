@@ -6,13 +6,14 @@ local MathUtil = require('util.MathUtil')
 local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 
+-- luacheck: globals TestGenomeUtil Properties fullTestSuite
 TestGenomeUtil = {}
 
-function TestGenomeUtil:setUp()
+function TestGenomeUtil.setUp()
     MathUtil.init(12345)
 end
 
-function TestGenomeUtil:testDistribute()
+function TestGenomeUtil.testDistribute()
     for _=1, 1000 do
         local result = GenomeUtil.generateRandomWeight()
         lu.assertTrue(result >= -2)
@@ -20,7 +21,7 @@ function TestGenomeUtil:testDistribute()
     end
 end
 
-function TestGenomeUtil:testGetTwoRandomGenomes()
+function TestGenomeUtil.testGetTwoRandomGenomes()
     local genomes = {
         { id = 1, fitness = 0.5 },
         { id = 2, fitness = 0.8 },
@@ -42,7 +43,7 @@ function TestGenomeUtil:testGetTwoRandomGenomes()
     lu.assertEquals(resultB.id, 2)
 end
 
-function TestGenomeUtil:testGetGenomeWithHighestFitness()
+function TestGenomeUtil.testGetGenomeWithHighestFitness()
     local genomes = {
         { id = 1, fitness = 0.5 },
         { id = 2, fitness = 0.8 },
@@ -56,7 +57,7 @@ function TestGenomeUtil:testGetGenomeWithHighestFitness()
     lu.assertEquals(result.fitness, 0.8)
 end
 
-function TestGenomeUtil:testIsSameSpecies()
+function TestGenomeUtil.testIsSameSpecies()
     -- Mock genome objects
     local genome1 = {
         genes = {
@@ -87,7 +88,7 @@ function TestGenomeUtil:testIsSameSpecies()
     lu.assertTrue(sameSpecies)
 end
 
-function TestGenomeUtil:testIsSameSpeciesFalse()
+function TestGenomeUtil.testIsSameSpeciesFalse()
     -- Mock genome objects
     local genome1 = {
         genes = {
@@ -117,7 +118,7 @@ function TestGenomeUtil:testIsSameSpeciesFalse()
     lu.assertFalse(sameSpecies)
 end
 
-function TestGenomeUtil:testIsSameSpeciesFalseNoneSame()
+function TestGenomeUtil.testIsSameSpeciesFalseNoneSame()
     -- Mock genome objects
     local genome1 = {
         genes = {
