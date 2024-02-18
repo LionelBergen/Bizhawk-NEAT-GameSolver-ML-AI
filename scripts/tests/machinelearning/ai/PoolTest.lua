@@ -2,6 +2,7 @@
 local lu = require('luaunit')
 local Pool = require('machinelearning.ai.model.Pool')
 
+-- luacheck: globals TestPool fullTestSuite
 TestPool = {}
 
 -- Create a mock pool with species and genomes
@@ -53,14 +54,14 @@ local function createMockPool()
     return pool
 end
 
-function TestPool:testGetNumberOfGenomes()
+function TestPool.testGetNumberOfGenomes()
     local pool = createMockPool()
 
     local result = pool:getNumberOfGenomes()
     lu.assertEquals(result, 24)
 end
 
-function TestPool:testGetNumberOfGenomesNone()
+function TestPool.testGetNumberOfGenomesNone()
     local pool = Pool:new()
 
     local result = pool:getNumberOfGenomes()

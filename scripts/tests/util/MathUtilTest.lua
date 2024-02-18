@@ -1,13 +1,12 @@
 -- Import LuaUnit module
 local lu = require('luaunit')
 
--- Import the RandomNumber class
 local MathUtil = require('util.MathUtil')
 
--- Test the RandomNumber class
+-- luacheck: globals TestMathUtil fullTestSuite
 TestMathUtil = {}
 
-function TestMathUtil:testDistribute()
+function TestMathUtil.testDistribute()
     local result = MathUtil.distribute(100, 20)
 
     lu.assertEquals(#result, 20)

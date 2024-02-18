@@ -6,6 +6,7 @@ local Neuron = require('machinelearning.ai.model.Neuron')
 local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 
+-- luacheck: globals console TestNetwork fullTestSuite
 TestNetwork = {}
 
 -- To allow ErrorHandler to work
@@ -29,7 +30,7 @@ local function getTestNetwork()
     return network
 end
 
-function TestNetwork:testGetOrCreateNeuronInput()
+function TestNetwork.testGetOrCreateNeuronInput()
     local network = getTestNetwork()
     local testNeuron = Neuron.new()
     testNeuron.value = -15.56
@@ -41,7 +42,7 @@ function TestNetwork:testGetOrCreateNeuronInput()
     lu.assertEquals(result, testNeuron)
 end
 
-function TestNetwork:testGetOrCreateNeuronInputInvalid()
+function TestNetwork.testGetOrCreateNeuronInputInvalid()
     local network = getTestNetwork()
 
     -- Index 170 doesnt exist
@@ -54,7 +55,7 @@ function TestNetwork:testGetOrCreateNeuronInputInvalid()
     lu.assertStrContains(errorMessage, 'Cannot find neuron! neuroninfo.type: 2 index: 170')
 end
 
-function TestNetwork:testGetOrCreateNeuronBias()
+function TestNetwork.testGetOrCreateNeuronBias()
     local network = getTestNetwork()
     local testNeuron = Neuron.new()
     testNeuron.value = -15.56
@@ -67,7 +68,7 @@ function TestNetwork:testGetOrCreateNeuronBias()
     lu.assertEquals(result, testNeuron)
 end
 
-function TestNetwork:testGetOrCreateNeuronOutput()
+function TestNetwork.testGetOrCreateNeuronOutput()
     local network = getTestNetwork()
     local testNeuron = Neuron.new()
     testNeuron.value = -15.56
@@ -79,7 +80,7 @@ function TestNetwork:testGetOrCreateNeuronOutput()
     lu.assertEquals(result, testNeuron)
 end
 
-function TestNetwork:testGetOrCreateNeuronProcessingExists()
+function TestNetwork.testGetOrCreateNeuronProcessingExists()
     local network = getTestNetwork()
     local testNeuron = Neuron.new()
     testNeuron.value = -15.56
@@ -91,7 +92,7 @@ function TestNetwork:testGetOrCreateNeuronProcessingExists()
     lu.assertEquals(result, testNeuron)
 end
 
-function TestNetwork:testGetOrCreateNeuronProcessingNotExists()
+function TestNetwork.testGetOrCreateNeuronProcessingNotExists()
     local network = getTestNetwork()
 
     local neuronInfo = NeuronInfo.new(1, NeuronType.PROCESSING)
@@ -100,7 +101,7 @@ function TestNetwork:testGetOrCreateNeuronProcessingNotExists()
     lu.assertEquals(result, Neuron.new())
 end
 
-function TestNetwork:testGetOrCreateNeuronUnknownType()
+function TestNetwork.testGetOrCreateNeuronUnknownType()
     local network = getTestNetwork()
 
     local success, errorMessage = pcall(function()

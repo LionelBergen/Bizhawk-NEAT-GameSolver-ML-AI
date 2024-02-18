@@ -6,7 +6,7 @@
     number of generated random numbers and the ability to 'jump' to a specific iteration.
     This functionality is particularly useful for debugging and testing. Example if
     a program is to save its state and 'resume' and we want numbers generated to not
-    reset,
+    reset.
 
     Usage:
     local rng = RandomNumber:new(seed)       -- Instantiate class, 'seed' is optional but suggested

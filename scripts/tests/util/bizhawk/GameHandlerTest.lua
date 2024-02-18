@@ -23,9 +23,10 @@ local fakeJoypad = {
     end
 }
 
+-- luacheck: globals TestGameHandler joypad fullTestSuite
 TestGameHandler = {}
 
-function TestGameHandler:testClearJoypad()
+function TestGameHandler.testClearJoypad()
     joypad = fakeJoypad
     GameHandler.clearJoypad(mockRom)
 end
