@@ -13,7 +13,7 @@ function Pool:new(innovation)
 
     ---@type Species[]
     pool.species = {}
-    pool.generation = 0
+    pool.generation = 1
     pool.innovation = innovation
     pool.currentSpecies = 1
     pool.currentGenome = 1

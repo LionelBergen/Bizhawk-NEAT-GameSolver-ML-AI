@@ -44,7 +44,6 @@ local outputSize = #rom.getButtonOutputs()
 local TimeoutConstant = 20
 local rightmost = 0
 local timeout = 0
-local currentBackup = 1
 
 -- Declare variables that are defined in Bizhawk already.
 -- This is just to satisfy LuaCheck, to make it easier to find actual issues
@@ -98,15 +97,14 @@ local function createPropertiesSnapshot()
 end
 
 ---@param pool Pool
-local function saveNewBackup(pool, saveFolderName, filePostfix)
+local function saveNewBackup(pool, backupNumber, saveFolderName, filePostfix)
 	if mode ~= Mode.Manual and forms.ischecked(autoSaveBackups) then
-		local newFileName = saveFolderName .. "backup." .. currentBackup .. "." .. filePostfix
+		local newFileName = saveFolderName .. "backup." .. backupNumber .. "." .. filePostfix
 		if FileUtil.fileExists(newFileName) then
 			ErrorHandler.error('Backup file already exists!: ' .. newFileName)
 		end
 		Logger.info("Attempting to save new backup file: " .. newFileName)
 		GameHandler.saveFileFromPool(newFileName, pool, { seed = seed, numbersGenerated = MathUtil.getIteration() })
-		currentBackup = currentBackup + 1
 	end
 end
 
@@ -167,9 +165,10 @@ local function nextGenome(neatObject)
 			---@type GenerationResults
 			local generationResults = createGenerationResults()
 			Logger.info('---------------- NEW GENERATION! ------------------------')
+			local generationCompleted = pool.generation
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
-			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
 			neatObject:resetFitness()
+			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
 			pool.currentSpecies = 1
 			pool.currentGenome = 1
 			Logger.info('Number of species: ' .. #pool.species
@@ -182,9 +181,9 @@ local function nextGenome(neatObject)
 			if (pool.generation % saveSnapshotEveryNthGeneration == 0) then
 				local propertiesSnapshot = createPropertiesSnapshot()
 				GameHandler.saveFileFromPropertiesSnapshot(poolSavesFolder ..
-						(propertiesSnapshotFileName .. pool.generation .. '.snapshot'), propertiesSnapshot)
+						(propertiesSnapshotFileName .. generationCompleted .. '.snapshot'), propertiesSnapshot)
 				GameHandler.saveFileFromGenerationResults(poolSavesFolder ..
-						(resultsFileName .. pool.generation .. '.generation_results'), generationResults)
+						(resultsFileName .. generationCompleted .. '.generation_results'), generationResults)
 			end
 		end
 	end
@@ -216,12 +215,11 @@ end
 
 ---@param neatObject Neat
 local function loadFile(saveFolderName, neatObject)
-	local latestBackupFile, backupNumber = GameHandler.getLatestBackupFile(saveFolderName)
+	local latestBackupFile = GameHandler.getLatestBackupFile(saveFolderName)
 	if latestBackupFile ~= nil then
 		Logger.debug('attempting to load file for pool: ' .. latestBackupFile)
 		loadFileAndInitialize(saveFolderName .. latestBackupFile, neatObject)
 		Logger.info('loaded backfile: ' .. latestBackupFile)
-		currentBackup = backupNumber + 1
 	else
 		Logger.info('No backup file to load from. looked in directory: ' .. saveFolderName .. ' will continue new program')
 	end
