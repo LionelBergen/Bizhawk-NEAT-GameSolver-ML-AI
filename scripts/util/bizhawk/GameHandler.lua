@@ -38,6 +38,23 @@ function GameHandler.getLatestBackupFile(poolSavesFolder)
 	return latestBackupFile, latestBackupNumber
 end
 
+---@return string
+function GameHandler.getBackupFileName(poolSavesFolder, backupFileNumber)
+	local listOfAllPoolFiles = FileUtil.scandir(poolSavesFolder)
+	local backupFileName
+
+	for _, value in pairs(listOfAllPoolFiles) do
+		local res = value.match(value, [[backup.(%d+)]])
+
+		if res ~= nil and tonumber(res) == backupFileNumber then
+			backupFileName = value
+			break
+		end
+	end
+
+	return backupFileName
+end
+
 ---@return Pool, any
 function GameHandler.loadFromFile(filename)
 	Logger.info('loadfile: ' .. filename)
