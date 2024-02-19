@@ -242,6 +242,7 @@ local reloadProgramFunction = function()
 		FileUtil.createDirectory(poolSavesFolder)
 
 		neatMLAI = Neat:new()
+		MathUtil.reset(seed, 0)
 	end
 
 	local backupNumber = forms.gettext(textBoxLoadBackup)
