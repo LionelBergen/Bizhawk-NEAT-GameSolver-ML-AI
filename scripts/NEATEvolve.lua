@@ -16,21 +16,17 @@ local PropertiesSnapshot = require('machinelearning.ai.model.record.PropertiesSn
 ---@type Mario
 local rom = Mario
 local saveFileName = 'SMW.state'
-local poolFileNamePrefix = 'SuperMario_ML_pools'
-local poolFileNamePostfix = poolFileNamePrefix .. ".json"
-local machineLearningProjectName = 'Mario_testing'
-local machineLearningProgramRunName = 'never_stale'
-local poolSavesFolder = FileUtil.getCurrentDirectory() ..
-		'\\..\\machine_learning_outputs\\' .. machineLearningProjectName .. '\\'
-local results_save_file_name = machineLearningProgramRunName .. '_results_'
-local properties_save_file_name = machineLearningProgramRunName .. '_properties_'
+local machineLearningProgramRunName = 'load_from_backup'
+local poolFileNamePostfix = machineLearningProgramRunName .. ".json"
+local poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\'
+		.. machineLearningProgramRunName .. '\\'
+local resultsFileName = machineLearningProgramRunName .. '_results_'
+local propertiesSnapshotFileName = machineLearningProgramRunName .. '_properties_'
 local seed = 12345
 local LEVEL_COMPLETE_FITNESS_BONUS = 1000
 local DEATH_FITNESS_BONUS = 0
 local evaluateEveryNthFrame = 1
-local saveSnapshotEveryNthGeneration = 6
-
-MathUtil.init(seed)
+local saveSnapshotEveryNthGeneration = 1
 
 ---@type Neat
 local neatMLAI = Neat:new()
@@ -55,11 +51,16 @@ local currentBackup = 0
 -- luacheck: globals forms joypad gui emu event gameinfo
 
 ---@type Form
-local form = Forms.createNewForm(500, 500, "NEAT Program")
+local form = Forms.createNewForm(800, 700, "NEAT Program")
 local showNetwork = Forms.createCheckbox(form, "SHOW NETWORK:", 5, 30, 148)
 local showMutationRates = Forms.createCheckbox(form, "SHOW MUTATION RATES:", 5, 80, 148)
 local showBanner = Forms.createCheckbox(form, "SHOW BANNER", 5, 130, 148)
--- local textBoxLoadBackup = Forms.createTextBox(form, "LOAD BACKUP: ", 0, 180, 148)
+local textBoxProgramName = Forms.createTextBox(form, "PROGRAM NAME: ", 0, 280, 158)
+local _, changeProgramNameFunctionIndex = Forms.createButton(form, "RELOAD", 278, 280)
+--local textBoxLoadBackup = Forms.createTextBox(form, "BACKUP: ", 0, 280, 78)
+--local _, loadBackupFunctionIndex = Forms.createButton(form, "LOAD BACKUP", 178, 280)
+--local autoSaveBackups = Forms.createCheckbox(form, "AUTO SAVE BACKUPS", 5, 330, 148)
+
 local Mode = {Manual = 1, Auto = 2}
 local mode = Mode.Auto
 local controller = {}
@@ -104,8 +105,8 @@ local function saveNewBackup(pool, saveFolderName, filePostfix)
 		if FileUtil.fileExists(newFileName) then
 			ErrorHandler.error('Backup file already exists!: ' .. newFileName)
 		end
+		Logger.info("Attempting to save new backup file: " .. newFileName)
 		GameHandler.saveFileFromPool(newFileName, pool, { seed = seed, numbersGenerated = MathUtil.getIteration() })
-		Logger.info("Saved new backup file: " .. newFileName)
 		currentBackup = currentBackup + 1
 	end
 end
@@ -181,9 +182,9 @@ local function nextGenome(neatObject)
 			if (pool.generation % saveSnapshotEveryNthGeneration == 0) then
 				local propertiesSnapshot = createPropertiesSnapshot()
 				GameHandler.saveFileFromPropertiesSnapshot(poolSavesFolder ..
-						(properties_save_file_name .. pool.generation .. '.snapshot'), propertiesSnapshot)
+						(propertiesSnapshotFileName .. pool.generation .. '.snapshot'), propertiesSnapshot)
 				GameHandler.saveFileFromGenerationResults(poolSavesFolder ..
-						(results_save_file_name .. pool.generation .. '.snapshot'), generationResults)
+						(resultsFileName .. pool.generation .. '.snapshot'), generationResults)
 			end
 		end
 	end
@@ -226,6 +227,41 @@ local function loadFile(saveFolderName, neatObject)
 	end
 end
 
+-- Need to set the function as a variable to be registered via an argument
+local loadFromBackupOnclick = function()
+	Logger.info(forms.gettext(textBoxLoadBackup))
+
+	forms.setproperty(autoSaveBackups, "Checked", false)
+end
+
+-- TODO: Lots of repeat code.
+local reloadProgramFunction = function()
+	local newProgramName = forms.gettext(textBoxProgramName)
+	if machineLearningProgramRunName ~= newProgramName then
+		machineLearningProgramRunName = newProgramName
+		poolFileNamePostfix = machineLearningProgramRunName .. ".json"
+		poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\'
+				.. machineLearningProgramRunName .. '\\'
+		resultsFileName = machineLearningProgramRunName .. '_results_'
+		propertiesSnapshotFileName = machineLearningProgramRunName .. '_properties_'
+
+		FileUtil.createDirectory(poolSavesFolder)
+
+		neatMLAI = Neat:new()
+	end
+	loadFile(poolSavesFolder, neatMLAI)
+
+	if neatMLAI.pool == nil then
+		neatMLAI:initializePool(inputSizeWithoutBiasNode, outputSize)
+		Logger.info('Created new pool since no load file was found. Number of species: '
+				.. #neatMLAI.pool.species .. ' number of genomes: ' .. neatMLAI.pool:getNumberOfGenomes())
+		if neatMLAI.pool:getNumberOfGenomes() ~= neatMLAI.generationStartingPopulation then
+			error('invalid number of genomes: ' .. neatMLAI.pool:getNumberOfGenomes())
+		end
+	end
+	initializeRun(neatMLAI)
+end
+
 local function onExit()
 	forms.destroy(form)
 end
@@ -236,11 +272,18 @@ end
 
 Logger.info('starting Mar I/O...')
 
+MathUtil.init(seed)
+--Forms.registerOnClickFunction(loadBackupFunctionIndex, loadFromBackupOnclick)
+Forms.registerOnClickFunction(changeProgramNameFunctionIndex, reloadProgramFunction)
+FileUtil.createDirectory(poolSavesFolder)
+
 -- set exit function to destroy the form
 event.onexit(onExit)
 
--- Set the 'showBanner' checkbox to true
+-- Set defaults
 forms.setproperty(showBanner, "Checked", true)
+forms.settext(textBoxProgramName, machineLearningProgramRunName)
+--forms.setproperty(autoSaveBackups, "Checked", true)
 
 -- Load the latest .pool file
 loadFile(poolSavesFolder, neatMLAI)

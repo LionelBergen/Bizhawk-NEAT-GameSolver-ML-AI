@@ -4,7 +4,7 @@ local FileUtil = require('../util/FileUtil')
 local Logger = require('../util/Logger')
 local Validator = require('../util/Validator')
 local Pool = require('machinelearning.ai.model.Pool')
-local Json = require('../lib/json')
+local Json = require('lib.json')
 
 -- luacheck: globals savestate joypad
 
@@ -12,7 +12,9 @@ local Json = require('../lib/json')
 function GameHandler.loadSavedGame(fileLocation)
 	local currentDir = FileUtil.getCurrentDirectory()
 	local fullFilePath = currentDir .. "\\" ..fileLocation
-	FileUtil.validateFilePath(fullFilePath)
+	if not FileUtil.fileExists(fullFilePath) then
+		Logger.error("File did not exist: " .. fullFilePath)
+	end
 	savestate.load(fullFilePath, true)
 	Logger.debug('loaded save game from file: ' .. fullFilePath)
 end

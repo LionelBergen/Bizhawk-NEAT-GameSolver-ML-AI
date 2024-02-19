@@ -13,6 +13,8 @@ local Form = {}
 local CHECKBOX_WIDTH = 24
 local LABEL_HEIGHT = 20
 
+local onClickFunctions = {}
+
 -- luacheck: globals forms
 
 ---@param width number
@@ -84,11 +86,7 @@ function Forms.createTextBox(form, caption, x, y, captionWidth)
         Forms.createLabel(form, caption, labelX, labelY, captionWidth, LABEL_HEIGHT)
 
         x = x + captionWidth
-        y = y + 200
     end
-    -- forms.textbox(int formhandle, [string caption = null], [int? width = null],
-    -- [int? height = null], [string boxtype = null], [int? x = null], [int? y = null], [bool multiline = False],
-    -- [bool fixedwidth = False], [string scrollbars = null])
 
     if x and y then
         return forms.textbox(form, nil, 20, nil, x, y)
@@ -97,6 +95,19 @@ function Forms.createTextBox(form, caption, x, y, captionWidth)
     else
         return forms.textbox(form)
     end
+end
+
+---@return number number
+function Forms.createButton(form, caption, x, y)
+    local functionIndex = #onClickFunctions + 1
+    local onclickFunction = function() onClickFunctions[functionIndex]() end
+    local width = 150
+    local height = 28
+    return forms.button(form, caption, onclickFunction, x, y, width, height), functionIndex
+end
+
+function Forms.registerOnClickFunction(functionIndex, onclickFunction)
+    onClickFunctions[functionIndex] = onclickFunction
 end
 
 return Forms

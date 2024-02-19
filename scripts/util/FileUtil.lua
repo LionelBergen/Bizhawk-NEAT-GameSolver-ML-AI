@@ -24,15 +24,6 @@ function FileUtil.scandir(directory)
 	return results
 end
 
-function FileUtil.validateFilePath(fileLocation)
-	local fileOpened=io.open(fileLocation, "r")
-	if fileOpened~=nil then
-		io.close(fileOpened)
-	else
-		error('save file does not exist!: ' .. fileLocation)
-	end
-end
-
 function FileUtil.fileExists(filePath)
 	local fileHandle = io.open(filePath, "r")
 
@@ -42,6 +33,12 @@ function FileUtil.fileExists(filePath)
 	else
 		return false
 	end
+end
+
+--- wARNING TODO: OS specific. Also not a good practice.
+--- See issue: https://github.com/LionelBergen/Bizhawk-NEAT-GameSolver-ML-AI/issues/48
+function FileUtil.createDirectory(directory)
+	os.execute("mkdir " .. directory)
 end
 
 return FileUtil
