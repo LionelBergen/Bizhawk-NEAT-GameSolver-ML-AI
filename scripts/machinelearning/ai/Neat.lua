@@ -39,9 +39,11 @@ end
 ---@return Gene
 local function linkMutate(genome, forceBias, inputSizeWithoutBiasNode, numberOfOutputs, pool)
     ---@type NeuronInfo
-    local sourceNeuronInfo = GenomeUtil.getRandomNeuronInfo(genome.genes, true, inputSizeWithoutBiasNode, numberOfOutputs)
+    local sourceNeuronInfo = GenomeUtil.getRandomNeuronInfo(genome.genes, true,
+            inputSizeWithoutBiasNode, numberOfOutputs)
     ---@type NeuronInfo
-    local targetNeuronInfo = GenomeUtil.getRandomNeuronInfo(genome.genes, false, inputSizeWithoutBiasNode, numberOfOutputs)
+    local targetNeuronInfo = GenomeUtil.getRandomNeuronInfo(genome.genes, false,
+            inputSizeWithoutBiasNode, numberOfOutputs)
     ---@type Gene
     local newLink = Gene.new()
 
