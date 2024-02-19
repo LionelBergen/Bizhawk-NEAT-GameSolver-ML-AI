@@ -565,14 +565,16 @@ function Neat:newGeneration(numberOfInputs, numberOfOutputs)
         self:addToSpecies(childGenome)
     end
 
-    -- Reset all the fitness. Don't reset topFitness as it' used to remove stale species if they don't get better
-    for _, species in pairs(pool.species) do
+    pool.generation = pool.generation + 1
+end
+
+function Neat:resetFitness()
+    -- Reset all the fitness. Don't reset topFitness as its used to remove stale species if they don't get better
+    for _, species in pairs(self.pool.species) do
         for _, genome in pairs(species.genomes) do
             genome.fitness = 0
         end
     end
-
-    pool.generation = pool.generation + 1
 end
 
 function Neat:initializePool(inputSizeWithoutBiasNode, numberOfOutputs)

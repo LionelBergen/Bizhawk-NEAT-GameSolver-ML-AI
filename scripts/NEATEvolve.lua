@@ -169,6 +169,7 @@ local function nextGenome(neatObject)
 			Logger.info('---------------- NEW GENERATION! ------------------------')
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
 			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
+			neatObject:resetFitness()
 			pool.currentSpecies = 1
 			pool.currentGenome = 1
 			Logger.info('Number of species: ' .. #pool.species
