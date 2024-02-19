@@ -69,13 +69,6 @@ if mode == Mode.Manual then
 	TimeoutConstant = 200000
 end
 
--- Need to set the function as a variable to be registered via an argument
-local loadFromBackupOnclick = function()
-	Logger.info(forms.gettext(textBoxLoadBackup))
-
-	forms.setproperty(autoSaveBackups, "Checked", false)
-end
-
 local function logCurrent()
 	Logger.info("Gen " .. neatMLAI.pool.generation .. " species " ..
 			neatMLAI.pool.currentSpecies .. " genome " .. neatMLAI.pool.currentGenome
@@ -234,6 +227,41 @@ local function loadFile(saveFolderName, neatObject)
 	end
 end
 
+-- Need to set the function as a variable to be registered via an argument
+local loadFromBackupOnclick = function()
+	Logger.info(forms.gettext(textBoxLoadBackup))
+
+	forms.setproperty(autoSaveBackups, "Checked", false)
+end
+
+-- TODO: Lots of repeat code.
+local reloadProgramFunction = function()
+	local newProgramName = forms.gettext(textBoxProgramName)
+	if machineLearningProgramRunName ~= newProgramName then
+		machineLearningProgramRunName = newProgramName
+		poolFileNamePostfix = machineLearningProgramRunName .. ".json"
+		poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\'
+				.. machineLearningProgramRunName .. '\\'
+		resultsFileName = machineLearningProgramRunName .. '_results_'
+		propertiesSnapshotFileName = machineLearningProgramRunName .. '_properties_'
+
+		FileUtil.createDirectory(poolSavesFolder)
+
+		neatMLAI = Neat:new()
+	end
+	loadFile(poolSavesFolder, neatMLAI)
+
+	if neatMLAI.pool == nil then
+		neatMLAI:initializePool(inputSizeWithoutBiasNode, outputSize)
+		Logger.info('Created new pool since no load file was found. Number of species: '
+				.. #neatMLAI.pool.species .. ' number of genomes: ' .. neatMLAI.pool:getNumberOfGenomes())
+		if neatMLAI.pool:getNumberOfGenomes() ~= neatMLAI.generationStartingPopulation then
+			error('invalid number of genomes: ' .. neatMLAI.pool:getNumberOfGenomes())
+		end
+	end
+	initializeRun(neatMLAI)
+end
+
 local function onExit()
 	forms.destroy(form)
 end
@@ -246,6 +274,7 @@ Logger.info('starting Mar I/O...')
 
 MathUtil.init(seed)
 --Forms.registerOnClickFunction(loadBackupFunctionIndex, loadFromBackupOnclick)
+Forms.registerOnClickFunction(changeProgramNameFunctionIndex, reloadProgramFunction)
 FileUtil.createDirectory(poolSavesFolder)
 
 -- set exit function to destroy the form
