@@ -44,7 +44,7 @@ local outputSize = #rom.getButtonOutputs()
 local TimeoutConstant = 20
 local rightmost = 0
 local timeout = 0
-local currentBackup = 0
+local currentBackup = 1
 
 -- Declare variables that are defined in Bizhawk already.
 -- This is just to satisfy LuaCheck, to make it easier to find actual issues
@@ -56,7 +56,7 @@ local showNetwork = Forms.createCheckbox(form, "SHOW NETWORK:", 5, 30, 148)
 local showMutationRates = Forms.createCheckbox(form, "SHOW MUTATION RATES:", 5, 80, 148)
 local showBanner = Forms.createCheckbox(form, "SHOW BANNER", 5, 130, 148)
 local textBoxProgramName = Forms.createTextBox(form, "PROGRAM NAME: ", 0, 280, 158)
-local _, changeProgramNameFunctionIndex = Forms.createButton(form, "RELOAD", 278, 280)
+local _, changeProgramNameFunctionIndex = Forms.createButton(form, "RELOAD", 278, 280, 150, 56)
 local textBoxLoadBackup = Forms.createTextBox(form, "BACKUP #: ", 0, 310, 78)
 local autoSaveBackups = Forms.createCheckbox(form, "AUTO SAVE BACKUPS", 5, 380, 188)
 

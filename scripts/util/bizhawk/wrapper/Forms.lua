@@ -98,11 +98,9 @@ function Forms.createTextBox(form, caption, x, y, captionWidth)
 end
 
 ---@return number number
-function Forms.createButton(form, caption, x, y)
+function Forms.createButton(form, caption, x, y, width, height)
     local functionIndex = #onClickFunctions + 1
     local onclickFunction = function() onClickFunctions[functionIndex]() end
-    local width = 150
-    local height = 28
     return forms.button(form, caption, onclickFunction, x, y, width, height), functionIndex
 end
 
