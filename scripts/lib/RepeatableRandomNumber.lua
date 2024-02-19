@@ -67,7 +67,7 @@ end
 ---@param iteration number
 function RepeatableRandomNumber:jumpToIteration(iteration)
     if type(iteration) ~= "number" or iteration < 0 then
-        error("Invalid argument, expected a number 0 or greater: " .. iteration)
+        error("Invalid argument, expected a number 0 or greater but was: " .. (iteration or 'nil'))
     end
     local difference = iteration - self.iteration
 

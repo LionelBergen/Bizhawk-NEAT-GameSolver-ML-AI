@@ -36,7 +36,7 @@ function MathUtil.random(a, b)
 end
 
 function MathUtil.getIteration()
-    return rng.count
+    return rng:getIteration()
 end
 
 ---@param numberOfItemsToDistribute number
