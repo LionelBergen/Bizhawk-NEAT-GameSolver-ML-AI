@@ -148,7 +148,7 @@ function TestGenomeUtil.testIsSameSpeciesFalseNoneSame()
     lu.assertFalse(sameSpecies)
 end
 
-function TestGenomeUtil:testPointMutatePerturb()
+function TestGenomeUtil.testPointMutatePerturb()
     -- Mock genome objects
     local genome1 = {
         genes = {
@@ -173,7 +173,7 @@ function TestGenomeUtil:testPointMutatePerturb()
     end
 end
 
-function TestGenomeUtil:testPointMutateNoPerturb()
+function TestGenomeUtil.testPointMutateNoPerturb()
     -- Mock genome objects
     local genome1 = {
         genes = {
@@ -198,7 +198,7 @@ function TestGenomeUtil:testPointMutateNoPerturb()
     end
 end
 
-function TestGenomeUtil:testGetRandomNeuronInfoInput()
+function TestGenomeUtil.testGetRandomNeuronInfoInput()
     -- Test case for getting a random input neuron
     local genes = {
         { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(30, NeuronType.PROCESSING) },
@@ -214,7 +214,7 @@ function TestGenomeUtil:testGetRandomNeuronInfoInput()
     lu.assertEquals(randomNeuronInfo.index, 1)
 end
 
-function TestGenomeUtil:testGetRandomNeuronInfoProcessing()
+function TestGenomeUtil.testGetRandomNeuronInfoProcessing()
     -- Test case for getting a random output neuron
     local genes = {
         { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) },
@@ -237,7 +237,7 @@ function TestGenomeUtil:testGetRandomNeuronInfoProcessing()
     end
 end
 
-function TestGenomeUtil:testGetRandomNeuronInfoOutput()
+function TestGenomeUtil.testGetRandomNeuronInfoOutput()
     -- Test case for getting a random output neuron
     local genes = {
         { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) },

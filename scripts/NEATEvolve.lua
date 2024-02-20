@@ -44,7 +44,6 @@ local outputSize = #rom.getButtonOutputs()
 local TimeoutConstant = 20
 local rightmost = 0
 local timeout = 0
-local currentBackup = 0
 
 -- Declare variables that are defined in Bizhawk already.
 -- This is just to satisfy LuaCheck, to make it easier to find actual issues
@@ -56,10 +55,9 @@ local showNetwork = Forms.createCheckbox(form, "SHOW NETWORK:", 5, 30, 148)
 local showMutationRates = Forms.createCheckbox(form, "SHOW MUTATION RATES:", 5, 80, 148)
 local showBanner = Forms.createCheckbox(form, "SHOW BANNER", 5, 130, 148)
 local textBoxProgramName = Forms.createTextBox(form, "PROGRAM NAME: ", 0, 280, 158)
-local _, changeProgramNameFunctionIndex = Forms.createButton(form, "RELOAD", 278, 280)
---local textBoxLoadBackup = Forms.createTextBox(form, "BACKUP: ", 0, 280, 78)
---local _, loadBackupFunctionIndex = Forms.createButton(form, "LOAD BACKUP", 178, 280)
---local autoSaveBackups = Forms.createCheckbox(form, "AUTO SAVE BACKUPS", 5, 330, 148)
+local _, changeProgramNameFunctionIndex = Forms.createButton(form, "RELOAD", 278, 280, 150, 56)
+local textBoxLoadBackup = Forms.createTextBox(form, "BACKUP #: ", 0, 310, 78)
+local autoSaveBackups = Forms.createCheckbox(form, "AUTO SAVE BACKUPS", 5, 380, 188)
 
 local Mode = {Manual = 1, Auto = 2}
 local mode = Mode.Auto
@@ -99,15 +97,14 @@ local function createPropertiesSnapshot()
 end
 
 ---@param pool Pool
-local function saveNewBackup(pool, saveFolderName, filePostfix)
-	if mode ~= Mode.Manual then
-		local newFileName = saveFolderName .. "backup." .. currentBackup .. "." .. filePostfix
+local function saveNewBackup(pool, backupNumber, saveFolderName, filePostfix)
+	if mode ~= Mode.Manual and forms.ischecked(autoSaveBackups) then
+		local newFileName = saveFolderName .. "backup." .. backupNumber .. "." .. filePostfix
 		if FileUtil.fileExists(newFileName) then
 			ErrorHandler.error('Backup file already exists!: ' .. newFileName)
 		end
 		Logger.info("Attempting to save new backup file: " .. newFileName)
 		GameHandler.saveFileFromPool(newFileName, pool, { seed = seed, numbersGenerated = MathUtil.getIteration() })
-		currentBackup = currentBackup + 1
 	end
 end
 
@@ -168,8 +165,10 @@ local function nextGenome(neatObject)
 			---@type GenerationResults
 			local generationResults = createGenerationResults()
 			Logger.info('---------------- NEW GENERATION! ------------------------')
+			local generationCompleted = pool.generation
 			neatObject:newGeneration(inputSizeWithoutBiasNode, outputSize)
-			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
+			neatObject:resetFitness()
+			saveNewBackup(pool, pool.generation, poolSavesFolder, poolFileNamePostfix)
 			pool.currentSpecies = 1
 			pool.currentGenome = 1
 			Logger.info('Number of species: ' .. #pool.species
@@ -179,12 +178,13 @@ local function nextGenome(neatObject)
 				error('new generation produced invalid number of genomes: ' .. pool:getNumberOfGenomes())
 			end
 
-			if (pool.generation % saveSnapshotEveryNthGeneration == 0) then
+			if (pool.generation % saveSnapshotEveryNthGeneration == 0)
+					and mode ~= Mode.Manual and forms.ischecked(autoSaveBackups) then
 				local propertiesSnapshot = createPropertiesSnapshot()
 				GameHandler.saveFileFromPropertiesSnapshot(poolSavesFolder ..
-						(propertiesSnapshotFileName .. pool.generation .. '.snapshot'), propertiesSnapshot)
+						(propertiesSnapshotFileName .. generationCompleted .. '.snapshot'), propertiesSnapshot)
 				GameHandler.saveFileFromGenerationResults(poolSavesFolder ..
-						(resultsFileName .. pool.generation .. '.snapshot'), generationResults)
+						(resultsFileName .. generationCompleted .. '.generation_results'), generationResults)
 			end
 		end
 	end
@@ -216,27 +216,20 @@ end
 
 ---@param neatObject Neat
 local function loadFile(saveFolderName, neatObject)
-	local latestBackupFile, backupNumber = GameHandler.getLatestBackupFile(saveFolderName)
+	local latestBackupFile = GameHandler.getLatestBackupFile(saveFolderName)
 	if latestBackupFile ~= nil then
 		Logger.debug('attempting to load file for pool: ' .. latestBackupFile)
 		loadFileAndInitialize(saveFolderName .. latestBackupFile, neatObject)
 		Logger.info('loaded backfile: ' .. latestBackupFile)
-		currentBackup = backupNumber + 1
 	else
 		Logger.info('No backup file to load from. looked in directory: ' .. saveFolderName .. ' will continue new program')
 	end
 end
 
--- Need to set the function as a variable to be registered via an argument
-local loadFromBackupOnclick = function()
-	Logger.info(forms.gettext(textBoxLoadBackup))
-
-	forms.setproperty(autoSaveBackups, "Checked", false)
-end
-
 -- TODO: Lots of repeat code.
 local reloadProgramFunction = function()
 	local newProgramName = forms.gettext(textBoxProgramName)
+	-- If the programs name changed
 	if machineLearningProgramRunName ~= newProgramName then
 		machineLearningProgramRunName = newProgramName
 		poolFileNamePostfix = machineLearningProgramRunName .. ".json"
@@ -248,8 +241,27 @@ local reloadProgramFunction = function()
 		FileUtil.createDirectory(poolSavesFolder)
 
 		neatMLAI = Neat:new()
+		MathUtil.reset(seed, 0)
 	end
-	loadFile(poolSavesFolder, neatMLAI)
+
+	local backupNumber = forms.gettext(textBoxLoadBackup)
+	if backupNumber and (#backupNumber > 0) then
+		if not type(backupNumber) == "number" then
+			ErrorHandler.error('Expected number but was: ' .. backupNumber)
+		end
+
+		backupNumber = tonumber(backupNumber)
+		local backupFileName = GameHandler.getBackupFileName(poolSavesFolder, backupNumber)
+		if backupFileName == nil then
+			ErrorHandler.error('Could not find backup ' .. backupNumber ..
+					' in folder ' .. poolSavesFolder)
+		end
+		loadFileAndInitialize(poolSavesFolder .. backupFileName, neatMLAI)
+
+		forms.setproperty(autoSaveBackups, "Checked", false)
+	else
+		loadFile(poolSavesFolder, neatMLAI)
+	end
 
 	if neatMLAI.pool == nil then
 		neatMLAI:initializePool(inputSizeWithoutBiasNode, outputSize)
@@ -283,7 +295,7 @@ event.onexit(onExit)
 -- Set defaults
 forms.setproperty(showBanner, "Checked", true)
 forms.settext(textBoxProgramName, machineLearningProgramRunName)
---forms.setproperty(autoSaveBackups, "Checked", true)
+forms.setproperty(autoSaveBackups, "Checked", true)
 
 -- Load the latest .pool file
 loadFile(poolSavesFolder, neatMLAI)
@@ -342,7 +354,7 @@ while true do
 
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
-			saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
+			-- saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
 		end
 
 		-- set 'currentGenome' to one that isn't measured yet
