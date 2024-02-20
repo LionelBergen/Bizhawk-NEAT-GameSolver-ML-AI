@@ -178,7 +178,8 @@ local function nextGenome(neatObject)
 				error('new generation produced invalid number of genomes: ' .. pool:getNumberOfGenomes())
 			end
 
-			if (pool.generation % saveSnapshotEveryNthGeneration == 0) then
+			if (pool.generation % saveSnapshotEveryNthGeneration == 0)
+					and mode ~= Mode.Manual and forms.ischecked(autoSaveBackups) then
 				local propertiesSnapshot = createPropertiesSnapshot()
 				GameHandler.saveFileFromPropertiesSnapshot(poolSavesFolder ..
 						(propertiesSnapshotFileName .. generationCompleted .. '.snapshot'), propertiesSnapshot)
