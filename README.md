@@ -41,3 +41,9 @@ Tests should be run using `lua tests.lua`. Currently the tests.lua file contains
 Individual tests can also be run through InteliJ, modifying the path to be `/scripts` (removing `src/` from default inteliJ)  
 
 
+Demo gif
+--------
+
+Latest run, completes level with 4727 fitness score by gen 15.  
+![SMW Gen 15 complete level](./assets/docs/2024-02-20.gif)
+
