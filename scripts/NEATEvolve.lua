@@ -233,14 +233,14 @@ local reloadProgramFunction = function()
 
 	local backupNumber = forms.gettext(textBoxLoadBackup)
 	if backupNumber and (#backupNumber > 0) then
-		if type(backupNumber) ~= "number" then
+		local backupNumberInt = tonumber(backupNumber)
+		if not backupNumberInt then
 			ErrorHandler.error('Expected number but was: ' .. backupNumber)
 		end
 
-		backupNumber = tonumber(backupNumber)
-		local backupFileName = GameHandler.getBackupFileName(poolSavesFolder, backupNumber)
+		local backupFileName = GameHandler.getBackupFileName(poolSavesFolder, backupNumberInt)
 		if backupFileName == nil then
-			ErrorHandler.error('Could not find backup ' .. backupNumber ..
+			ErrorHandler.error('Could not find backup ' .. backupNumberInt ..
 					' in folder ' .. poolSavesFolder)
 		end
 		loadFileAndInitialize(poolSavesFolder .. backupFileName, neatMLAI)
