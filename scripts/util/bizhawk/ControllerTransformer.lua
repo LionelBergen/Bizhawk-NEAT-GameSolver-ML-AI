@@ -1,8 +1,6 @@
 ---@class ControllerTransformer
 local ControllerTransformer = {}
 
-local Button = require('machinelearning.ai.model.game.Button')
-
 --- Transforms an array of controller keys to have 'P1 ' prefix.
 --- Also prevents both LEFT+RIGHT or UP+DOWN from being true.
 --- E.G `A=true,B=false,LEFT=true,RIGHT=true` becomes `P1 A=true,P1 B=false,P1 LEFT=false,P1 RIGHT=false`
