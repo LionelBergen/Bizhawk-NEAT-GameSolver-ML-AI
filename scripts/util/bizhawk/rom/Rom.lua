@@ -31,9 +31,35 @@ function Rom.isDead()
     error('unimplemented method isDead')
 end
 
--- luacheck: ignore rightmost currentFrame
-function Rom.calculateFitness(rightmost, currentFrame)
+-- luacheck: ignore position currentFrame
+function Rom.calculateFitness(position, currentFrame)
     error('unimplemented method calculateFitness')
+end
+
+function Rom.getTimeoutConstant()
+    error('unimplemented method getTimeoutConstant')
+end
+
+---@return Position
+function Rom.getPositions()
+    error('unimplemented method getPositions')
+end
+
+-- _ = newPosition
+function Rom.hasMovedInProgressingWay(_)
+    error('unimplemented method hasMovedInProgressingWay')
+end
+
+function Rom.reset(_)
+    error('unimplemented method reset')
+end
+
+function Rom.getWinBonus()
+    error('unimplemented method getWinBonus')
+end
+
+function Rom.getDeathBonus()
+    error('unimplemented method getDeathBonus')
 end
 
 return Rom

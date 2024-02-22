@@ -4,6 +4,7 @@ local Mario = Rom:new()
 local SMW = require('util.bizhawk.rom.super_mario_usa.SMW')
 local MarioInputType = require('util.bizhawk.rom.super_mario_usa.MarioInputType')
 local Button = require('machinelearning.ai.model.game.Button')
+local Position = require('machinelearning.ai.model.game.Position')
 
 -- luacheck: globals memory
 
@@ -16,6 +17,18 @@ local marioGameTileSize = 16
 local xPositionInMemory = 0x94
 local yPositionMemory = 0x96
 
+local timeoutConstant = 20
+local winBonus = 1000
+local deathBonus = 0
+
+local lastPosition = Position.new(-1, -1)
+local rightMost = -1
+
+function Mario.reset()
+    rightMost = -1
+    lastPosition = Position.new(-1, -1)
+end
+
 function Mario.getRomName()
     return romGameName
 end
@@ -25,21 +38,35 @@ function Mario.getButtonOutputs()
     return buttons
 end
 
+---@return Position
 function Mario.getPositions()
     -- Read Signed 16 Little Endian
     local marioX = memory.read_s16_le(xPositionInMemory)
     local marioY = memory.read_s16_le(yPositionMemory)
 
-    return marioX, marioY
+    return Position.new(marioX, marioY)
+end
+
+function Rom.hasMovedInProgressingWay(newPosition)
+    return newPosition.x > lastPosition.x
+end
+
+---@param position Position
+function Mario.setLastPosition(position)
+    lastPosition = position
+
+    if position.x > rightMost then
+        rightMost = position.x
+    end
 end
 
 function Mario.getTile(offsetX, offsetY)
-    local marioX, marioY = Mario.getPositions()
+    local positions = Mario.getPositions()
 
     -- Calculate the adjusted x and y positions based on the offsets and Mario's position
     -- add 8 to the 'x' position to get Mario's center
-    local x = math.floor((marioX + offsetX + 8) / marioGameTileSize)
-    local y = math.floor((marioY + offsetY) / marioGameTileSize)
+    local x = math.floor((positions.x + offsetX + 8) / marioGameTileSize)
+    local y = math.floor((positions.y + offsetY) / marioGameTileSize)
 
     local tileMapStartAddress = 0x1C800
     local numberOfBytesInAColumnOrRow = 0x10
@@ -128,7 +155,7 @@ end
 ---@return MarioInputType[]
 function Mario.getInputs(programViewWidth, programViewHeight)
     local tileSize = marioGameTileSize
-    local marioX, marioY = Mario.getPositions()
+    local position = Mario.getPositions()
 
     local sprites = Mario.getSprites()
     local extended = Mario.getExtendedSprites()
@@ -152,8 +179,8 @@ function Mario.getInputs(programViewWidth, programViewHeight)
             end
 
             for i = 1, #sprites do
-                distX = math.abs(sprites[i]["x"] - (marioX + offsetX))
-                distY = math.abs(sprites[i]["y"] - (marioY + offsetY))
+                distX = math.abs(sprites[i]["x"] - (position.x + offsetX))
+                distY = math.abs(sprites[i]["y"] - (position.y + offsetY))
                 spriteValue = sprites[i]["value"]
                 if distX <= distancethreshold and distY <= distancethreshold then
                     inputs[#inputs] = spriteValue
@@ -161,8 +188,8 @@ function Mario.getInputs(programViewWidth, programViewHeight)
             end
 
             for i = 1, #extended do
-                distX = math.abs(extended[i]["x"] - (marioX + offsetX))
-                distY = math.abs(extended[i]["y"] - (marioY + offsetY))
+                distX = math.abs(extended[i]["x"] - (position.x + offsetX))
+                distY = math.abs(extended[i]["y"] - (position.y + offsetY))
                 if distX < distancethreshold and distY < distancethreshold then
                     -- TODO: same value for all extended sprites is not good
                     inputs[#inputs] = MarioInputType.SPRITE_EXTENDED
@@ -188,8 +215,20 @@ function Mario.isDead()
     return lockAnimationFlag and lockAnimationFlag ~= 0
 end
 
-function Mario.calculateFitness(rightmost, currentFrame)
-    return rightmost - (currentFrame / 2)
+function Mario.calculateFitness(_, currentFrame)
+    return rightMost - (currentFrame / 2)
+end
+
+function Mario.getWinBonus()
+    return winBonus
+end
+
+function Mario.getDeathBonus()
+    return deathBonus
+end
+
+function Rom.getTimeoutConstant()
+    return timeoutConstant
 end
 
 return Mario

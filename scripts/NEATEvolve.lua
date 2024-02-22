@@ -18,15 +18,13 @@ local Mode = require('machinelearning.ai.model.game.Mode')
 ---@type Mario
 local rom = Mario
 local saveFileName = 'SMW.state'
-local machineLearningProgramRunName = 'load_from_backup'
+local machineLearningProgramRunName = 'lessen_win_reward'
 local poolFileNamePostfix = machineLearningProgramRunName .. ".json"
 local poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\'
 		.. machineLearningProgramRunName .. '\\'
 local resultsFileName = machineLearningProgramRunName .. '_results_'
 local propertiesSnapshotFileName = machineLearningProgramRunName .. '_properties_'
 local seed = 12345
-local LEVEL_COMPLETE_FITNESS_BONUS = 1000
-local DEATH_FITNESS_BONUS = 0
 local evaluateEveryNthFrame = 1
 local saveSnapshotEveryNthGeneration = 1
 local mode = Mode.Auto
@@ -44,8 +42,7 @@ local programViewHeight = 13
 local inputSizeWithoutBiasNode = (programViewWidth * programViewHeight)
 local outputSize = #rom.getButtonOutputs()
 
-local TimeoutConstant = (mode == Mode.Manual and 200000) or 20
-local rightmost = 0
+local TimeoutConstant = (mode == Mode.Manual and 200000) or rom.getTimeoutConstant()
 local timeout = 0
 
 -- Declare variables that are defined in Bizhawk already.
@@ -129,8 +126,8 @@ end
 local function initializeRun(neatObject)
 	-- Load the state file. State file is a bizhawk file. Example is the beginning of a game level
 	GameHandler.loadSavedGame('..\\assets\\savedstates\\' .. saveFileName)
-	rightmost = 0
 	timeout = TimeoutConstant
+	rom.reset()
 	GameHandler.clearJoypad(rom)
 	neatObject.pool.currentFrame = 0
 	local genome = neatObject:getCurrentGenome()
@@ -310,23 +307,23 @@ while true do
 	if mode ~= Mode.Manual then
 		joypad.set(controller)
 	end
-	-- TODO: 'marioX', 'marioY'
-	local marioX, _ = rom:getPositions()
+
+	local newPosition = rom.getPositions()
 
 	-- if we're moving, reset the timeout.
-	if marioX > rightmost then
-		rightmost = marioX
+	if rom.hasMovedInProgressingWay(newPosition) then
+		rom.setLastPosition(newPosition)
 		timeout = TimeoutConstant
 	end
 
 	if timeout <= 0 or rom:isWin() or rom:isDead() then
-		local fitness = rom.calculateFitness(rightmost, pool.currentFrame)
+		local fitness = rom.calculateFitness(newPosition, pool.currentFrame)
 
 		if rom:isWin() then
-			fitness = fitness + LEVEL_COMPLETE_FITNESS_BONUS
+			fitness = fitness + rom.getWinBonus()
 			Logger.info("---- WIN! -----")
 		elseif rom:isDead() then
-			fitness = fitness + DEATH_FITNESS_BONUS
+			fitness = fitness + rom.getDeathBonus()
 		end
 
 		-- We check if fitness is measured using fitness == 0, so ensure we know fitness has been measured already
@@ -341,7 +338,6 @@ while true do
 
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
-			-- saveNewBackup(pool, poolSavesFolder, poolFileNamePostfix)
 		end
 
 		-- set 'currentGenome' to one that isn't measured yet
@@ -364,7 +360,7 @@ while true do
 
 		gui.drawText(0, 0, "Gen " .. pool.generation .. " species " ..
 				pool.currentSpecies .. " genome " .. pool.currentGenome, 0xFF000000, 11)
-		gui.drawText(0, 12, "Fitness: " .. rom.calculateFitness(rightmost, pool.currentFrame), 0xFF000000, 11)
+		gui.drawText(0, 12, "Fitness: " .. rom.calculateFitness(newPosition, pool.currentFrame), 0xFF000000, 11)
 		gui.drawText(100, 12, " Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
 	end
 	emu.frameadvance();
