@@ -3,20 +3,13 @@ local Rom =  require('util.bizhawk.rom.Rom')
 local Mario = Rom:new()
 local SMW = require('util.bizhawk.rom.super_mario_usa.SMW')
 local MarioInputType = require('util.bizhawk.rom.super_mario_usa.MarioInputType')
+local Button = require('machinelearning.ai.model.game.Button')
 
 -- luacheck: globals memory
 
 local romGameName = 'Super Mario World (USA)'
 -- No need for both Y and X since they do the same thing.
-local buttonNames = {
-    "A",
-    "B",
-    "X",
-    "Up",
-    "Down",
-    "Left",
-    "Right",
-}
+local buttons = { Button.A, Button.B, Button.X, Button.UP, Button.DOWN, Button.LEFT, Button.RIGHT }
 local marioGameTileSize = 16
 
 -- https://www.smwcentral.net/?p=memorymap&game=smw&u=0&address=000095&
@@ -27,8 +20,9 @@ function Mario.getRomName()
     return romGameName
 end
 
+---@return Button[]
 function Mario.getButtonOutputs()
-    return buttonNames
+    return buttons
 end
 
 function Mario.getPositions()

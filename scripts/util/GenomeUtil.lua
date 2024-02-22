@@ -190,5 +190,17 @@ function GenomeUtil.getRandomNeuronInfo(genes, isInput, inputSizeWithoutBiasNode
     return neurons[randomIndex]
 end
 
+---@param genes Gene[]
+---@param link Gene
+function GenomeUtil.containsLink(genes, link)
+    for _, gene in pairs(genes) do
+        if (gene.into.index == link.into.index) and (gene.into.type == link.into.type)
+                and (gene.out.index == link.out.index) and (gene.out.type == link.out.type) then
+            return true
+        end
+    end
+
+    return false
+end
 
 return GenomeUtil

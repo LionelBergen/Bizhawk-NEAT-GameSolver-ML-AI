@@ -6,6 +6,9 @@ local Neat = require('machinelearning.ai.Neat')
 local Pool = require('machinelearning.ai.model.Pool')
 local Genome = require('machinelearning.ai.model.Genome')
 local Species = require('machinelearning.ai.model.Species')
+local Neuron = require('machinelearning.ai.model.Neuron')
+local Network = require('machinelearning.ai.model.Network')
+local Button = require('machinelearning.ai.model.game.Button')
 
 -- luacheck: globals console TestNeat fullTestSuite
 -- To allow ErrorHandler to work
@@ -307,6 +310,40 @@ function TestNeat.testBreedTopSpecies()
     lu.assertEquals(resultChildren[2].bredFrom, 1)
     lu.assertEquals(resultChildren[3].bredFrom, 1)
     lu.assertEquals(resultChildren[4].bredFrom, 1)
+end
+
+function TestNeat.testEvaluateNetwork()
+    local testNetwork = Network:new()
+    testNetwork.biasNeuron = Neuron:new()
+    testNetwork.outputNeurons = {
+        Neuron:new(),
+        Neuron:new()
+    }
+
+    testNetwork.outputNeurons[1].value = 1.0
+
+    local testInputs = {}
+    local testOutputs = { Button.LEFT, Button.X }
+
+    local result = Neat.evaluateNetwork(testNetwork, testInputs, testOutputs)
+    lu.assertTrue(result[Button.LEFT])
+    lu.assertFalse(result[Button.X])
+end
+
+function TestNeat.testEvaluateNetworkFalse()
+    local testNetwork = Network:new()
+    testNetwork.biasNeuron = Neuron:new()
+    testNetwork.outputNeurons = {
+        Neuron:new(),
+        Neuron:new()
+    }
+
+    local testInputs = {}
+    local testOutputs = { Button.LEFT, Button.X }
+
+    local result = Neat.evaluateNetwork(testNetwork, testInputs, testOutputs)
+    lu.assertFalse(result[Button.LEFT])
+    lu.assertFalse(result[Button.X])
 end
 
 if not fullTestSuite then
