@@ -12,23 +12,10 @@ local Species = require('machinelearning.ai.model.Species')
 local Network = require('machinelearning.ai.model.Network')
 local NeuronInfo = require('machinelearning.ai.model.NeuronInfo')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
-local Validator = require('../util/Validator')
+local Validator = require('util.Validator')
 local MathUtil = require('util.MathUtil')
 local GenomeUtil = require('util.GenomeUtil')
 local MutationRate = require('machinelearning.ai.model.MutationRate')
-
----@param genes Gene[]
----@param link Gene
-local function containsLink(genes, link)
-    for _, gene in pairs(genes) do
-        if (gene.into.index == link.into.index) and (gene.into.type == link.into.type)
-                and (gene.out.index == link.out.index) and (gene.out.type == link.out.type) then
-            return true
-        end
-    end
-
-    return false
-end
 
 -- Creates a link between two randomly selected neurons.
 ---@param genome Genome
@@ -66,7 +53,7 @@ local function linkMutate(genome, forceBias, inputSizeWithoutBiasNode, numberOfO
         newLink.into = NeuronInfo.new(1, NeuronType.BIAS)
     end
 
-    if containsLink(genome.genes, newLink) then
+    if GenomeUtil.containsLink(genome.genes, newLink) then
         return
     end
 
@@ -230,7 +217,7 @@ end
 
 ---@param network Network
 ---@param inputs MarioInputType[]
----@param outputs string[]
+---@param outputs Button[]
 function Neat.evaluateNetwork(network, inputs, outputs)
     network:setAllNeuronValues(inputs)
 

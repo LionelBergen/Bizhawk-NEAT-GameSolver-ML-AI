@@ -1,17 +1,19 @@
 -- NEAT ML/AI program designed to be used with Bizhawk emulator
 -- Created by Lionel Bergen
-local FileUtil = require('util/FileUtil')
+local FileUtil = require('util.FileUtil')
 local ErrorHandler = require('util.ErrorHandler')
 local Logger = require('util.Logger')
-local GameHandler = require('util/bizhawk/GameHandler')
-local Neat = require('machinelearning/ai/Neat')
+local GameHandler = require('util.bizhawk.GameHandler')
+local Neat = require('machinelearning.ai.Neat')
 local Mario = require('util.bizhawk.rom.super_mario_usa.Mario')
-local Validator = require('../util/Validator')
+local Validator = require('util.Validator')
 local MathUtil = require('util.MathUtil')
 local Display = require('display.Display')
 local Forms = require('util.bizhawk.wrapper.Forms')
 local GenerationResults = require('machinelearning.ai.model.record.GenerationResults')
 local PropertiesSnapshot = require('machinelearning.ai.model.record.PropertiesSnapshot')
+local ControllerTransformer = require('util.bizhawk.ControllerTransformer')
+local Mode = require('machinelearning.ai.model.game.Mode')
 
 ---@type Mario
 local rom = Mario
@@ -27,6 +29,7 @@ local LEVEL_COMPLETE_FITNESS_BONUS = 1000
 local DEATH_FITNESS_BONUS = 0
 local evaluateEveryNthFrame = 1
 local saveSnapshotEveryNthGeneration = 1
+local mode = Mode.Auto
 
 ---@type Neat
 local neatMLAI = Neat:new()
@@ -41,7 +44,7 @@ local programViewHeight = 13
 local inputSizeWithoutBiasNode = (programViewWidth * programViewHeight)
 local outputSize = #rom.getButtonOutputs()
 
-local TimeoutConstant = 20
+local TimeoutConstant = (mode == Mode.Manual and 200000) or 20
 local rightmost = 0
 local timeout = 0
 
@@ -59,13 +62,7 @@ local _, changeProgramNameFunctionIndex = Forms.createButton(form, "RELOAD", 278
 local textBoxLoadBackup = Forms.createTextBox(form, "BACKUP #: ", 0, 310, 78)
 local autoSaveBackups = Forms.createCheckbox(form, "AUTO SAVE BACKUPS", 5, 380, 188)
 
-local Mode = {Manual = 1, Auto = 2}
-local mode = Mode.Auto
 local controller = {}
-
-if mode == Mode.Manual then
-	TimeoutConstant = 200000
-end
 
 local function logCurrent()
 	Logger.info("Gen " .. neatMLAI.pool.generation .. " species " ..
@@ -97,9 +94,17 @@ local function createPropertiesSnapshot()
 end
 
 ---@param pool Pool
-local function saveNewBackup(pool, backupNumber, saveFolderName, filePostfix)
+local function createNewFileSaveName(pool)
+	local backupNumber = pool.generation
+	local fileName = poolSavesFolder .. "backup." .. backupNumber .. "." .. poolFileNamePostfix
+
+	return fileName
+end
+
+---@param pool Pool
+local function saveNewBackup(pool)
 	if mode ~= Mode.Manual and forms.ischecked(autoSaveBackups) then
-		local newFileName = saveFolderName .. "backup." .. backupNumber .. "." .. filePostfix
+		local newFileName = createNewFileSaveName(pool)
 		if FileUtil.fileExists(newFileName) then
 			ErrorHandler.error('Backup file already exists!: ' .. newFileName)
 		end
@@ -108,32 +113,14 @@ local function saveNewBackup(pool, backupNumber, saveFolderName, filePostfix)
 	end
 end
 
-local function transformNetworkOutputs(networkController)
-	local newController = {}
-	for k, v in pairs(networkController) do
-		local newKey = "P1 " .. k
-
-		newController[newKey] = v
-	end
-
-	if newController["P1 Left"] and newController["P1 Right"] then
-		newController["P1 Left"] = false
-		newController["P1 Right"] = false
-	end
-	if newController["P1 Up"] and newController["P1 Down"] then
-		newController["P1 Up"] = false
-		newController["P1 Down"] = false
-	end
-
-	return newController
-end
-
 ---@param neatObject Neat
 ---@param currentGenome Genome
 local function evaluateCurrent(neatObject, currentGenome)
+	---@type MarioInputType[]
 	local inputs = rom.getInputs(programViewWidth, programViewHeight)
+	---@type Button[]
 	local networkController = neatObject.evaluateNetwork(currentGenome.network, inputs, rom.getButtonOutputs())
-	networkController = transformNetworkOutputs(networkController)
+	networkController = ControllerTransformer.transformNetworkOutputs(networkController)
 
 	return networkController
 end
@@ -246,14 +233,14 @@ local reloadProgramFunction = function()
 
 	local backupNumber = forms.gettext(textBoxLoadBackup)
 	if backupNumber and (#backupNumber > 0) then
-		if not type(backupNumber) == "number" then
+		local backupNumberInt = tonumber(backupNumber)
+		if not backupNumberInt then
 			ErrorHandler.error('Expected number but was: ' .. backupNumber)
 		end
 
-		backupNumber = tonumber(backupNumber)
-		local backupFileName = GameHandler.getBackupFileName(poolSavesFolder, backupNumber)
+		local backupFileName = GameHandler.getBackupFileName(poolSavesFolder, backupNumberInt)
 		if backupFileName == nil then
-			ErrorHandler.error('Could not find backup ' .. backupNumber ..
+			ErrorHandler.error('Could not find backup ' .. backupNumberInt ..
 					' in folder ' .. poolSavesFolder)
 		end
 		loadFileAndInitialize(poolSavesFolder .. backupFileName, neatMLAI)

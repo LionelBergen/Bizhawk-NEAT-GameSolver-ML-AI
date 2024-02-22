@@ -1,5 +1,5 @@
 -- Import LuaUnit module
-local lu = require('luaunit')
+local lu = require('lib.luaunit')
 
 -- Import the Display class
 local Display = require('display.Display')

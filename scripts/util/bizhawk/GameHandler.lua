@@ -1,8 +1,8 @@
 local GameHandler = {}
 
-local FileUtil = require('../util/FileUtil')
-local Logger = require('../util/Logger')
-local Validator = require('../util/Validator')
+local FileUtil = require('util.FileUtil')
+local Logger = require('util.Logger')
+local Validator = require('util.Validator')
 local Pool = require('machinelearning.ai.model.Pool')
 local Json = require('lib.json')
 

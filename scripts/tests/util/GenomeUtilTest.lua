@@ -1,5 +1,5 @@
 -- Import LuaUnit module
-local lu = require('luaunit')
+local lu = require('lib.luaunit')
 
 local GenomeUtil = require('util.GenomeUtil')
 local MathUtil = require('util.MathUtil')
@@ -250,6 +250,30 @@ function TestGenomeUtil.testGetRandomNeuronInfoOutput()
 
     lu.assertEquals(randomNeuronInfo.type, NeuronType.OUTPUT)
     lu.assertEquals(randomNeuronInfo.index, 24)
+end
+
+function TestGenomeUtil.testContainsLink()
+    local genes = {
+        { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) },
+        { into = NeuronInfo.new(20, NeuronType.PROCESSING), out = NeuronInfo.new(400, NeuronType.PROCESSING) }
+    }
+
+    local link = { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) }
+
+    local result = GenomeUtil.containsLink(genes, link)
+    lu.assertTrue(result)
+end
+
+function TestGenomeUtil.testContainsLinkFalse()
+    local genes = {
+        { into = NeuronInfo.new(1, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) },
+        { into = NeuronInfo.new(20, NeuronType.PROCESSING), out = NeuronInfo.new(400, NeuronType.PROCESSING) }
+    }
+
+    local link = { into = NeuronInfo.new(2, NeuronType.INPUT), out = NeuronInfo.new(33, NeuronType.PROCESSING) }
+
+    local result = GenomeUtil.containsLink(genes, link)
+    lu.assertFalse(result)
 end
 
 if not fullTestSuite then

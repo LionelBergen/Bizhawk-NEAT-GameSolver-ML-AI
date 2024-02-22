@@ -1,5 +1,5 @@
 local Validator = {}
-local Logger = require('../util/Logger')
+local Logger = require('util.Logger')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 
 local poolKeys = {'species', 'generation', 'innovation', 'currentSpecies',

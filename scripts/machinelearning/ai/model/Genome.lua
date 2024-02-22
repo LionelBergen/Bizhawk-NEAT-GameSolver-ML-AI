@@ -3,7 +3,7 @@ local Genome = {}
 
 local MutationRate = require('machinelearning.ai.model.MutationRate')
 local Gene = require('machinelearning.ai.model.Gene')
-local Validator = require('../util/Validator')
+local Validator = require('util.Validator')
 
 ---@return Genome
 function Genome:new(maxNeuron, mutateConnectionsChance, linkMutationChance, biasMutationChance,
