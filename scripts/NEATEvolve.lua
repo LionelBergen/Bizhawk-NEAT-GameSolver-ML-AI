@@ -246,7 +246,7 @@ local reloadProgramFunction = function()
 
 	local backupNumber = forms.gettext(textBoxLoadBackup)
 	if backupNumber and (#backupNumber > 0) then
-		if not type(backupNumber) == "number" then
+		if type(backupNumber) ~= "number" then
 			ErrorHandler.error('Expected number but was: ' .. backupNumber)
 		end
 
