@@ -1,17 +1,17 @@
-local lu = require('luaunit')
+local lu = require('lib.luaunit')
 
 -- luacheck: globals fullTestSuite
 -- Set so that tests don't exit
 fullTestSuite = true
 
-require('tests.util.MathUtilTest')
-require('tests.util.GenomeUtilTest')
-require('tests.util.bizhawk.GameHandlerTest')
+require('tests.display.DisplayTest')
 require('tests.machinelearning.ai.model.GeneTest')
 require('tests.machinelearning.ai.model.GenomeTest')
 require('tests.machinelearning.ai.NeatTest')
 require('tests.machinelearning.ai.NetworkTest')
 require('tests.machinelearning.ai.PoolTest')
-require('tests.display.DisplayTest')
+require('tests.util.bizhawk.GameHandlerTest')
+require('tests.util.GenomeUtilTest')
+require('tests.util.MathUtilTest')
 
 os.exit(lu.LuaUnit.run())

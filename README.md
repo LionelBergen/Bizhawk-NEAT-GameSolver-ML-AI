@@ -1,10 +1,10 @@
-Notice
-------
-Based on Seth Bling's MAR I/O program. Video: https://www.youtube.com/watch?v=qv6UVOQ0F44&ab_channel=SethBling  
+Machine Learning SNES Game Solver
+---------------------------------   
+Uses The NEAT Machine Learning algorithm to solve various SNES games in Bizhawk (Snes/Nes emulator)  
 
 Purpose
 -------  
-Readable program with useful documentation and error messages.   
+Easy to use readable program   
 Program can be used to learn **any SNES/NES game**. The ROM.lua class just needs to be extended and functions written so program can calculate fitness and read values from whichever game.  
 
 Quick Start

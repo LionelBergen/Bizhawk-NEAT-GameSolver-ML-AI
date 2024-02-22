@@ -1,12 +1,12 @@
 -- NEAT ML/AI program designed to be used with Bizhawk emulator
 -- Created by Lionel Bergen
-local FileUtil = require('util/FileUtil')
+local FileUtil = require('util.FileUtil')
 local ErrorHandler = require('util.ErrorHandler')
 local Logger = require('util.Logger')
-local GameHandler = require('util/bizhawk/GameHandler')
-local Neat = require('machinelearning/ai/Neat')
+local GameHandler = require('util.bizhawk.GameHandler')
+local Neat = require('machinelearning.ai.Neat')
 local Mario = require('util.bizhawk.rom.super_mario_usa.Mario')
-local Validator = require('../util/Validator')
+local Validator = require('util.Validator')
 local MathUtil = require('util.MathUtil')
 local Display = require('display.Display')
 local Forms = require('util.bizhawk.wrapper.Forms')

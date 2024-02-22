@@ -1,5 +1,5 @@
 -- Import LuaUnit module
-local lu = require('luaunit')
+local lu = require('lib.luaunit')
 
 local Network = require('machinelearning.ai.model.Network')
 local Neuron = require('machinelearning.ai.model.Neuron')

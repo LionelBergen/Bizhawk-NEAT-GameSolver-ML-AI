@@ -1,5 +1,5 @@
 -- Import LuaUnit module
-local lu = require('luaunit')
+local lu = require('lib.luaunit')
 
 local GenomeUtil = require('util.GenomeUtil')
 local MathUtil = require('util.MathUtil')

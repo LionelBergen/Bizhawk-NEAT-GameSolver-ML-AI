@@ -1,5 +1,5 @@
 -- Import LuaUnit module
-local lu = require('luaunit')
+local lu = require('lib.luaunit')
 
 local Gene = require('machinelearning.ai.model.Gene')
 

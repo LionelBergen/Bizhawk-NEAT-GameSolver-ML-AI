@@ -1,5 +1,5 @@
 -- Import LuaUnit module
-local lu = require('luaunit')
+local lu = require('lib.luaunit')
 
 require('util.MathUtil').init(12345)
 local Neat = require('machinelearning.ai.Neat')
