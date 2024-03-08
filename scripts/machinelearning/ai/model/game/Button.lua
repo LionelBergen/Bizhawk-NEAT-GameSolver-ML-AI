@@ -6,7 +6,9 @@ local Button = {
     UP = "Up",
     DOWN = "Down",
     LEFT = "Left",
-    RIGHT = "Right"
+    RIGHT = "Right",
+    L = "L",
+    R = "R"
 }
 
 return Button

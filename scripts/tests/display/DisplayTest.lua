@@ -63,6 +63,33 @@ function TestDisplay.testGetCells()
     lu.assertEquals(results[100].y, 80)
 end
 
+function TestDisplay.testGetCellsVertical()
+    local testInputs = getTestInputs()
+    testInputs[104].value = 2
+    testInputs[105].value = 2
+    testInputs[106].value = 2
+    testInputs[107].value = 2
+    testInputs[111].value = 3
+    lu.assertEquals(#testInputs, 169)
+
+    local results = Display.getCells(testInputs, 13, 13, NeuronType.INPUT, true)
+
+    lu.assertEquals(#results, 169)
+    lu.assertEquals(results[103].value, 0)
+    lu.assertEquals(results[104].value, 2)
+    lu.assertEquals(results[105].value, 2)
+    lu.assertEquals(results[106].value, 2)
+    lu.assertEquals(results[107].value, 2)
+    lu.assertEquals(results[111].value, 3)
+    lu.assertEquals(results[112].value, 0)
+
+    lu.assertEquals(results[50].x, 70)
+    lu.assertEquals(results[50].y, 55)
+
+    lu.assertEquals(results[100].x, 60)
+    lu.assertEquals(results[100].y, 75)
+end
+
 if not fullTestSuite then
     -- Run the tests
     os.exit(lu.LuaUnit.run())

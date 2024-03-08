@@ -6,6 +6,7 @@ local Logger = require('util.Logger')
 local GameHandler = require('util.bizhawk.GameHandler')
 local Neat = require('machinelearning.ai.Neat')
 local Mario = require('util.bizhawk.rom.super_mario_usa.Mario')
+local TetrisAttack = require('util.bizhawk.rom.tetris_attack.TetrisAttack')
 local Validator = require('util.Validator')
 local MathUtil = require('util.MathUtil')
 local Display = require('display.Display')
@@ -18,7 +19,8 @@ local Mode = require('machinelearning.ai.model.game.Mode')
 ---@type Mario
 local rom = Mario
 local saveFileName = 'SMW.state'
-local machineLearningProgramRunName = 'lessen_win_reward'
+
+local machineLearningProgramRunName = 'mario__2'
 local poolFileNamePostfix = machineLearningProgramRunName .. ".json"
 local poolSavesFolder = FileUtil.getCurrentDirectory() .. '\\..\\machine_learning_outputs\\'
 		.. machineLearningProgramRunName .. '\\'
@@ -39,7 +41,7 @@ local topOverlayBackgroundColor = 0xD0FFFFFF
 -- this is the Programs 'view'
 local programViewWidth = 13
 local programViewHeight = 13
-local inputSizeWithoutBiasNode = (programViewWidth * programViewHeight)
+local inputSizeWithoutBiasNode = rom.getNumberOfInputs()
 local outputSize = #rom.getButtonOutputs()
 
 local TimeoutConstant = (mode == Mode.Manual and 200000) or rom.getTimeoutConstant()
@@ -126,8 +128,9 @@ end
 local function initializeRun(neatObject)
 	-- Load the state file. State file is a bizhawk file. Example is the beginning of a game level
 	GameHandler.loadSavedGame('..\\assets\\savedstates\\' .. saveFileName)
+	Logger.info('loaded saved game.')
 	timeout = TimeoutConstant
-	rom.reset()
+	rom:reset()
 	GameHandler.clearJoypad(rom)
 	neatObject.pool.currentFrame = 0
 	local genome = neatObject:getCurrentGenome()
@@ -280,6 +283,7 @@ event.onexit(onExit)
 forms.setproperty(showBanner, "Checked", true)
 forms.settext(textBoxProgramName, machineLearningProgramRunName)
 forms.setproperty(autoSaveBackups, "Checked", true)
+forms.setproperty(showNetwork, "Checked", true)
 
 -- Load the latest .pool file
 loadFile(poolSavesFolder, neatMLAI)
@@ -308,22 +312,25 @@ while true do
 		joypad.set(controller)
 	end
 
-	local newPosition = rom.getPositions()
+	local newPosition = rom.getPosition()
 
 	-- if we're moving, reset the timeout.
-	if rom.hasMovedInProgressingWay(newPosition) then
-		rom.setLastPosition(newPosition)
+	if rom:hasMovedInProgressingWay(newPosition) then
+		rom:setLastPosition(newPosition)
 		timeout = TimeoutConstant
 	end
 
 	if timeout <= 0 or rom:isWin() or rom:isDead() then
-		local fitness = rom.calculateFitness(newPosition, pool.currentFrame)
+		local fitness = rom:calculateFitness(newPosition, pool.currentFrame)
 
 		if rom:isWin() then
 			fitness = fitness + rom.getWinBonus()
 			Logger.info("---- WIN! -----")
 		elseif rom:isDead() then
 			fitness = fitness + rom.getDeathBonus()
+			Logger.info('was dead.')
+		else
+			Logger.info('was not dead')
 		end
 
 		-- We check if fitness is measured using fitness == 0, so ensure we know fitness has been measured already
@@ -351,8 +358,7 @@ while true do
 	end
 
 	if forms.ischecked(showNetwork) then
-		Display.displayGenome(genome, programViewWidth, programViewHeight,
-				rom.getButtonOutputs(), forms.ischecked(showMutationRates))
+		Display.displayGenome(genome, rom.getDisplaySettings(), rom.getButtonOutputs(), forms.ischecked(showMutationRates), newPosition)
 	end
 
 	if forms.ischecked(showBanner) then
@@ -360,7 +366,7 @@ while true do
 
 		gui.drawText(0, 0, "Gen " .. pool.generation .. " species " ..
 				pool.currentSpecies .. " genome " .. pool.currentGenome, 0xFF000000, 11)
-		gui.drawText(0, 12, "Fitness: " .. rom.calculateFitness(newPosition, pool.currentFrame), 0xFF000000, 11)
+		gui.drawText(0, 12, "Fitness: " .. rom:calculateFitness(newPosition, pool.currentFrame), 0xFF000000, 11)
 		gui.drawText(100, 12, " Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
 	end
 	emu.frameadvance();

@@ -3,42 +3,64 @@ local Display = {}
 local Cell = require('machinelearning.ai.model.display.Cell')
 local NeuronType = require('machinelearning.ai.model.NeuronType')
 local MarioInputType = require('util.bizhawk.rom.super_mario_usa.MarioInputType')
+local TetrisAttackInputType = require('util.bizhawk.rom.tetris_attack.TetrisAttackInputType')
 local Colour = require('machinelearning.ai.model.display.Colour')
 local MathUtil = require('util.MathUtil')
 local ErrorHandler = require('util.ErrorHandler')
+local Orientation = require('display.Orientation')
 
 local black = 0xFF000000
 local blue = 0xFF0000FF
 
 -- luacheck: globals gui
 
--- Creates a 2d array of Cell's based on the neurons passed
----@param neurons Neuron[]
----@return Cell[]
-function Display.getCells(neurons, width, height, neuronType)
+local function getCellsAsHorizontal(xStart, xEnd, yStart, yEnd, cellWidth, cellHeight, neuronType, neurons)
     ---@type Cell[]
     local cells = {}
-    local i = 1
-
-    -- display beginning cell at position xStart * cellWidth, yStart * cellHeight
-    local xStart = 4
-    local yStart = 8
-    local cellWidth = 5
-    local cellHeight = 5
-    local xEnd = xStart + (width - 1)
-    local yEnd = yStart + (height - 1)
-
-    if (width * height) > #neurons then
-        error('Cannot get CellInputs, values were too large.')
-    end
 
     for dx=xStart,xEnd do
         for dy=yStart,yEnd do
+            local i = #cells + 1
+
+            ---@type Cell
+            local cell = Cell.new(cellWidth * dx, cellHeight * dy, neurons[i].value, neuronType)
+            cells[i] = cell
+        end
+    end
+
+    return cells
+end
+
+local function getCellsAsVertical(xStart, xEnd, yStart, yEnd, cellWidth, cellHeight, neuronType, neurons)
+    ---@type Cell[]
+    local cells = {}
+
+    for dy=yStart, yEnd do
+        for dx=xStart, xEnd do
+            local i = #cells + 1
+
             ---@type Cell
             local cell = Cell.new(cellWidth * dx, cellHeight * dy, neurons[i].value, neuronType)
             cells[#cells + 1] = cell
-            i = i + 1
         end
+    end
+
+    return cells
+end
+
+local function drawOutputs(outputNeurons, buttonOutputs, cells)
+    local buttonHeight = 8
+
+    for o, outputNeuron in pairs(outputNeurons) do
+        -- Print outputs X, Y, up down.. in a row
+        local y = 30 + (buttonHeight * o)
+        ---@type Cell
+        local cell = Cell.new(220, y, outputNeuron.value, NeuronType.OUTPUT)
+        cells[#cells + 1] = cell
+        local color = cell.value > 0 and blue or black
+
+        -- draw the programs outputs (E.G X button). Black if not pressed, blue if pressed
+        gui.drawText(223, (y - 6), buttonOutputs[o], color, 9)
     end
 
     return cells
@@ -76,24 +98,107 @@ local function findCellFromGene(haystack, needle)
     return cells[needle.index]
 end
 
+-- Creates a 2d array of Cell's based on the neurons passed
+---@param neurons Neuron[]
+---@return Cell[]
+function Display.getCells(neurons, width, height, neuronType, isDisplayVertical)
+    ---@type Cell[]
+    local cells
+
+    -- display beginning cell at position xStart * cellWidth, yStart * cellHeight
+    local xStart = 4
+    local yStart = 8
+    local cellWidth = 5
+    local cellHeight = 5
+    local xEnd = xStart + (width - 1)
+    local yEnd = yStart + (height - 1)
+
+    if (width * height) > #neurons then
+        error('Cannot get CellInputs, values were too large.')
+    end
+
+    cells = isDisplayVertical
+            and  getCellsAsVertical(xStart, xEnd, yStart, yEnd, cellWidth, cellHeight, neuronType, neurons)
+            or getCellsAsHorizontal(xStart, xEnd, yStart, yEnd, cellWidth, cellHeight, neuronType, neurons)
+
+    return cells
+end
+
+-- TODO: !IMPORTANT
+-- TODO: Dumb to have different methods for each. Just doing this for testing...
 ---@param genome Genome
 ---@param programViewWidth number
 ---@param programViewHeight number
 ---@param buttonOutputs string[]
 ---@param showMutationRates boolean
-function Display.displayGenome(genome, programViewWidth, programViewHeight, buttonOutputs, showMutationRates)
+function Display.displayGenomeTetrisAttack(genome, buttonOutputs, showMutationRates, position)
+    -- TODO:
+    local programViewHeight = 12
+    local programViewWidth = 6
+    local programViewBlockWidth = 5
+
     ---@type Network
     local network = genome.network
     ---@type Cell[]
-    local cells = Display.getCells(network.inputNeurons, programViewWidth, programViewHeight, NeuronType.INPUT)
+    local cells = Display.getCells(network.inputNeurons, programViewWidth, programViewHeight, NeuronType.INPUT, true)
     -- Bias cell/node is a special input neuron that is always active
     ---@type Cell
     local biasCell = Cell.new(80, 110, network.biasNeuron.value, NeuronType.BIAS)
     cells[#cells + 1] = biasCell
 
-    local numAdjustmentIterations = 4
-    local preservationWeight = 0.75
-    local explorationWeight = 0.25
+    local lineColour = Colour.BLACK
+    local backgroundColour = Colour.GREY
+    local startX = 17
+    local startY = 37
+    local endX = startX + (programViewWidth * programViewBlockWidth)
+    local endY = startY + (programViewHeight * programViewBlockWidth)
+
+    -- Draw the background of the input-displays view
+    gui.drawBox(startX,
+            startY,
+            endX,
+            endY,
+            lineColour,
+            backgroundColour)
+
+    for _, celln in pairs(cells) do
+        -- don't display inputs with a 0 value
+        if celln.neuronType ~= NeuronType.INPUT or celln.value ~= 0 then
+            local color
+            local opacity = celln.value == 0 and 0x50000000 or 0xFF000000
+
+            if celln.neuronType == NeuronType.INPUT then
+                if celln.value == TetrisAttackInputType.HEART then
+                    color = 'Crimson'
+                elseif celln.value == TetrisAttackInputType.SQUARE then
+                    color = 'Lime'
+                elseif celln.value == TetrisAttackInputType.TRIANGLE then
+                    color = 'Aqua'
+                elseif celln.value == TetrisAttackInputType.STAR then
+                    color = 'Gold'
+                elseif celln.value == TetrisAttackInputType.DIAMOND then
+                    color = 'Magenta'
+                elseif celln.value ~= 0 and celln.neuronType == NeuronType.INPUT then
+                    --ErrorHandler.error('Unknown cell type. Value: ' ..
+                    --        celln.value .. ' cell type: ' .. celln.neuronType)
+                end
+            else
+                color = math.floor(((celln.value + 1) / 2) * 256)
+                if color > 255 then color = 255 end
+                if color < 0 then color = 0 end
+
+                color = opacity + (color*0x10000) + (color*0x100) + color
+            end
+
+            -- draw the input neuron cell
+            gui.drawBox(celln.x-2, celln.y-2, celln.x+2, celln.y+2, 0xFF000000, color)
+        end
+    end
+
+    local playerX = 11 + (4 + (5 * position.x))
+    local playerY = 32 + (8 + (5 * position.y))
+
+    gui.drawBox(playerX-2, playerY-2, playerX+7, playerY+2, 0xFF000000, 0x52FF72FF)
 
     for o, outputNeuron in pairs(network.outputNeurons) do
         local buttonHeight = 8
@@ -107,6 +212,34 @@ function Display.displayGenome(genome, programViewWidth, programViewHeight, butt
         -- draw the programs outputs (E.G X button). Black if not pressed, blue if pressed
         gui.drawText(223, (y - 6), buttonOutputs[o], color, 9)
     end
+
+    for _,neuron in pairs(network.processingNeurons) do
+        local cell = Cell.new(140, 40, neuron.value, NeuronType.PROCESSING)
+        cells[#cells + 1] = cell
+    end
+end
+
+---@param genome Genome
+---@param programDisplaySettings DisplaySettings
+---@param buttonOutputs string[]
+---@param showMutationRates boolean
+function Display.displayGenome(genome, programDisplaySettings, buttonOutputs, showMutationRates)
+    ---@type Network
+    local network = genome.network
+    ---@type Cell[]
+    local cells = Display.getCells(network.inputNeurons, programDisplaySettings.width,
+            programDisplaySettings.height, NeuronType.INPUT,
+            programDisplaySettings.orientation == Orientation.VERTICAL)
+    -- Bias cell/node is a special input neuron that is always active
+    ---@type Cell
+    local biasCell = Cell.new(80, 110, network.biasNeuron.value, NeuronType.BIAS)
+    cells[#cells + 1] = biasCell
+
+    local numAdjustmentIterations = 4
+    local preservationWeight = 0.75
+    local explorationWeight = 0.25
+
+    cells = drawOutputs(network.outputNeurons, buttonOutputs, cells)
 
     for _,neuron in pairs(network.processingNeurons) do
         local cell = Cell.new(140, 40, neuron.value, NeuronType.PROCESSING)

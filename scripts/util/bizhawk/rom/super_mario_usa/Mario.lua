@@ -5,6 +5,8 @@ local SMW = require('util.bizhawk.rom.super_mario_usa.SMW')
 local MarioInputType = require('util.bizhawk.rom.super_mario_usa.MarioInputType')
 local Button = require('machinelearning.ai.model.game.Button')
 local Position = require('machinelearning.ai.model.game.Position')
+local DisplaySettings = require('display.DisplaySettings')
+local Orientation = require('display.Orientation')
 
 -- luacheck: globals memory
 
@@ -12,21 +14,23 @@ local romGameName = 'Super Mario World (USA)'
 -- No need for both Y and X since they do the same thing.
 local buttons = { Button.A, Button.B, Button.X, Button.UP, Button.DOWN, Button.LEFT, Button.RIGHT }
 local marioGameTileSize = 16
+local numberOfInputs = 169
+-- used for our AI's 'view', the overlay
+local displaySettings = DisplaySettings.new(Orientation.HORIZONTAL,  13, 13)
 
 -- https://www.smwcentral.net/?p=memorymap&game=smw&u=0&address=000095&
 local xPositionInMemory = 0x94
 local yPositionMemory = 0x96
 
 local timeoutConstant = 20
-local winBonus = 1000
+local winBonus = 100
 local deathBonus = 0
 
-local lastPosition = Position.new(-1, -1)
-local rightMost = -1
+Mario.rightMost = -1
 
-function Mario.reset()
-    rightMost = -1
-    lastPosition = Position.new(-1, -1)
+function Mario:reset()
+    self.rightMost = -1
+    self.lastPosition = Position.new(-1, -1)
 end
 
 function Mario.getRomName()
@@ -39,7 +43,7 @@ function Mario.getButtonOutputs()
 end
 
 ---@return Position
-function Mario.getPositions()
+function Mario.getPosition()
     -- Read Signed 16 Little Endian
     local marioX = memory.read_s16_le(xPositionInMemory)
     local marioY = memory.read_s16_le(yPositionMemory)
@@ -47,21 +51,21 @@ function Mario.getPositions()
     return Position.new(marioX, marioY)
 end
 
-function Rom.hasMovedInProgressingWay(newPosition)
-    return newPosition.x > lastPosition.x
+function Mario:hasMovedInProgressingWay(newPosition)
+    return newPosition.x > self.lastPosition.x
 end
 
 ---@param position Position
-function Mario.setLastPosition(position)
-    lastPosition = position
+function Mario:setLastPosition(position)
+    self.lastPosition = position
 
-    if position.x > rightMost then
-        rightMost = position.x
+    if position.x > self.rightMost then
+        self.rightMost = position.x
     end
 end
 
 function Mario.getTile(offsetX, offsetY)
-    local positions = Mario.getPositions()
+    local positions = Mario.getPosition()
 
     -- Calculate the adjusted x and y positions based on the offsets and Mario's position
     -- add 8 to the 'x' position to get Mario's center
@@ -155,7 +159,7 @@ end
 ---@return MarioInputType[]
 function Mario.getInputs(programViewWidth, programViewHeight)
     local tileSize = marioGameTileSize
-    local position = Mario.getPositions()
+    local position = Mario.getPosition()
 
     local sprites = Mario.getSprites()
     local extended = Mario.getExtendedSprites()
@@ -215,8 +219,8 @@ function Mario.isDead()
     return lockAnimationFlag and lockAnimationFlag ~= 0
 end
 
-function Mario.calculateFitness(_, currentFrame)
-    return rightMost - (currentFrame / 2)
+function Mario:calculateFitness(_, currentFrame)
+    return self.rightMost - (currentFrame / 2)
 end
 
 function Mario.getWinBonus()
@@ -227,8 +231,17 @@ function Mario.getDeathBonus()
     return deathBonus
 end
 
-function Rom.getTimeoutConstant()
+function Mario.getTimeoutConstant()
     return timeoutConstant
+end
+
+function Mario.getNumberOfInputs()
+    return numberOfInputs
+end
+
+---@return DisplaySettings
+function Mario.getDisplaySettings()
+    return displaySettings
 end
 
 return Mario

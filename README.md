@@ -9,9 +9,10 @@ Program can be used to learn **any SNES/NES game**. The ROM.lua class just needs
 
 Quick Start
 -----------  
-Download bizhawk: https://tasvideos.org/Bizhawk   
+Download bizhawk: https://tasvideos.org/Bizhawk     
 Download ROM for game (E.G SMW)  
-Run the game, and create a `.state` file, at the beginning of the level, give it a name and save it to `/asserts/savedstates/nameoffile.state`  
+Run the ROM in bizhawk (File -> Open ROM)  
+Get to the beginning of a level (or whatever state in the game you want) and create a `.state` file by going to `file -> save state -> save named  state..`. Give it a name and save it to THIS project directory, in `/asserts/savedstates/nameoffile.state`  
 Change the `saveFileName` inside `NEATEvolve.lua` to have the filename E.G: `saveFileName = SMW.state`  
 Run Lua script: `source/NEATEvolve.lua` in Bizhawk  
 Optionally set speed to 400x in Bizhawk for faster learning (Config -> Speed/Skip -> 400x)  
