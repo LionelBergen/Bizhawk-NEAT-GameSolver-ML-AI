@@ -56,7 +56,7 @@ local form = Forms.createNewForm(800, 700, "NEAT Program")
 local showNetwork = Forms.createCheckbox(form, "SHOW NETWORK:", 5, 30, 148)
 local showMutationRates = Forms.createCheckbox(form, "SHOW MUTATION RATES:", 5, 80, 148)
 local showBanner = Forms.createCheckbox(form, "SHOW BANNER", 5, 130, 148)
-local textBoxProgramName = Forms.createTextBox(form, "PROGRAM NAME: ", 0, 280, 158)
+local textBoxProgramName = Forms.createTextBox(form, "PROGRAM NAME: ", 0, 280, 108)
 local _, changeProgramNameFunctionIndex = Forms.createButton(form, "RELOAD", 278, 280, 150, 56)
 local textBoxLoadBackup = Forms.createTextBox(form, "BACKUP #: ", 0, 310, 78)
 local autoSaveBackups = Forms.createCheckbox(form, "AUTO SAVE BACKUPS", 5, 380, 188)
@@ -240,8 +240,13 @@ local reloadProgramFunction = function()
 
 		local backupFileName = GameHandler.getBackupFileName(poolSavesFolder, backupNumberInt)
 		if backupFileName == nil then
+
+
+
+			ErrorHandler.error("*********************")
 			ErrorHandler.error('Could not find backup ' .. backupNumberInt ..
 					' in folder ' .. poolSavesFolder)
+			ErrorHandler.error("*********************")
 		end
 		loadFileAndInitialize(poolSavesFolder .. backupFileName, neatMLAI)
 
@@ -276,12 +281,16 @@ MathUtil.init(seed)
 Forms.registerOnClickFunction(changeProgramNameFunctionIndex, reloadProgramFunction)
 FileUtil.createDirectory(poolSavesFolder)
 
--- set exit function to destroy the form
+-- Set exit function to destroy the form
 event.onexit(onExit)
+
+-- Used for setting defaults
+local _, latestBackup = GameHandler.getLatestBackupFile(poolSavesFolder)
 
 -- Set defaults
 forms.setproperty(showBanner, "Checked", true)
 forms.settext(textBoxProgramName, machineLearningProgramRunName)
+forms.settext(textBoxLoadBackup, latestBackup)
 forms.setproperty(autoSaveBackups, "Checked", true)
 forms.setproperty(showNetwork, "Checked", true)
 
