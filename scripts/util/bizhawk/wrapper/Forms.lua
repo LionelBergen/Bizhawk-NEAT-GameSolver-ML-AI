@@ -89,7 +89,7 @@ function Forms.createTextBox(form, caption, x, y, captionWidth)
     end
 
     if x and y then
-        return forms.textbox(form, nil, 20, nil, x, y)
+        return forms.textbox(form, caption, nil, nil, nil, x - 0, y)
     elseif x then
         return forms.textbox(form, x)
     else
